@@ -4,12 +4,15 @@ class Config:
     def __init__(self, expr):
         print('Creating config with', expr)
         self.expr = expr # computation
-        self.fus = False # False -> unfused; True -> fused
-        self.pro = None  # schedule for producer
-        self.con = None  # schedule for consumer
+        self.fused = False # False -> unfused; True -> fused
+        self.prod = None  # schedule for producer
+        self.cons = None  # schedule for consumer
 
-    def subconfig(self, pro, con, fus):
+    def subconfig(self, prod, cons, fused):
         # assigning subschedules
-        self.fus = fus
-        self.pro = pro
-        self.con = con
+        self.fused = fused
+        self.prod = prod
+        self.cons = cons
+
+    def accept(self, visitor):
+        visitor.visit(self)

@@ -54,7 +54,3 @@ def sched_enum(expr):
     return scheds
 
 
-schedules = sched_enum(['a','b','c','d'])
-
-for schedule in schedules:
-    print(schedule)
