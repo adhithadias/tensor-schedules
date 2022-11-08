@@ -10,7 +10,9 @@ class PrintConfigVisitor(Visitor):
         self.tabs = 0
     
     def visit(self, config):
-        print('\t'*self.tabs, '|', config.expr, 'fused:', config.fused)
+        print('\t'*self.tabs, '|', config.expr, 
+            'fused:', config.fused,
+            'idx_pattern:', config.idx_pattern)
         self.tabs += 1
         if (config.prod != None): self.visit(config.prod)
         if (config.cons != None): self.visit(config.cons)
