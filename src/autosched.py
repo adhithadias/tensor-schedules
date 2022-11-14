@@ -158,15 +158,15 @@ def sched_enum(expr, output_idx_order, tensor_accesses):
         for s1 in pre_sched:
             for s2 in post_sched:
                 # create unfused schedule
-                # x = unfused(expr, output_idx_order, s1, s2)
-                # scheds.extend(x)
+                x = unfused(expr, output_idx_order, s1, s2)
+                scheds.extend(x)
                 
                 # create fused schedules
                 # is it fusible?
-                y = fused(expr, output_idx_order, s1, s2) # s1 producer
+                y = fused(expr, output_idx_order, s1, s2) # s1 producer, s2 consumer
                 scheds.extend(y)
-                # z = fused(expr, s2, s1) # s2 producer
-                # scheds.append(z)
+                z = fused(expr, output_idx_order, s2, s1) # s2 producer, s1 consumer
+                scheds.extend(z)
     
     #return all schedules
     return scheds
