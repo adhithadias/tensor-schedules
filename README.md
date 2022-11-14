@@ -1,5 +1,8 @@
 ## Scheduling Tensor Expressions
 
+## Setup inputs
+For a given tensor contraction, change the accesses dictionary in src.main file
+
 ## To Run the Program
 
 ```bash
