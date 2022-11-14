@@ -24,10 +24,8 @@ def get_input_idx_list(expr: list, tensor_accesses: dict):
         for idx in idxes:
             assert type(idx) == str
             idx_set.add(idx)
-         # print(idxes)
-    # print('indices set:', idx_set)
+        
     idx_set = list(idx_set)
-    # print('indices list:', idx_set)
     return idx_set
 
 def append_list_to_list_of_lists(l1: list, l2: list):
@@ -47,12 +45,9 @@ def get_all_combinations(l1: list, l2: list):
     for idx in l1:
         new_queue = []
         while (len(queue) != 0):
-            # print(queue)
             elem = queue.pop(0)
-            # print(elem)
             for i in range(len(elem)+1):
                 ln = copy_and_insert(elem, i, idx)
-                # print(ln)
                 new_queue.append(ln)
         queue = new_queue
     return queue
