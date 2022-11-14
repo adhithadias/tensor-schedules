@@ -2,7 +2,7 @@
 # This is a representation of schedule
 class Config:
     def __init__(self, expr, output_idx_order = None, input_idx_order = None, fused = False):
-        print('Creating config with', expr, 'fused', fused, 'output_idx_order', output_idx_order, 'input_idx_order', input_idx_order)
+        # print('Creating config with', expr, 'fused', fused, 'output_idx_order', output_idx_order, 'input_idx_order', input_idx_order)
         self.expr = expr # computation
         self.fused = fused # False -> unfused; True -> fused
         self.output_idx_order = output_idx_order
@@ -12,8 +12,7 @@ class Config:
 
     def subconfig(self, prod, cons, fused):
         # assigning subschedules
-        print('Updating config with', self.expr, 'fused', fused, 'output_idx_order', self.output_idx_order, 'input_idx_order', self.input_idx_order,
-            'prod', prod, 'cons', cons)
+        # print('Updating config with', self.expr, 'fused', fused, 'output_idx_order', self.output_idx_order, 'input_idx_order', self.input_idx_order, 'prod', prod, 'cons', cons)
         self.fused = fused
         self.prod = prod
         self.cons = cons

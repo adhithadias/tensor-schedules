@@ -135,9 +135,9 @@ def define_data_layout(output_idx_order, pre_expr, post_expr, tensor_accesses):
     set_output_and_post = [idx for idx in output_idx_order if idx in post_expr_indices]
     set_pre_and_post = [idx for idx in pre_expr_indices if idx in post_expr_indices]
 
-    print(set_output_and_pre)
-    print(set_pre_and_post)
-    print(set_output_and_post)
+    # print(set_output_and_pre)
+    # print(set_pre_and_post)
+    # print(set_output_and_post)
     # TODO - different data layouts can be considerd here
     pre_inds = union_list(set_output_and_pre, set_pre_and_post) # 
     post_inds = union_list(set_pre_and_post, set_output_and_post) # list(set(set_pre_and_post) | set(set_output_and_post))
