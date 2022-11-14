@@ -12,8 +12,6 @@ def unfused(expr, output_index_order, prod_config, cons_config):
     '''
     prod_output_idx_order = prod_config.output_idx_order
     cons_output_idx_order = cons_config.output_idx_order
-    # print('prod_output_idx_order:', prod_output_idx_order)
-    # print('cons_output_idx_order:', cons_output_idx_order)
     idxes = list(set(prod_output_idx_order) | set(cons_output_idx_order))
     idx_perms = list(itertools.permutations(idxes))
 
@@ -28,28 +26,14 @@ def unfused(expr, output_index_order, prod_config, cons_config):
 # Input -> Two configs; Output -> One config
 def fused(expr, output_idx_order, prod_config, cons_config):
     i = 0
-    # print('||||||||||||||||||||| fused', expr, output_idx_order, prod_config.expr, cons_config.expr)
-    # print('prod_config', 'expr', prod_config.expr, 'output_idx_order', prod_config.output_idx_order, 
-    #     'input_idx_order', prod_config.input_idx_order)
-    # print('cons_config', 'expr', cons_config.expr, 'output_idx_order', cons_config.output_idx_order, 
-    #     'input_idx_order', cons_config.input_idx_order)
-
     # add additional indices in output_idx_order to cons_config.input_idx_order
     # because that defines all the loops in the final computation
-    # TODO - generalize this to support multiple elements
-    # print(cons_config.input_idx_order)
     cons_config_input_idx_order = get_idxes_in_config(cons_config.input_idx_order)
     # output_idx_order is a linear list of indices without branches
     # cons_config.input_idx_order can contain branches
     idx_only_in_output = [idx for idx in output_idx_order if idx not in cons_config_input_idx_order]
-    # print('idx_only_in_output', idx_only_in_output)
-    # idx_only_in_output = idx_only_in_output[0]
-    # print(idx_only_in_output)
-    # # now these indices can be added to different locations in cons_config.input_idx_order
-    # # up to the point branching happens if there are any
-
-    # n_cons_input_idx_order = [copy_and_insert(cons_config.input_idx_order, 0, idx_only_in_output)]
-    # # [list(cons_config.input_idx_order).insert(0, idx_only_in_output)]
+    # now these indices can be added to different locations in cons_config.input_idx_order
+    # up to the point branching happens if there are any
 
     i = 0
     # find the point where branching happens, if there is branching
@@ -58,29 +42,21 @@ def fused(expr, output_idx_order, prod_config, cons_config):
             break
 
     linear_list = cons_config.input_idx_order[:i]
-    # print(linear_list)
     perms = get_all_permutations(idx_only_in_output, linear_list)
     post_list = cons_config.input_idx_order[i:]
     perms = append_list_to_list_of_lists(perms, post_list)
 
-    # print('***********************', perms)
-
     fused_scheds = []
 
     for cons_order in perms:
-        # print('cons_order:', cons_order, 'prod_order:', prod_config.input_idx_order)
 
         i = 0
         for i in range(min(len(prod_config.input_idx_order), len(cons_order))):
-            # print(type(prod_config.input_idx_order[i]), type(cons_order[i]))
             if (isinstance(prod_config.input_idx_order[i], str) and 
                 isinstance(cons_order[i], str) and
                 prod_config.input_idx_order[i] == cons_order[i]):
-                # print('true ------------------- i:', i)
-                # print(output_idx_order, prod_config.input_idx_order, cons_order, cons_order[i])
                 continue
             else:
-                # print('false ------------------- i:', i)
                 i += 1
                 break
 
@@ -92,18 +68,13 @@ def fused(expr, output_idx_order, prod_config, cons_config):
         # to the break case and splicing the arrays at i-1 location
 
         common_loops = prod_config.input_idx_order[:i-1]
-        # print('common_loops:', common_loops)
         prod_loops = prod_config.input_idx_order[i-1:]
         cons_loops = cons_order[i-1:]
-        # print('prod_loops:', prod_loops)
-        # print('cons_loops:', cons_loops)
 
         in_idx_order = []
         in_idx_order.extend(common_loops)
         in_idx_order.extend([prod_loops, cons_loops])
 
-        # TODO - correctly set the input index order from prod_config.input_idx_order and 
-        # cons_config.input_idx_order
         fus = Config(expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True)
         fus.subconfig(prod_config, cons_config, True)
         fused_scheds.append(fus)
@@ -111,10 +82,10 @@ def fused(expr, output_idx_order, prod_config, cons_config):
     return fused_scheds
 
 
-# TODO - proof reorder and tensor breakdown is equal to 
+# TODO (paper) - proof reorder and tensor breakdown is equal to 
 # tensor breakdown and reordering smaller tensor contractions
 
-# TODO - we will use the 2nd method and give a proof in the paper
+# TODO (paper) - we will use the 2nd method and give a proof in the paper
 # that they cover the entirity of the scheduling space
 
 # Schedule enumeration
@@ -123,13 +94,9 @@ def sched_enum(expr, output_idx_order, tensor_accesses):
     # Input is the expression or computation
     # This is something like [A, B, C, D]
 
-    # print('--- sched_enum |', expr, output_idx_order)
     # Output is a list of schedule configs
     idx_set = get_input_idx_list(expr, tensor_accesses)
-    
     idx_perms = list(itertools.permutations(idx_set))
-    # print('permutation length:', len(idx_perms))
-    # print('permutations:', idx_perms)
 
     scheds = []
     for input_idx_order in idx_perms:
@@ -143,7 +110,6 @@ def sched_enum(expr, output_idx_order, tensor_accesses):
     for i in range(1, len(expr)):
         # Now break the expression into smaller ones
         pre_expr, post_expr = expr[:i], expr[i:]
-        # print(pre_expr, post_expr)
 
         # get the list of schedules for pre and post expr
         # TODO - need to pass the output indexes to both sched_enum calls
