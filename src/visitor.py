@@ -1,4 +1,4 @@
-from config import Config
+from src.config import Config
 
 class Visitor:
     def __str__(self):
@@ -11,11 +11,10 @@ class PrintConfigVisitor(Visitor):
     
     def visit(self, config):
         print('\t'*self.tabs, '|', config.expr, 
-            'fused:', config.fused,
-            'idx_pattern:', config.idx_pattern)
+            'fused:', config.fused, '|'
+            'output_idx_order:', config.output_idx_order,
+            'input_idx_order:', config.input_idx_order)
         self.tabs += 1
         if (config.prod != None): self.visit(config.prod)
         if (config.cons != None): self.visit(config.cons)
         self.tabs -= 1
-
-
