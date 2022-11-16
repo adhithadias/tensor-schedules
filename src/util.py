@@ -1,4 +1,5 @@
 import itertools
+import copy
 
 def get_idxes_up_to_branching_point(input_idx_order):
     l_linear = []
@@ -52,6 +53,11 @@ def copy_and_insert(l: list, pos: int, new_obj):
     nl.insert(pos, new_obj)
     return nl
 
+def deepcopy_and_insert(l: list, pos: int, new_obj):
+    nl = copy.deepcopy(l)
+    nl.insert(pos, new_obj)
+    return nl
+
 def get_all_combinations(l1: list, l2: list):
     queue = [l2]
     for idx in l1:
@@ -59,6 +65,7 @@ def get_all_combinations(l1: list, l2: list):
         while (len(queue) != 0):
             elem = queue.pop(0)
             for i in range(len(elem)+1):
+                # might need to use deepcopy_and_insert
                 ln = copy_and_insert(elem, i, idx)
                 new_queue.append(ln)
         queue = new_queue
