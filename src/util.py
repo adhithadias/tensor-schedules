@@ -1,5 +1,17 @@
 import itertools
 
+def get_idxes_up_to_branching_point(input_idx_order):
+    l_linear = []
+    l_branched = []
+    # find the point where branching happens, if there is branching
+    for elem in input_idx_order:
+        if (isinstance(elem, str)):
+            l_linear.append(elem)
+        else: 
+            l_branched.append(elem)
+
+    return l_linear, l_branched
+
 # ['j', ['k'], ['m', 'l', 'k']]
 def get_idxes_in_config(input_idx_order):
     indices = set()

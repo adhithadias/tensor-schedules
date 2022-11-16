@@ -35,15 +35,9 @@ def fused(expr, output_idx_order, prod_config, cons_config):
     # now these indices can be added to different locations in cons_config.input_idx_order
     # up to the point branching happens if there are any
 
-    i = 0
     # find the point where branching happens, if there is branching
-    for i in range(len(cons_config.input_idx_order)):
-        if (not isinstance(cons_config.input_idx_order[i], str)):
-            break
-
-    linear_list = cons_config.input_idx_order[:i]
+    linear_list, post_list = get_idxes_up_to_branching_point(cons_config.input_idx_order)
     perms = get_all_permutations(idx_only_in_output, linear_list)
-    post_list = cons_config.input_idx_order[i:]
     perms = append_list_to_list_of_lists(perms, post_list)
 
     fused_scheds = []
@@ -51,17 +45,20 @@ def fused(expr, output_idx_order, prod_config, cons_config):
     for cons_order in perms:
 
         i = 0
-        for i in range(min(len(prod_config.input_idx_order), len(cons_order))):
-            if (isinstance(prod_config.input_idx_order[i], str) and 
+        common_loops_found = False
+        for i in range(max(len(prod_config.input_idx_order), len(cons_order))):
+            if (i < min(len(prod_config.input_idx_order), len(cons_order)) and 
+                isinstance(prod_config.input_idx_order[i], str) and 
                 isinstance(cons_order[i], str) and
                 prod_config.input_idx_order[i] == cons_order[i]):
+                common_loops_found = True
                 continue
             else:
                 i += 1
                 break
 
         # continue for the next order if no common indices are found
-        if i <= 1: continue 
+        if not common_loops_found: continue 
 
         # break doesn't increase the i count while continue does increase
         # handle the case where there are no common indices added i+=1
