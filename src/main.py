@@ -1,5 +1,5 @@
-from autosched import sched_enum
-from visitor import PrintConfigVisitor
+from src.autosched import sched_enum
+from src.visitor import PrintConfigVisitor
 
 # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
 accesses = {
@@ -9,8 +9,23 @@ accesses = {
     'C': ['k', 'l'],
     'D': ['l', 'm']
 }
-schedules = sched_enum(['A','B','C','D'], accesses)
+schedules = sched_enum(['A','B','C','D'], accesses['X'], accesses)
+
+# # X(i,l) = A(i,j) * B(j,k) * C(k,l)
+# accesses = {
+#     'X': ['i', 'l'],
+#     'A': ['i', 'j'],
+#     'B': ['j', 'k'],
+#     'C': ['k', 'l']
+# }
+# schedules = sched_enum(['A','B','C'], accesses['X'], accesses)
 printer = PrintConfigVisitor()
+
+print('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
+print(len(schedules))
+print('/**************************************************************************/')
+print('/********************** PRINTING SCHEDULES ********************************/')
+print('/**************************************************************************/')
 
 for schedule in schedules:
     schedule.accept(printer)
