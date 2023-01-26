@@ -3,6 +3,20 @@
 ## Setup inputs
 For a given tensor contraction, change the accesses dictionary in src.main file
 
+## To Activate the Virtual Environment
+```bash
+# create virtual environment
+python3 -m venv .venv
+
+# activate the python virtual environment
+source ./.venv/bin/activate
+
+# freeze packages
+pip > freeze > requirements.txt
+# install packages from the requirements.txt
+pip install -r requirements.txt
+```
+
 ## To Run the Program
 
 ```bash
