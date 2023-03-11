@@ -421,4 +421,4 @@ class Graph(Network):
         for node in all_nodes:
           match = re.search(str_ordering, str(node["input_idx_order"]).replace("'", "").replace(" ", "")[1:-1])
           if match != None:
-            super().add_edge(node["ID"], node_id, value=25)
+            super().add_edge(node["ID"], node_id, value=25, title="FUSION")
