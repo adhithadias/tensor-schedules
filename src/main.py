@@ -9,7 +9,7 @@ accesses = {
     'C': ['k', 'l'],
     'D': ['l', 'm']
 }
-schedules = sched_enum(['A','B','C','D'], accesses['X'], accesses)
+schedules = sched_enum('X', ['A','B','C','D'], accesses['X'], accesses)
 
 # # X(i,l) = A(i,j) * B(j,k) * C(k,l)
 # accesses = {
@@ -19,7 +19,7 @@ schedules = sched_enum(['A','B','C','D'], accesses['X'], accesses)
 #     'C': ['k', 'l']
 # }
 # schedules = sched_enum(['A','B','C'], accesses['X'], accesses)
-printer = PrintConfigVisitor()
+printer = PrintConfigVisitor(accesses)
 
 print('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
 print(len(schedules))

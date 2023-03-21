@@ -4,7 +4,7 @@ import itertools
 			
 # Producing a config of unfused schedules
 # Input -> Two configs; Output -> One config
-def unfused(expr, output_index_order, prod_config, cons_config):
+def unfused(output: str, expr, output_index_order, prod_config, cons_config):
     '''
     get prod_config.output_idx_order and cons_config.output_idx_order
     prod_config.output_idx_order * cons_config.output_idx_order defines 
@@ -17,14 +17,14 @@ def unfused(expr, output_index_order, prod_config, cons_config):
 
     unfused_schedules = []
     for idx_perm in idx_perms:
-        unfus = Config(expr, output_idx_order = output_index_order, input_idx_order = idx_perm, fused = False)
+        unfus = Config(output, expr, output_idx_order = output_index_order, input_idx_order = idx_perm, fused = False)
         unfus.subconfig(prod_config, cons_config, False)
         unfused_schedules.append(unfus)
     return unfused_schedules
 	
 # Producing a config of fused schedules
 # Input -> Two configs; Output -> One config
-def fused(expr, output_idx_order, prod_config, cons_config):
+def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on_left):
     i = 0
     # add additional indices in output_idx_order to cons_config.input_idx_order
     # because that defines all the loops in the final computation
@@ -72,7 +72,7 @@ def fused(expr, output_idx_order, prod_config, cons_config):
         in_idx_order.extend(common_loops)
         in_idx_order.extend([prod_loops, cons_loops])
 
-        fus = Config(expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True)
+        fus = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True, prod_on_left = prod_on_left)
         fus.subconfig(prod_config, cons_config, True)
         fused_scheds.append(fus)
 
@@ -87,9 +87,12 @@ def fused(expr, output_idx_order, prod_config, cons_config):
 
 # Schedule enumeration
 # Input -> A tensor expression; Output -> list of configs
-def sched_enum(expr, output_idx_order, tensor_accesses):
+def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses: dict) -> list:
     # Input is the expression or computation
     # This is something like [A, B, C, D]
+    assert isinstance(output, str)
+    assert all(isinstance(output_idx, str) for output_idx in output_idx_order)
+    assert all(isinstance(tensor_var, str) for tensor_var in expr)
 
     # Output is a list of schedule configs
     idx_set = get_input_idx_list(expr, tensor_accesses)
@@ -97,7 +100,8 @@ def sched_enum(expr, output_idx_order, tensor_accesses):
 
     scheds = []
     for input_idx_order in idx_perms:
-        nconf = Config(expr, output_idx_order = output_idx_order, input_idx_order = list(input_idx_order), fused = True)
+        # perfectly linear loop order is considered as fused = True
+        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = list(input_idx_order), fused = True)
         scheds.append(nconf)
 
     # The base condition
@@ -113,21 +117,22 @@ def sched_enum(expr, output_idx_order, tensor_accesses):
         # since this is a sub module 
         pre_ind, post_ind = define_data_layout(output_idx_order, pre_expr, post_expr, tensor_accesses)
 
-        pre_sched = sched_enum(pre_expr, pre_ind, tensor_accesses)
-        post_sched = sched_enum(post_expr, post_ind, tensor_accesses)
+        pre_sched = sched_enum("_" + output, pre_expr, pre_ind, tensor_accesses)
+        post_sched = sched_enum(output + "_", post_expr, post_ind, tensor_accesses)
 
         # create all possible schedules
         for s1 in pre_sched:
             for s2 in post_sched:
                 # create unfused schedule
-                x = unfused(expr, output_idx_order, s1, s2)
+                # fused = False schedules are created here
+                x = unfused(output, expr, output_idx_order, s1, s2)
                 scheds.extend(x)
                 
                 # create fused schedules
                 # is it fusible?
-                y = fused(expr, output_idx_order, s1, s2) # s1 producer, s2 consumer
+                y = fused(output, expr, output_idx_order, s1, s2, True) # s1 producer, s2 consumer
                 scheds.extend(y)
-                z = fused(expr, output_idx_order, s2, s1) # s2 producer, s1 consumer
+                z = fused(output, expr, output_idx_order, s2, s1, False) # s2 producer, s1 consumer
                 scheds.extend(z)
     
     #return all schedules
