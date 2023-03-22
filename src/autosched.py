@@ -36,6 +36,8 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
     # up to the point branching happens if there are any
 
     # find the point where branching happens, if there is branching
+    # ['i', 'j', ['k'], ['l']]
+    # linear_list = ['i', 'j']; post_list = [['k'], ['l']]
     linear_list, post_list = get_idxes_up_to_branching_point(cons_config.input_idx_order)
     perms = get_all_permutations(idx_only_in_output, linear_list)
     perms = append_list_to_list_of_lists(perms, post_list)
@@ -135,7 +137,7 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
                 s1 = pre_sched[i]
                 s2 = post_sched[j]
                 # print("s1:", s1, "s2:", s2)
-                if ((i * len(post_sched) + j) % 10000 == 0): print(i,j)
+                if ((i * len(post_sched) + j) % 10000 == 0): print(i, j, "s1:", s1, "s2:", s2)
                 # create unfused schedule
                 # fused = False schedules are created here
                 unfused(output, expr, output_idx_order, s1, s2, scheds)
