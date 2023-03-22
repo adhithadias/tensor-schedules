@@ -39,11 +39,11 @@ else:
         'E': ['k', 'n']
     }
     tensor_idx_order_constraints = {
-        'A': [('j', 'i'), ('k','j'), ('k','i')],
-        'B': [],
-        'C': [],
-        'D': [],
-        'E': []
+        'B': [('j', 'i'), ('k','j'), ('k','i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
     }
     sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
 
