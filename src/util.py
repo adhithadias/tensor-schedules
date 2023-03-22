@@ -160,3 +160,31 @@ def define_data_layout(output_idx_order, pre_expr, post_expr, tensor_accesses):
     return (pre_inds, post_inds)
 
 
+
+def is_valid_idx_perm(idx_perm: list, tensor_idx_order_constraints: dict, input_tensors: list, output_tensor: str) -> bool:
+    assert all([type(idx) == str for idx in idx_perm])
+
+    # expr contains the list of tensors in the expression that the 
+    # index constraints should be satisfied
+    constraint_pairs = set()
+    pair_list = tensor_idx_order_constraints[output_tensor] if output_tensor in tensor_idx_order_constraints else None
+    if pair_list is not None and len(pair_list) != 0:
+        for constraint_pair in pair_list:
+            constraint_pairs.add(constraint_pair)
+    for t in input_tensors:
+        pair_list = tensor_idx_order_constraints[t] if t in tensor_idx_order_constraints else None
+        if pair_list is None or len(pair_list) == 0: continue
+        for constraint_pair in pair_list:
+            constraint_pairs.add(constraint_pair)
+
+    # create ordered pairs of indices in the idx_perm
+    # if the idx_perm is i,j,k,l check all pairs
+    # (i,j), (i,k), (i,l), (j,k), (j,l), (k,l) exists in the constraint_pairs
+    # idx_pairs = {}
+    for i in range(len(idx_perm)-1):
+        for j in range(i+1, len(idx_perm)):
+            if ((idx_perm[i], idx_perm[j]) in constraint_pairs):
+                # idx_pairs.add((idx_perm[i], idx_perm[j]))
+                return False
+                
+    return True
