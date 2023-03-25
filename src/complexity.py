@@ -1,29 +1,60 @@
 from src.autosched import sched_enum
 from src.config import Config
 
-# retrieve complexity of a given tensor schedule 
-def retrieve_complexity(schedule=[]) -> str:
+# retrieve complexity of a given tensor schedule
+def retrieve_fused_complexity(schedule=[]) -> str:
   complexity = ""
   if len(schedule) > 0 and type(schedule[-1]) == list:
-    producer = retrieve_complexity(schedule[-2])
-    consumer = retrieve_complexity(schedule[-1])
-    if len(producer) > 0 and len(consumer) > 0:
+    producer = retrieve_fused_complexity(schedule[-2])
+    consumer = retrieve_fused_complexity(schedule[-1])
+    if len(schedule[0:-2]) > 0:
       complexity += "*".join(schedule[0:-2]) + "*"
-      complexity += "(" + producer + "+"
-      return complexity + consumer + ")"
+    if len(producer) > 0 and len(consumer) > 0:
+      complexity += "(" + producer + "+" + consumer + ")"
+      return complexity
     elif len(producer) > 0:
-      return "*".join(schedule[0:-2]) + "*(" + producer + ")"
+      return complexity + "(" + producer + ")"
     elif len(consumer) > 0:
-      return "*".join(schedule[0:-2]) + "*(" + consumer + ")"
+      return complexity + "(" + consumer + ")"
     else:
-      return "*".join(schedule[0:-2])
+      # return "*".join(schedule[0:-2])
+      return ""
+  elif len(schedule) <= 0:
+    return ""
   else:
     return "*".join(schedule)
+
+
+
+# retrieve complexity of a given tensor schedule 
+def retrieve_complexity(schedule=Config) -> str:
+  complexity = ""
+  # check if fused loop
+  if len(schedule.input_idx_order) > 0 and type(schedule.input_idx_order[-1]) == list:
+    producer = retrieve_fused_complexity(schedule.input_idx_order[-2])
+    consumer = retrieve_fused_complexity(schedule.input_idx_order[-1])
+    if len(schedule.input_idx_order[0:-2]) > 0:
+      complexity += "*".join(schedule.input_idx_order[0:-2]) + "*"
+    if len(producer) > 0 and len(consumer) > 0:
+      complexity += "(" + producer + "+" + consumer + ")"
+      return complexity
+    elif len(producer) > 0:
+      return complexity + "(" + producer + ")"
+    elif len(consumer) > 0:
+      return complexity + "(" + consumer + ")"
+    else:
+      # return "*".join(schedule.input_idx_order[0:-2])
+      return ""
+  elif len(schedule.input_idx_order) <= 0:
+    return ""
+  else:
+    return "*".join(schedule.input_idx_order)
 
 def retrieve_all_complexities(schedules = [Config]):
   complexities = []
   for schedule in schedules: 
-    complexities.append(retrieve_complexity(schedule.input_idx_order))
+    if schedule.fused:
+      complexities.append(retrieve_complexity(schedule))
   return complexities
 
 accesses = {
