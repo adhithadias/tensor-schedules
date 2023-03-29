@@ -7,8 +7,7 @@ def test_append_list():
     b = [['a'], [['a'], ['a', 'b']]]
 
     l = append_list_to_list_of_lists(a, b)
-
+    
+    assert len(l) == 2
+    assert l == [['a', 'b', ['a'], [['a'], ['a', 'b']]], ['a', ['a'], [['a'], ['a', 'b']]]]
     print(l)
-
-
-test_append_list()
