@@ -9,13 +9,14 @@ def test_autosched_unfused1():
     prod_config = Config('_X', ['B'], output_idx_order=['j','k'], input_idx_order=['j','k'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['m','l','k'],fused=True)
 
-    scheds = unfused('X', expr, output_index_order, prod_config, cons_config)
+    unfused_scheds = []
+    unfused('X', expr, output_index_order, prod_config, cons_config, unfused_scheds)
 
     # output idx has 3 indices and there are 6 permutations
     # among them, so 6 schedules should be returned
-    assert len(scheds) == 6
+    assert len(unfused_scheds) == 6
 
-    for sched in scheds:
+    for sched in unfused_scheds:
         assert ['j','m'] == sched.output_idx_order
         assert ['B','C','D'] == sched.expr
         assert False == sched.fused
@@ -29,13 +30,14 @@ def test_autosched_unfused2():
     prod_config = Config('_X', ['A','B'], output_idx_order=['i','k'], input_idx_order=['i','j','k'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['k','l','m'], fused=True)
 
-    scheds = unfused('X', expr, output_index_order, prod_config, cons_config)
+    unfused_scheds = []
+    unfused('X', expr, output_index_order, prod_config, cons_config, unfused_scheds)
 
     # output idx has 3 indices and there are 6 permutations
     # among them, so 6 schedules should be returned
-    assert len(scheds) == 6
+    assert len(unfused_scheds) == 6
 
-    for sched in scheds:
+    for sched in unfused_scheds:
         assert ['i','m'] == sched.output_idx_order
         assert ['A','B','C','D'] == sched.expr
         assert False == sched.fused
@@ -48,10 +50,11 @@ def test_autosched_fused1():
     prod_config = Config('_X', ['B'], output_idx_order=['j','k'], input_idx_order=['j','k'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['m','l','k'],fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -64,10 +67,11 @@ def test_autosched_fused2():
     prod_config = Config('_X', ['B'], output_idx_order=['j','k'], input_idx_order=['j','k'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['k','m','l'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -80,10 +84,11 @@ def test_autosched_fused3():
     prod_config = Config('_X', ['A','B'], output_idx_order=['i','k'], input_idx_order=['i','j','k'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['k','m','l'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -96,10 +101,11 @@ def test_autosched_fused4():
     prod_config = Config('_X', ['A','B'], output_idx_order=['i','k'], input_idx_order=['i','k','j'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['k','m','l'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -113,10 +119,11 @@ def test_autosched_fused4():
     prod_config = Config('_X', ['A','B'], output_idx_order=['i','k'], input_idx_order=['k','i','j'], fused=True)
     cons_config = Config('X_', ['C','D'], output_idx_order=['k','m'], input_idx_order=['k','m','l'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 3
-    for sched in scheds:
+    assert len(fused_scheds) == 3
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -129,10 +136,11 @@ def test_autosched_fused5():
     prod_config = Config('_X', ['A','B','C'], output_idx_order=['i','l'], input_idx_order=['i','j','k','l'], fused=True)
     cons_config = Config('X_', ['D'], output_idx_order=['l','m'], input_idx_order=['l','m'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -146,10 +154,11 @@ def test_autosched_fused5():
     prod_config0 = Config('_X', ['A','B'], output_idx_order=['i','k'], input_idx_order=['i','j','k'], fused=True)
     cons_config0 = Config('X_', ['C'], output_idx_order=['k','l'], input_idx_order=['k','l'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config0, cons_config0, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config0, cons_config0, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
@@ -160,13 +169,14 @@ def test_autosched_fused5():
     expr = ['A','B','C','D']
     output_index_order = ['i','m']
     # recursively using the previous fused schedule
-    prod_config = scheds[0]
+    prod_config = fused_scheds[0]
     cons_config = Config('X_', ['D'], output_idx_order=['l','m'], input_idx_order=['l','m'], fused=True)
 
-    scheds = fused('X', expr, output_index_order, prod_config, cons_config, True)
+    fused_scheds = []
+    fused('X', expr, output_index_order, prod_config, cons_config, True, fused_scheds)
 
-    assert len(scheds) == 1
-    for sched in scheds:
+    assert len(fused_scheds) == 1
+    for sched in fused_scheds:
         assert True == sched.fused
         assert expr == sched.expr
         assert output_index_order == sched.output_idx_order
