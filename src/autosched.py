@@ -26,6 +26,8 @@ def unfused(output: str, expr, output_index_order, prod_config, cons_config, unf
     time_complexity['a'] = additional_complexity
     
     memory_complexity = []
+    memory_complexity.append(set(prod_config.output_idx_order))
+    memory_complexity.append(set(cons_config.output_idx_order))
     if prod_config.memory_complexity is not None: memory_complexity.extend(prod_config.memory_complexity)
     if cons_config.memory_complexity is not None: memory_complexity.extend(cons_config.memory_complexity)
 
