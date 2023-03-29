@@ -26,7 +26,12 @@ python3 -m src.main > output.txt
 # -s prints print statements inside the execution
 pytest -s <test dir> > test_output.txt
 pytest -s test > test_output.txt
+
 pytest -s test/test_autosched.py::test_autosched_unfused1
+pytest -s test/test_autosched.py::test_autosched_fused1
+
+pytest -s test/test_complexity.py::test_time_complexity
+
 # to run a single test 
 python3 -m <test dir>.<test name>
 python3 -m test.test_union_list

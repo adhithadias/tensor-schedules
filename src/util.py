@@ -188,3 +188,19 @@ def is_valid_idx_perm(idx_perm: list, tensor_idx_order_constraints: dict, input_
                 return False
                 
     return True
+
+
+def get_time_complexity(idx_perm: set, input_tensors: list, tensor_idx_order_constraints: dict) -> set:
+    result = set()
+    for idx in idx_perm:
+        added = False
+        for tensor in input_tensors:
+            if tensor not in tensor_idx_order_constraints: break
+            for constraints in tensor_idx_order_constraints[tensor]:
+                if (constraints[0] == idx):
+                    result.add(idx + 'pos')
+                    added = True
+                    break
+            if added: break
+        if not added: result.add(idx)
+    return result

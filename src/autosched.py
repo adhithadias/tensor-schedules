@@ -12,19 +12,38 @@ def unfused(output: str, expr, output_index_order, prod_config, cons_config, unf
     '''
     prod_output_idx_order = prod_config.output_idx_order
     cons_output_idx_order = cons_config.output_idx_order
-    idxes = list(set(prod_output_idx_order) | set(cons_output_idx_order))
+    idx_set = set(prod_output_idx_order) | set(cons_output_idx_order)
+    idxes = list(idx_set)
     idx_perms = list(itertools.permutations(idxes))
+    
+    time_complexity = {}
+    time_complexity['r'] = [idx_set]
+    additional_complexity = []
+    if 'r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None : additional_complexity.extend(prod_config.time_complexity['r'])
+    if 'a' in prod_config.time_complexity and prod_config.time_complexity['a'] is not None: additional_complexity.extend(prod_config.time_complexity['a'])
+    if 'r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None: additional_complexity.extend(cons_config.time_complexity['r'])
+    if 'a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None: additional_complexity.extend(cons_config.time_complexity['a'])
+    time_complexity['a'] = additional_complexity
+    
+    memory_complexity = []
+    if prod_config.memory_complexity is not None: memory_complexity.extend(prod_config.memory_complexity)
+    if cons_config.memory_complexity is not None: memory_complexity.extend(cons_config.memory_complexity)
 
     # unfused_schedules = []
     for idx_perm in idx_perms:
         unfus = Config(output, expr, output_idx_order = output_index_order, input_idx_order = idx_perm, fused = False)
         unfus.subconfig(prod_config, cons_config, False)
+        unfus.time_complexity = time_complexity
+        unfus.memory_complexity = memory_complexity
         unfused_schedules.append(unfus)
     # return unfused_schedules
+    
+def partially_fused():
+    pass
 	
 # Producing a config of fused schedules
 # Input -> Two configs; Output -> One config
-def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on_left, fused_scheds):
+def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on_left, fused_scheds, tensor_idx_order_constraints = {}):
     i = 0
     # add additional indices in output_idx_order to cons_config.input_idx_order
     # because that defines all the loops in the final computation
@@ -39,7 +58,15 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
     # ['i', 'j', ['k'], ['l']]
     # linear_list = ['i', 'j']; post_list = [['k'], ['l']]
     linear_list, post_list = get_idxes_up_to_branching_point(cons_config.input_idx_order)
+    
+    # now if, let's say 'm', 'n' is only in the output_idx_order (simply output)
+    # get_all_permutations will return all the permutations of the linear list by adding permutations 'm' and 'n' at different locations
+    # it will use a worklist algorithm to add 'm' to linear_list = ['i','j'] and then add 'n' to linear_lists = ['m','i','j'], ['i','m','j'], ['i','j','m']
     perms = get_all_permutations(idx_only_in_output, linear_list)
+    
+    # TODO - check if adding this here is correct
+    perms = [perms for perms in perms if is_valid_idx_perm(perms, tensor_idx_order_constraints, cons_config.expr, output)]
+    
     perms = append_list_to_list_of_lists(perms, post_list)
 
     # fused_scheds = []
@@ -60,7 +87,15 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
                 break
 
         # continue for the next order if no common indices are found
-        if not common_loops_found: continue 
+        # TODO - consider the case where there are no common indices and there is only 1 tensor in the cons config
+        if not common_loops_found:
+            # scheduling space grows exponentially if we add these schedules to the list
+            # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m) example 3000+ without grows to 8000+ with
+            # in_idx_order = [[], [prod_config.input_idx_order, cons_order]]
+            # unfus = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True, prod_on_left = prod_on_left)
+            # unfus.subconfig(prod_config, cons_config, True)
+            # fused_scheds.append(unfus)
+            continue
 
         # break doesn't increase the i count while continue does increase
         # handle the case where there are no common indices added i+=1
@@ -69,6 +104,38 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
         common_loops = prod_config.input_idx_order[:i-1]
         prod_loops = prod_config.input_idx_order[i-1:]
         cons_loops = cons_order[i-1:]
+        
+        # the amount of additional memory is a direct function of the indices shared by the producer and the consumer
+        # we just have to collect indices in the producer and consumer and find the intersection
+        prod_loops_set = get_idxes_in_config(prod_loops)
+        cons_loops_set = get_idxes_in_config(cons_loops)
+        mem_complexity = []
+        memory_complexity = prod_loops_set.intersection(cons_loops_set)
+        if (len(memory_complexity) > 0): mem_complexity.append(memory_complexity)
+        if prod_config.memory_complexity is not None: mem_complexity.extend(prod_config.memory_complexity)
+        if cons_config.memory_complexity is not None: mem_complexity.extend(cons_config.memory_complexity)
+        
+        # the time complexity is a function of common loops, prod_loops and cons_loops
+        time_complexity = {}
+        relevant = []
+        additional = []
+        common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
+        if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
+            for tcomp in prod_config.time_complexity['r']:
+                tcomp = tcomp - common_idx_for_complexity - set(common_loops)
+                if (len(tcomp) > 0): relevant.append(common_idx_for_complexity.union(tcomp))
+            # relevant.extend(prod_config.time_complexity['r'])
+        if ('a' in prod_config.time_complexity and prod_config.time_complexity['a'] is not None):
+            additional.extend(prod_config.time_complexity['a'])
+        if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None):
+            for tcomp in cons_config.time_complexity['r']:
+                tcomp = tcomp - common_idx_for_complexity - set(common_loops)
+                if (len(tcomp) > 0): relevant.append(common_idx_for_complexity.union(tcomp))
+            # relevant.extend(cons_config.time_complexity['r'])
+        if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
+            additional.extend(cons_config.time_complexity['a'])
+        time_complexity['r'] = relevant
+        time_complexity['a'] = additional
 
         in_idx_order = []
         in_idx_order.extend(common_loops)
@@ -76,6 +143,8 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
 
         fus = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True, prod_on_left = prod_on_left)
         fus.subconfig(prod_config, cons_config, True)
+        fus.memory_complexity = mem_complexity
+        fus.time_complexity = time_complexity
         fused_scheds.append(fus)
 
     # return fused_scheds
@@ -104,11 +173,20 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
     # remove idx_perms that violates the tensor_idx_order_constraints
     idx_perms = [idx_perm for idx_perm in idx_perms if is_valid_idx_perm(idx_perm, tensor_idx_order_constraints, expr, output)]
     # print(".:", expr, "p_n: ", len(idx_perms))
+    
+    # time complexity is completely dependent on the perfectly nested linear loop list
+    # iterate through tensor_idx_order_constraints and check if index is in the input_idx_order
+    time_complexity = {}
+    time_complexity['r'] = [get_time_complexity(idx_set, expr, tensor_idx_order_constraints)]
+    time_complexity['a'] = []
+    memory_complexity = []
 
     # scheds = []
     for input_idx_order in idx_perms:
         # perfectly linear loop order is considered as fused = True
         nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = list(input_idx_order), fused = True)
+        nconf.time_complexity = time_complexity
+        nconf.memory_complexity = memory_complexity
         scheds.append(nconf)
 
     # The base condition
@@ -143,11 +221,19 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
                 unfused(output, expr, output_idx_order, s1, s2, scheds)
                 # scheds.extend(x)
                 
+                # TODO - add partially fused schedules
+                # T1 = A*B and T2 = C | T1 = A and T2 = B*C
+                # T1 or T2 has only one input, then we completely ignore it and generate the output loop order
+                # this is not captured in unfused schedules because we always use intermediate tensors to save output
+                # when the single input is sparse (even if it is dense), we can remove the intermediate tensor and save memory by directly using
+                # the input to generate the output
+                partially_fused()
+                
                 # create fused schedules
                 # is it fusible?
-                fused(output, expr, output_idx_order, s1, s2, True, scheds) # s1 producer, s2 consumer
+                fused(output, expr, output_idx_order, s1, s2, True, scheds, tensor_idx_order_constraints) # s1 producer, s2 consumer
                 # scheds.extend(y)
-                fused(output, expr, output_idx_order, s2, s1, False, scheds) # s2 producer, s1 consumer
+                fused(output, expr, output_idx_order, s2, s1, False, scheds, tensor_idx_order_constraints) # s2 producer, s1 consumer
                 # scheds.extend(z)
         print("fused and unfused schedules created")
     
