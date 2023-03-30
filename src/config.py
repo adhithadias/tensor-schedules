@@ -11,6 +11,8 @@ class Config:
         self.prod_on_left = prod_on_left
         self.prod = None  # Config schedule for producer
         self.cons = None  # Config schedule for consumer
+        self.time_complexity = ""
+        self.space_complexity = ""
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"
@@ -36,6 +38,12 @@ class Config:
 
     def set_output_idx_order(self, output_idx_order):
         self.output_idx_order = output_idx_order
+        
+    def set_time_complexity(self, time_complexity:str):
+        self.time_complexity = time_complexity
+    
+    def set_space_complexity(self, space_complexity:str):
+        self.space_complexity = space_complexity
 
     def accept(self, visitor):
         visitor.visit(self)
