@@ -31,6 +31,7 @@ pytest -s test/test_autosched.py::test_autosched_unfused1
 pytest -s test/test_autosched.py::test_autosched_fused1
 
 pytest -s test/test_complexity.py::test_time_complexity
+pytest -s test/test_z3.py::test_z3_expr1
 
 # to run a single test 
 python3 -m <test dir>.<test name>
