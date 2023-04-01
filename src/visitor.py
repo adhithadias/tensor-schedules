@@ -22,12 +22,11 @@ class PrintConfigVisitor(Visitor):
             if (i != len(config.expr)-1):
                 tensor_contraction += "*"
 
-        print('\t'*self.tabs, '|',
-              output, '=',
-              tensor_contraction,
-              ', fused: ' + str(config.fused) + ", pol: " +
-              str(config.prod_on_left),
-              '| loop_order:', config.input_idx_order)
+        print('\t'*self.tabs, '|', 
+            output, '=',
+            tensor_contraction, 
+            ', fsd: ' + str(config.fused) + ", pol: " + str(config.prod_on_left),
+            '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity)
         self.tabs += 1
         if (config.prod != None):
             self.visit(config.prod)

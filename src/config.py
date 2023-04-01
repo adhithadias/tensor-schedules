@@ -11,8 +11,8 @@ class Config:
         self.prod_on_left = prod_on_left
         self.prod = None  # Config schedule for producer
         self.cons = None  # Config schedule for consumer
-        self.time_complexity = ""
-        self.space_complexity = ""
+        self.time_complexity = {}
+        self.memory_complexity = {}
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"
