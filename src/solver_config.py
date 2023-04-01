@@ -16,7 +16,8 @@ class Solver_Config:
       # list of all indices separated by dense/sparse
       self.total_indices = {
         "dense": {},
-        "sparse": {}
+        "sparse": {},
+        "all": {}
       }
       
       # get dense set of indices
@@ -49,8 +50,30 @@ class Solver_Config:
       for key in self.total_indices["sparse"].keys():
           self.solver.add(self.total_indices["sparse"][key] < self.total_indices["dense"][key[0:-3]])
       
+      # saves solver backtracking point
       self.solver.push()
       print(self.solver)
+      
+      self.total_indices["all"] = {**self.total_indices["dense"], **self.total_indices["sparse"]}
+  
+  def get_z3_expr(self, complexity:list):
+      add_expr = None
+      for expr in complexity:
+          if(type(expr) != set and type(expr) != list):
+            return None
+          mult_expr = None
+          for index in expr:
+              if(mult_expr == None):
+                  mult_expr = self.total_indices["all"][index]
+              else:
+                  mult_expr = mult_expr * self.total_indices["all"][index]
+          if(add_expr == None):
+              add_expr = mult_expr
+          else:
+              add_expr = add_expr + mult_expr
+      return add_expr
+
+          
   
   def compare_schedules(self, config_1:Config, config_2:Config) -> int:
       
@@ -72,5 +95,5 @@ tensor_idx_order_constraints = {
     # 'D': [],
 }
 
-Solver_Config('X', ['A', 'B', 'C', 'D'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
-
+solver = Solver_Config('X', ['A', 'B', 'C', 'D'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
+print(solver.get_z3_expr([{'i', 'k', 'jpos'}, {'l', 'i', 'jpos'}]))
