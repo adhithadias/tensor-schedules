@@ -212,8 +212,8 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
         print("output:", output, str(output_idx_order), "expr:", expr, "sched_size", len(scheds))
         print("creating fused and unfused schedules. pre_sched: ", len(pre_sched), " post_sched: ", len(post_sched))
         # create all possible schedules
-        for i in range(len(pre_sched)):
-            for j in range(len(post_sched)):
+        for i, s1 in enumerate(pre_sched):
+            for j, s2 in enumerate(post_sched):
                 s1 = pre_sched[i]
                 s2 = post_sched[j]
                 # print("s1:", s1, "s2:", s2)

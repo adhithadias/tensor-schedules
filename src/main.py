@@ -1,9 +1,10 @@
+from z3 import Int
 from src.autosched import sched_enum
 from src.visitor import PrintConfigVisitor
-from src.prune import prune_using_depth
+from src.prune import prune_using_depth, prune_using_z3
 
 schedules = []
-test = 4
+test = 3
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -111,8 +112,27 @@ print('\n\n\n\n\n\n\n')
 print(len(schedules))
 
 print('\n\n\n\n\n\n\n')
+
+# TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
+
 pruned_schedules = prune_using_depth(schedules)
 print(len(pruned_schedules))
+
+# i = Int('i')
+# j = Int('j')
+# k = Int('k')
+# l = Int('l')
+# m = Int('m')
+# jpos = Int('jpos')
+
+# z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'jpos': jpos}
+# z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
+#                   k >= 8, k <= 256, l >= 8, l <= 256, jpos >= 0,
+#                   100 * i * jpos < i * j,   # i*jpos < 0.01 * i*j
+#                   i * j < 1000 * i * jpos]  # 0.001 * i*j < i*jpos
+# # can pass additional constraints here like limit additional memory
+
+# pruned_schedules = prune_using_z3(schedules, z3_variables, z3_constraints)
 
 print('/**************************************************************************/')
 print('/********************** PRINTING SCHEDULES ********************************/')

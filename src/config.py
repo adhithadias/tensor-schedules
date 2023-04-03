@@ -14,6 +14,9 @@ class Config:
 
         self.time_complexity = {}
         self.memory_complexity = {}
+        
+        self.z3_time_complexity = None
+        self.z3_memory_complexity = None
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"
