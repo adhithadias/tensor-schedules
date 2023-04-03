@@ -127,7 +127,6 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
         common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
         if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
             for tcomp in prod_config.time_complexity['r']:
-                print(tcomp)
                 tcomp = {key: tcomp[key] for key in tcomp.keys() if (key not in common_loops)}
                 # tcomp = tcomp - common_idx_for_complexity - set(common_loops)
                 if (len(tcomp) > 0): relevant.append({**tcomp, **common_idx_for_complexity})
@@ -137,7 +136,8 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
         if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None):
             for tcomp in cons_config.time_complexity['r']:
                 tcomp = {key: tcomp[key] for key in tcomp.keys() if (key not in common_loops)}
-                if (len(tcomp) > 0): relevant.append({**tcomp, **common_idx_for_complexity})
+                indices_not_already_in = {key: 0 for key in memory_complexity if (key not in tcomp.keys() and key not in common_loops)}
+                if (len(tcomp) > 0): relevant.append({**tcomp, **common_idx_for_complexity, **indices_not_already_in})
             # relevant.extend(cons_config.time_complexity['r'])
         if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
             additional.extend(cons_config.time_complexity['a'])
@@ -147,9 +147,6 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
         in_idx_order = []
         in_idx_order.extend(common_loops)
         in_idx_order.extend([prod_loops, cons_loops])
-        
-        if (in_idx_order == ['m', ['k', ['n', 'j'], ['j', 'i', 'n', 'l']], ['i', 'j', 'n', 'l', 'k']]):
-            print('````````', in_idx_order, prod_config.time_complexity, cons_config.time_complexity)
 
         fus = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = in_idx_order, fused = True, prod_on_left = prod_on_left)
         fus.subconfig(prod_config, cons_config, True)

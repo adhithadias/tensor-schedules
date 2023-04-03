@@ -4,7 +4,7 @@ from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3
 
 schedules = []
-test = 3
+test = 2
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -131,10 +131,11 @@ j = Int('j')
 k = Int('k')
 l = Int('l')
 m = Int('m')
+n = Int('n')
 jpos = Int('jpos')
 kpos = Int('kpos')
 
-z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'jpos': jpos, 'kpos': kpos}
+z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'n': n, 'jpos': jpos, 'kpos': kpos}
 z3_constraints = []
 
 if (test == 2):
@@ -156,7 +157,7 @@ elif (test == 5):
                     100 * i * jpos * kpos < i * j * k,   # i*jpos < 0.01 * i*j
                     i * j * k < 1000 * i * jpos * kpos]  # 0.001 * i*j < i*jpos
 
-z3_pruned_schedules = prune_using_z3(schedules, z3_variables, z3_constraints)
+z3_pruned_schedules = prune_using_z3(depth_pruned_schedules, z3_variables, z3_constraints)
 print('number of z3 pruned schdeules:', len(z3_pruned_schedules))
 
 
