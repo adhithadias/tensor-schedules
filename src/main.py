@@ -90,57 +90,83 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
     }
     sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
 elif test == 5:
-    # X(i,l,m) = A(i,j,k) * B(j,l) * C(k,m)
+    # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
     accesses = {
-        'X': ['i', 'l', 'm'],
-        'A': ['i', 'j', 'k'],
-        'B': ['j', 'l'],
-        'C': ['k', 'm']
+        'A': ['i', 'l', 'm'],
+        'B': ['i', 'j', 'k'],
+        'C': ['j', 'l'],
+        'D': ['k', 'm']
     }
     tensor_idx_order_constraints = {
-        'A': [('j', 'i'), ('k','j'), ('k','i')],
+        'B': [('j', 'i'), ('k','j'), ('k','i')],
         # 'X': [('j')],
         # 'D': [],
         # 'E': [],
         # 'A': []
     }
-    sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    sched_enum('A', ['B','C','D'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
 
 printer = PrintConfigVisitor(accesses)
 
 print('\n\n\n\n\n\n\n')
-print(len(schedules))
+print('schedule generation completed\n', len(schedules))
 
 print('\n\n\n\n\n\n\n')
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 
-pruned_schedules = prune_using_depth(schedules)
-print(len(pruned_schedules))
+depth_pruned_schedules = prune_using_depth(schedules)
+print('number of depth pruned schdeules:', len(depth_pruned_schedules))
 
-# i = Int('i')
-# j = Int('j')
-# k = Int('k')
-# l = Int('l')
-# m = Int('m')
-# jpos = Int('jpos')
-
-# z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'jpos': jpos}
-# z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
-#                   k >= 8, k <= 256, l >= 8, l <= 256, jpos >= 0,
-#                   100 * i * jpos < i * j,   # i*jpos < 0.01 * i*j
-#                   i * j < 1000 * i * jpos]  # 0.001 * i*j < i*jpos
-# # can pass additional constraints here like limit additional memory
-
-# pruned_schedules = prune_using_z3(schedules, z3_variables, z3_constraints)
-
-print('/**************************************************************************/')
-print('/********************** PRINTING SCHEDULES ********************************/')
+print('\n\n/**************************************************************************/')
+print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/')
 print('/**************************************************************************/')
 
-# for schedule in pruned_schedules:
-#     schedule.accept(printer)
-#     print('-----------')
+for schedule in depth_pruned_schedules:
+    schedule.accept(printer)
+    print('-----------')
+
+i = Int('i')
+j = Int('j')
+k = Int('k')
+l = Int('l')
+m = Int('m')
+jpos = Int('jpos')
+kpos = Int('kpos')
+
+z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'jpos': jpos, 'kpos': kpos}
+z3_constraints = []
+
+if (test == 2):
+    z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
+                    k >= 5000, k <= 15000, l >= 8, l <= 256, m >= 8, m <= 256, n >= 8, n <= 256,
+                    jpos >= 0, kpos >= 0,
+                    100 * i * jpos * kpos < i * j * k,   # i*jpos < 0.01 * i*j
+                    i * j * k < 1000 * i * jpos * kpos]  # 0.001 * i*j < i*jpos
+elif (test == 3 or test == 4):
+    z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
+                    k >= 8, k <= 256, l >= 8, l <= 256, jpos >= 0,
+                    100 * i * jpos < i * j,   # i*jpos < 0.01 * i*j
+                    i * j < 1000 * i * jpos]  # 0.001 * i*j < i*jpos
+    # can pass additional constraints here like limit additional memory
+elif (test == 5):
+    z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
+                    k >= 8, k <= 256, l >= 8, l <= 256, m >= 8, m <= 256,
+                    jpos >= 0, kpos >= 0,
+                    100 * i * jpos * kpos < i * j * k,   # i*jpos < 0.01 * i*j
+                    i * j * k < 1000 * i * jpos * kpos]  # 0.001 * i*j < i*jpos
+
+z3_pruned_schedules = prune_using_z3(schedules, z3_variables, z3_constraints)
+print('number of z3 pruned schdeules:', len(z3_pruned_schedules))
+
+
+print('\n\n/**************************************************************************/')
+print('/********************** PRINTING Z3 PRUNED SCHEDULES ********************************/')
+print('/**************************************************************************/')
+
+for schedule in z3_pruned_schedules:
+    schedule.accept(printer)
+    print('-----------')
 
 #     # all the schedules with fused:True must be given to SparseLNR
 #     # all the schedules with fused:False must be given to TACO

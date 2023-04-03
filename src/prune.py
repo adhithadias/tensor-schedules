@@ -17,6 +17,14 @@ def get_loop_depth(schedule : Config) -> int :
 
     return max_
 
+def get_mem_depth(memory_complexity : list) -> int :
+    # assert type(memory_complexity) == list
+    max_ : int = 0
+    for complexity in memory_complexity:
+        if (len(complexity) > max_) : max_ = len(complexity)
+    
+    return max_
+
 def get_memory_depth(schedule : Config) -> int :
     
     assert type(schedule.memory_complexity) == list
@@ -32,7 +40,9 @@ def prune_using_depth(schedules : list) -> list:
     pruned_array = bitarray(len(schedules))
     pruned_array.setall(0)
     
-    for i in range(0, len(schedules)):
+    n = len(schedules)
+    
+    for i, s1 in enumerate(schedules):
         
         if (pruned_array[i]):
             continue
@@ -46,7 +56,9 @@ def prune_using_depth(schedules : list) -> list:
             results.append(schedules[i])
             continue
         
-        for j in range(0, len(schedules)):
+        for j, s2 in enumerate(schedules):
+            
+            if ((i * n + j) % 100000 == 0): print(i, j, s1, s2)
             
             if (pruned_array[j]):
                 continue
@@ -77,8 +89,8 @@ def prune_using_depth(schedules : list) -> list:
             
 def get_time_memory_z3_complexity(time_complexity : list, memory_complexity : list, z3_variables : dict) -> tuple:
     
-    tc0 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in time_complexity['r']], 0)
-    tc1 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in time_complexity['a']], 0)
+    tc0 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['r']], 0)
+    tc1 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['a']], 0)
     tc = tc0 + tc1
         
     mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in memory_complexity], 0)
@@ -115,7 +127,7 @@ def prune_using_z3(schedules : list, z3_variables : dict, z3_constraints : list)
         
         for j, s2 in enumerate(schedules):
             
-            if (j % 1000 == 0): print(i, j)
+            if ((i * n + j) % 1000 == 0): print(i, j, s1, s2)
             
             if (pruned_array[j]):
                 continue

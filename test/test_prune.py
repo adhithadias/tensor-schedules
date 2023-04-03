@@ -31,10 +31,10 @@ def test_get_time_memory_z3_complexity():
     jpos = Int('jpos')
     z3_variables = {'i': i, 'j': j, 'k': k, 'l': l, 'm': m, 'jpos': jpos}
     
-    s1_time_complexity = {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []}
+    s1_time_complexity = {'r': [{'k':0, 'i':0, 'j':1}, {'l':0, 'i':0, 'j':1}], 'a': []}
     s1_memory_complexity = []
     
-    s2_time_complexity = {'r': [{'k', 'i', 'jpos', 'l'}], 'a': []}
+    s2_time_complexity = {'r': [{'k':0, 'i':0, 'j':1, 'l':1}], 'a': []}
     s2_memory_complexity = []
     
     (s1_z3_time, s1_z3_memory) = get_time_memory_z3_complexity(s1_time_complexity, s1_memory_complexity, z3_variables)
@@ -70,12 +70,12 @@ def test_get_complexity():
 
     # A(i,l) = B(i,j)*C(i,k)*D(j,k)*E(j,l) , fsd: True, pol: True | lp_ord: ['i', 'j', ['k'], ['l']] | {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []} , []
     schedule1 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', ['k'], ['l']], fused = True, prod_on_left = True)
-    schedule1.time_complexity = {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []}
+    schedule1.time_complexity = {'r': [{'k':0, 'i':0, 'j':1}, {'l':0, 'i':0, 'j':1}], 'a': []}
     schedule1.memory_complexity = []
     
     # X(i,m) = A(i,j)*B(j,k)*C(k,l)*D(l,m) , fused: True, pol: None | loop_order: ['k', 'm', 'i', 'j', 'l'] | [{'jpos', 'k', 'm', 'i', 'l'}] , []
     schedule2 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', 'k', 'l'], fused = True, prod_on_left = True)
-    schedule2.time_complexity = {'r': [{'k', 'i', 'jpos', 'l'}], 'a': []}
+    schedule2.time_complexity = {'r': [{'k':0, 'i':0, 'j':1, 'l':0}], 'a': []}
     schedule2.memory_complexity = []
     
     (s1_z3_time, s1_z3_memory) = get_z3_complexity(schedule1, z3_variables)
@@ -111,12 +111,12 @@ def test_check_same_schedule_for_unsat():
 
     # A(i,l) = B(i,j)*C(i,k)*D(j,k)*E(j,l) , fsd: True, pol: True | lp_ord: ['i', 'j', ['k'], ['l']] | {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []} , []
     schedule1 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', ['k'], ['l']], fused = True, prod_on_left = True)
-    schedule1.time_complexity = {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []}
+    schedule1.time_complexity = {'r': [{'k':0, 'i':0, 'j':1}, {'l':0, 'i':0, 'j':1}], 'a': []}
     schedule1.memory_complexity = []
     
     # X(i,m) = A(i,j)*B(j,k)*C(k,l)*D(l,m) , fused: True, pol: None | loop_order: ['k', 'm', 'i', 'j', 'l'] | [{'jpos', 'k', 'm', 'i', 'l'}] , []
     schedule2 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', ['k'], ['l']], fused = True, prod_on_left = True)
-    schedule2.time_complexity = {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []}
+    schedule2.time_complexity = {'r': [{'k':0, 'i':0, 'j':1}, {'l':0, 'i':0, 'j':1}], 'a': []}
     schedule2.memory_complexity = []
     
     (s1_z3_time, s1_z3_memory) = get_z3_complexity(schedule1, z3_variables)
@@ -165,12 +165,12 @@ def test_z3_prune():
     
     # A(i,l) = B(i,j)*C(i,k)*D(j,k)*E(j,l) , fsd: True, pol: True | lp_ord: ['i', 'j', ['k'], ['l']] | {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []} , []
     schedule1 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', ['k'], ['l']], fused = True, prod_on_left = True)
-    schedule1.time_complexity = {'r': [{'k', 'i', 'jpos'}, {'l', 'i', 'jpos'}], 'a': []}
+    schedule1.time_complexity = {'r': [{'k':0, 'i':0, 'j':1}, {'l':0, 'i':0, 'j':1}], 'a': []}
     schedule1.memory_complexity = []
     
     # X(i,m) = A(i,j)*B(j,k)*C(k,l)*D(l,m) , fused: True, pol: None | loop_order: ['k', 'm', 'i', 'j', 'l'] | [{'jpos', 'k', 'm', 'i', 'l'}] , []
     schedule2 = Config('A', ['B','C', 'D', 'E'], output_idx_order = ['i','l'], input_idx_order = ['i', 'j', 'k', 'l'], fused = True, prod_on_left = True)
-    schedule2.time_complexity = {'r': [{'k', 'i', 'jpos', 'l'}], 'a': []}
+    schedule2.time_complexity = {'r': [{'k':0, 'i':0, 'j':1, 'l':0}], 'a': []}
     schedule2.memory_complexity = []
     
     schedules = [schedule1, schedule2]
