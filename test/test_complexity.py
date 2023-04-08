@@ -16,11 +16,11 @@ def test_time_complexity1():
     
     time_complexity = get_time_complexity(idx_perm, input_tensors, tensor_idx_order_constraints)
     assert len(time_complexity) == 5
-    assert 'jpos' in time_complexity
-    assert 'kpos' in time_complexity
-    assert 'i' in time_complexity
-    assert 'l' in time_complexity
-    assert 'm' in time_complexity
+    assert 'j' in time_complexity and time_complexity['j'] == 1
+    assert 'k' in time_complexity and time_complexity['k'] == 1
+    assert 'i' in time_complexity and time_complexity['i'] == 0
+    assert 'l' in time_complexity and time_complexity['l'] == 0
+    assert 'm' in time_complexity and time_complexity['m'] == 0
     print(time_complexity)
     
     
@@ -38,10 +38,10 @@ def test_time_complexity2():
     
     time_complexity = get_time_complexity(idx_perm, input_tensors, tensor_idx_order_constraints)
     assert len(time_complexity) == 5
-    assert 'jpos' in time_complexity
-    assert 'k' in time_complexity
-    assert 'i' in time_complexity
-    assert 'l' in time_complexity
-    assert 'm' in time_complexity
+    assert 'j' in time_complexity and time_complexity['j'] == 1
+    assert 'k' in time_complexity and time_complexity['k'] == 0
+    assert 'i' in time_complexity and time_complexity['i'] == 0
+    assert 'l' in time_complexity and time_complexity['l'] == 0
+    assert 'm' in time_complexity and time_complexity['m'] == 0
     print(time_complexity)
 

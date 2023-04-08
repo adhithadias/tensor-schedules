@@ -1,4 +1,5 @@
 from src.config import Config
+from src.prune import get_mem_depth
 from src.util import *
 import itertools
 			
@@ -17,7 +18,7 @@ def unfused(output: str, expr, output_index_order, prod_config, cons_config, unf
     idx_perms = list(itertools.permutations(idxes))
     
     time_complexity = {}
-    time_complexity['r'] = [idx_set]
+    time_complexity['r'] = [{idx: 0 for idx in idx_set}]
     additional_complexity = []
     if 'r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None : additional_complexity.extend(prod_config.time_complexity['r'])
     if 'a' in prod_config.time_complexity and prod_config.time_complexity['a'] is not None: additional_complexity.extend(prod_config.time_complexity['a'])
@@ -30,6 +31,8 @@ def unfused(output: str, expr, output_index_order, prod_config, cons_config, unf
     memory_complexity.append(set(cons_config.output_idx_order))
     if prod_config.memory_complexity is not None: memory_complexity.extend(prod_config.memory_complexity)
     if cons_config.memory_complexity is not None: memory_complexity.extend(cons_config.memory_complexity)
+    
+    if (get_mem_depth(memory_complexity) > 2): return
 
     # unfused_schedules = []
     for idx_perm in idx_perms:
@@ -124,15 +127,17 @@ def fused(output: str, expr, output_idx_order, prod_config, cons_config, prod_on
         common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
         if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
             for tcomp in prod_config.time_complexity['r']:
-                tcomp = tcomp - common_idx_for_complexity - set(common_loops)
-                if (len(tcomp) > 0): relevant.append(common_idx_for_complexity.union(tcomp))
+                tcomp = {key: tcomp[key] for key in tcomp.keys() if (key not in common_loops)}
+                # tcomp = tcomp - common_idx_for_complexity - set(common_loops)
+                if (len(tcomp) > 0): relevant.append({**tcomp, **common_idx_for_complexity})
             # relevant.extend(prod_config.time_complexity['r'])
         if ('a' in prod_config.time_complexity and prod_config.time_complexity['a'] is not None):
             additional.extend(prod_config.time_complexity['a'])
         if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None):
             for tcomp in cons_config.time_complexity['r']:
-                tcomp = tcomp - common_idx_for_complexity - set(common_loops)
-                if (len(tcomp) > 0): relevant.append(common_idx_for_complexity.union(tcomp))
+                tcomp = {key: tcomp[key] for key in tcomp.keys() if (key not in common_loops)}
+                indices_not_already_in = {key: 0 for key in memory_complexity if (key not in tcomp.keys() and key not in common_loops)}
+                if (len(tcomp) > 0): relevant.append({**tcomp, **common_idx_for_complexity, **indices_not_already_in})
             # relevant.extend(cons_config.time_complexity['r'])
         if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
             additional.extend(cons_config.time_complexity['a'])
@@ -209,15 +214,16 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
         sched_enum("_" + output, pre_expr, pre_ind, tensor_accesses, tensor_idx_order_constraints, pre_sched)
         sched_enum(output + "_", post_expr, post_ind, tensor_accesses, tensor_idx_order_constraints, post_sched)
 
+        n_post_sched = len(post_sched)
         print("output:", output, str(output_idx_order), "expr:", expr, "sched_size", len(scheds))
         print("creating fused and unfused schedules. pre_sched: ", len(pre_sched), " post_sched: ", len(post_sched))
         # create all possible schedules
-        for i in range(len(pre_sched)):
-            for j in range(len(post_sched)):
+        for i, s1 in enumerate(pre_sched):
+            for j, s2 in enumerate(post_sched):
                 s1 = pre_sched[i]
                 s2 = post_sched[j]
                 # print("s1:", s1, "s2:", s2)
-                if ((i * len(post_sched) + j) % 10000 == 0): print(i, j, "s1:", s1, "s2:", s2)
+                if ((i * n_post_sched + j) % 10000 == 0): print(i, j, "s1:", s1, "s2:", s2)
                 # create unfused schedule
                 # fused = False schedules are created here
                 unfused(output, expr, output_idx_order, s1, s2, scheds)

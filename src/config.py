@@ -14,6 +14,7 @@ class Config:
         self.cons = None  # Config schedule for consumer
         self.time_complexity = {}
         self.memory_complexity = {}
+        
         self.z3_time_complexity = None
         self.z3_memory_complexity = None
 
@@ -27,7 +28,7 @@ class Config:
             if (i != len(self.expr)-1):
                 tensor_contraction += "*"
 
-        return output + "=" + tensor_contraction + ', fused: ' + str(self.fused) + ", pol: " + str(self.prod_on_left) + ' | loop_order:' + str(self.input_idx_order) + ' | '
+        return output + "=" + tensor_contraction + ', fused: ' + str(self.fused) + ", pol: " + str(self.prod_on_left) + ' | loop_order:' + str(self.input_idx_order) + ' | time: ' + str(self.time_complexity) + ' | memory: ' + str(self.memory_complexity) + '|'
 
     def subconfig(self, prod, cons, fused):
         # assigning subschedules
