@@ -9,7 +9,7 @@ class Gen_Test_Code:
         self.test_name = test_name
         self.file = file
         self.paths = []
-        self.reorders = []
+        self.reorders = [] 
         
         # retrieves all paths for fusion
         self.get_paths([], config)
@@ -24,10 +24,27 @@ class Gen_Test_Code:
             if len(self.reorders) == 0:
                 self.reorders.append(reordering)
             else:
-                old_ordering = [i for i in self.reorders[-1] if i in reordering]
-                print(old_ordering)
-                
-            
+                index = [str(el) for el in self.paths].index(str(path[:-1]))
+                old_ordering = [i for i in self.reorders[index] if i in reordering]
+                if(str(reordering) != str(old_ordering)):
+                    new_reorderings = []
+                    i = 0
+                    while i < len(old_ordering):
+                        if reordering[i] == old_ordering[i]:
+                            i += 1
+                        else:
+                            list_old = [old_ordering[i]]
+                            list_new = [reordering[i]]
+                            i += 1
+                            while(set(list_old) != set(list_new) and i < len(old_ordering)):
+                                list_old.append(old_ordering[i])
+                                list_new.append(reordering[i])
+                                i += 1
+                            if len(list_new) > 1:
+                                new_reorderings.append(list_new)
+                    self.reorders.append(new_reorderings)
+                else:
+                    self.reorders.append([])                    
         
         self.add_header()
         
@@ -43,6 +60,11 @@ class Gen_Test_Code:
         # print scheduling commands
         print("stmt = stmt", file=self.file)
         
+        for i, reorder in enumerate(self.reorders):
+            self.add_reorder(reorder)
+            config_to_split = self.retrieve_path(self.paths[i], config)
+            self.add_loopfuse(self.get_pos(config_to_split), config_to_split.prod_on_left, i)
+        
         
         self.add_end()
         
@@ -52,6 +74,13 @@ class Gen_Test_Code:
                 self.get_indices(item)
             else:
                 self.indices.add(item)
+    
+    def get_pos(self, config:Config):     #TODO not correct because of temporaries created
+        if(config.prod_on_left):
+            return len(config.expr) - len(config.prod.expr)
+        else:
+            return len(config.expr) - len(config.cons.expr)
+        
     
     def retrieve_path(self, ordering:list, config:Config) -> Config:
         if len(ordering) == 0:
@@ -93,6 +122,26 @@ class Gen_Test_Code:
             print("vector<" + type + "> " + name + ";", file=self.file)
         else:
             print("vector<" + type + "> " + name + " = " + init + ";", file=self.file)
+    def add_reorder(self, inputs:list):
+        if len(inputs) == 0:
+            return
+        reorderings = "{"
+        for input in inputs:
+            if type(input) != list:
+                reorderings += str(input) + ", "
+            else:
+                if reorderings[-2:] == ", ":
+                    reorderings = reorderings[:-2]
+                    reorderings += "}, {"
+                reorderings += ", ".join([str(el) for el in input]) + "}, {"
+        if len(reorderings) > 3 and reorderings[-4:] == "}, {":
+            reorderings = reorderings[:-3]
+        elif reorderings[-2:] == ", ":
+            reorderings = reorderings[:-2] + "}"
+        print("\t.reorder(" + reorderings + ")", file=self.file)
+        
+    def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int):
+        print("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
         """Returns all possible orderings of indexes
@@ -254,13 +303,15 @@ if __name__ == "__main__":
     }
     sched_enum('X', ['A','B','C','D'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
     print("\n")
-    counter_printing = 20
-    counter = 0
+    counter_printing = 7
+    counter = 1
+    test_num = 1
     
     for schedule in schedules:
         if count_fusions(schedule) == 2 and schedule.fused:
             counter = (counter % counter_printing) + 1
             if counter == counter_printing:
-                Gen_Test_Code(schedule, "Test 1", sys.stdout)
+                Gen_Test_Code(schedule, "Test " + str(test_num), sys.stdout)
+                test_num += 1
             # break
             
