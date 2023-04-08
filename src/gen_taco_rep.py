@@ -63,7 +63,10 @@ class Gen_Test_Code:
         for i, reorder in enumerate(self.reorders):
             self.add_reorder(reorder)
             config_to_split = self.retrieve_path(self.paths[i], config)
-            self.add_loopfuse(self.get_pos(config_to_split), config_to_split.prod_on_left, i)
+            if i != 0:
+                self.add_loopfuse(self.get_pos(config_to_split, bool(self.paths[i][-1])), config_to_split.prod_on_left, i)
+            else:
+                self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
         
         
         self.add_end()
@@ -75,11 +78,14 @@ class Gen_Test_Code:
             else:
                 self.indices.add(item)
     
-    def get_pos(self, config:Config):     #TODO not correct because of temporaries created
+    def get_pos(self, config:Config, is_producer: bool):
+        extra = 0
+        if not is_producer:
+            extra = 1
         if(config.prod_on_left):
-            return len(config.expr) - len(config.prod.expr)
+            return len(config.expr) - len(config.prod.expr) + extra
         else:
-            return len(config.expr) - len(config.cons.expr)
+            return len(config.expr) - len(config.cons.expr) + extra
         
     
     def retrieve_path(self, ordering:list, config:Config) -> Config:
