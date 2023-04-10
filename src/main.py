@@ -4,16 +4,16 @@ from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3
 
 schedules = []
-test = 2
+test = 4
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
     accesses = {
-        'X': ['i', 'm'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l'],
-        'D': ['l', 'm']
+        'X': ('i', 'm'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l'),
+        'D': ('l', 'm')
     }
     tensor_idx_order_constraints = {
         'A': [('j', 'i')],
@@ -25,10 +25,10 @@ if test == 0:
 elif test == 1:
     # X(i,l) = A(i,j) * B(j,k) * C(k,l)
     accesses = {
-        'X': ['i', 'l'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l']
+        'X': ('i', 'l'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l')
     }
     tensor_idx_order_constraints = {
         'A': [('j', 'i')],
@@ -40,11 +40,11 @@ elif test == 1:
 elif test == 2: # Tensor contraction
     # A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n)
     accesses = {
-        'A': ['l', 'm', 'n'],
-        'B': ['i', 'j', 'k'],
-        'C': ['i', 'l'],
-        'D': ['j', 'm'],
-        'E': ['k', 'n']
+        'A': ('l', 'm', 'n'),
+        'B': ('i', 'j', 'k'),
+        'C': ('i', 'l'),
+        'D': ('j', 'm'),
+        'E': ('k', 'n')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i'), ('k','j'), ('k','i')],
@@ -57,11 +57,11 @@ elif test == 2: # Tensor contraction
 elif test == 3: # <SDDMM, SpMM>
     # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
     accesses = {
-        'A': ['i', 'l'],
-        'B': ['i', 'j'],
-        'C': ['i', 'k'],
-        'D': ['j', 'k'],
-        'E': ['j', 'l']
+        'A': ('i', 'l'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i')],
@@ -74,12 +74,12 @@ elif test == 3: # <SDDMM, SpMM>
 elif test == 4: # <SDDMM, SpMM, GEMM>
     # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
     accesses = {
-        'A': ['i', 'm'],
-        'B': ['i', 'j'],
-        'C': ['i', 'k'],
-        'D': ['j', 'k'],
-        'E': ['j', 'l'],
-        'F': ['l', 'm']
+        'A': ('i', 'm'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i')],
@@ -92,10 +92,10 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
 elif test == 5:
     # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
     accesses = {
-        'A': ['i', 'l', 'm'],
-        'B': ['i', 'j', 'k'],
-        'C': ['j', 'l'],
-        'D': ['k', 'm']
+        'A': ('i', 'l', 'm'),
+        'B': ('i', 'j', 'k'),
+        'C': ('j', 'l'),
+        'D': ('k', 'm')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i'), ('k','j'), ('k','i')],
@@ -108,19 +108,19 @@ elif test == 5:
 
 printer = PrintConfigVisitor(accesses)
 
-print('\n\n\n\n\n\n\n')
-print('schedule generation completed\n', len(schedules))
+print('\n\n\n\n\n\n\n', flush = True)
+print('schedule generation completed\n', len(schedules), flush = True)
 
 print('\n\n\n\n\n\n\n')
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 
 depth_pruned_schedules = prune_using_depth(schedules)
-print('number of depth pruned schdeules:', len(depth_pruned_schedules))
+print('number of depth pruned schdeules:', len(depth_pruned_schedules), flush = True)
 
-print('\n\n/**************************************************************************/')
-print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/')
-print('/**************************************************************************/')
+print('\n\n/**************************************************************************/', flush = True)
+print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/', flush = True)
+print('/**************************************************************************/', flush = True)
 
 for schedule in depth_pruned_schedules:
     schedule.accept(printer)
@@ -158,16 +158,16 @@ elif (test == 5):
                     i * j * k < 1000 * i * jpos * kpos]  # 0.001 * i*j < i*jpos
 
 z3_pruned_schedules = prune_using_z3(depth_pruned_schedules, z3_variables, z3_constraints)
-print('number of z3 pruned schdeules:', len(z3_pruned_schedules))
+print('number of z3 pruned schdeules:', len(z3_pruned_schedules), flush = True)
 
 
-print('\n\n/**************************************************************************/')
-print('/********************** PRINTING Z3 PRUNED SCHEDULES ********************************/')
-print('/**************************************************************************/')
+print('\n\n/**************************************************************************/', flush = True)
+print('/********************** PRINTING Z3 PRUNED SCHEDULES ********************************/', flush = True)
+print('/**************************************************************************/', flush = True)
 
 for schedule in z3_pruned_schedules:
     schedule.accept(printer)
-    print('-----------')
+    print('-----------', flush = True)
 
 #     # all the schedules with fused:True must be given to SparseLNR
 #     # all the schedules with fused:False must be given to TACO

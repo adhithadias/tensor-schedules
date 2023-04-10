@@ -30,7 +30,15 @@ class Config:
 
         return output + "=" + tensor_contraction + ', fused: ' + str(self.fused) + ", pol: " + str(self.prod_on_left) + ' | loop_order:' + str(self.input_idx_order) + ' | time: ' + str(self.time_complexity) + ' | memory: ' + str(self.memory_complexity) + '|'
 
-    def subconfig(self, prod, cons, fused):
+    def __eq__(self, other):
+        if (other == None):
+            return False
+        return self.output == other.output and self.expr == other.expr and self.output_idx_order == other.output_idx_order and self.input_idx_order == other.input_idx_order and self.fused == other.fused and self.prod == self.prod and self.cons == self.cons
+
+    def __hash__(self):
+        return hash((self.output, self.output, self.output_idx_order, self.expr, self.input_idx_order, self.fused, self.prod, self.cons))
+
+    def subconfig(self, prod, cons, fused = False):
         # assigning subschedules
         # print('Updating config with', self.expr, 'fused', fused, 'output_idx_order', self.output_idx_order, 'input_idx_order', self.input_idx_order, 'prod', prod, 'cons', cons)
         self.fused = fused

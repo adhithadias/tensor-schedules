@@ -16,7 +16,10 @@ class PrintConfigVisitor(Visitor):
         tensor_contraction = ""
         for i in range(len(config.expr)):
             tensor = config.expr[i]
-            tensor_contraction += tensor + "(" + ','.join(self.tensor_accesses[tensor]) + ")"
+            if tensor in self.tensor_accesses:
+                tensor_contraction += tensor + "(" + ','.join(self.tensor_accesses[tensor]) + ")"
+            else:
+                tensor_contraction += tensor + "()"
             if (i != len(config.expr)-1):
                 tensor_contraction += "*"
 
@@ -24,7 +27,7 @@ class PrintConfigVisitor(Visitor):
             output, '=',
             tensor_contraction, 
             ', fsd: ' + str(config.fused) + ", pol: " + str(config.prod_on_left),
-            '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity)
+            '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity, flush = True)
         self.tabs += 1
         if (config.prod != None): self.visit(config.prod)
         if (config.cons != None): self.visit(config.cons)

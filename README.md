@@ -27,6 +27,8 @@ python3 -m src.main > output.txt
 pytest -s <test dir> > test_output.txt
 pytest -s test > test_output.txt
 
+pytest -s test/test_define_data_layout.py::test_check_data_layout
+
 pytest -s test/test_autosched.py::test_autosched_unfused1
 pytest -s test/test_autosched.py::test_autosched_fused1
 
@@ -35,6 +37,8 @@ pytest -s test/test_z3.py::test_z3_expr1
 
 pytest -s test/test_prune.py::test_depth_prune
 pytest -s test/test_prune.py::test_z3_prune
+
+pytest -s test/test_autosched.py::test_autoschedule1
 
 # to run a single test 
 python3 -m <test dir>.<test name>
