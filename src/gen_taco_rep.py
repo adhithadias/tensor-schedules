@@ -14,6 +14,8 @@ class Gen_Test_Code:
         # retrieves all paths for fusion
         self.get_paths([], config)
         
+        print(self.paths, file=sys.stdout)
+        
         for path in self.paths:
             # get all indices
             given_config = self.retrieve_path(path, config)
@@ -61,10 +63,16 @@ class Gen_Test_Code:
         print("stmt = stmt", file=self.file)
         
         for i, reorder in enumerate(self.reorders):
-            self.add_reorder(reorder)
+            self.add_reorder(reorder, i)
             config_to_split = self.retrieve_path(self.paths[i], config)
             if i != 0:
-                self.add_loopfuse(self.get_pos(config_to_split, bool(self.paths[i][-1])), config_to_split.prod_on_left, i)
+                parent_config = self.retrieve_path(self.paths[i][:-1], config)
+                if (parent_config.prod and self.paths[i][-1] == 0) or not parent_config.prod_on_left:
+                    self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
+                else:
+                    self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
+
+                # self.add_loopfuse(self.get_pos(config_to_split, bool(self.paths[i][-1])), config_to_split.prod_on_left, i)
             else:
                 self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
         
@@ -83,16 +91,16 @@ class Gen_Test_Code:
         if not is_producer:
             extra = 1
         if(config.prod_on_left):
-            return len(config.expr) - len(config.prod.expr) + extra
-        else:
             return len(config.expr) - len(config.cons.expr) + extra
+        else:
+            return len(config.expr) - len(config.prod.expr) + extra
         
     
     def retrieve_path(self, ordering:list, config:Config) -> Config:
         if len(ordering) == 0:
             return config
         else:
-            if (ordering[0] == 0 and config.prod_on_left) or (ordering[0] == 1 and not config.prod_on_left):
+            if ordering[0] == 0:
                 next_config = config.prod
             else:
                 next_config = config.cons
@@ -109,12 +117,20 @@ class Gen_Test_Code:
             return
         else:
             self.paths.append(path)
-            if config.prod_on_left:
+            
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == list and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == list:
                 self.get_paths(path + [0], config.prod)
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == list and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == list:
                 self.get_paths(path + [1], config.cons)
-            else:
-                self.get_paths(path + [1], config.prod)
-                self.get_paths(path + [0], config.cons)
+            
+            
+            
+            # if config.prod_on_left:
+            #     self.get_paths(path + [0], config.prod)
+            #     self.get_paths(path + [1], config.cons)
+            # else:
+            #     self.get_paths(path + [1], config.prod)
+            #     self.get_paths(path + [0], config.cons)
         
     
     def add_header(self):
@@ -128,7 +144,7 @@ class Gen_Test_Code:
             print("vector<" + type + "> " + name + ";", file=self.file)
         else:
             print("vector<" + type + "> " + name + " = " + init + ";", file=self.file)
-    def add_reorder(self, inputs:list):
+    def add_reorder(self, inputs:list, path=0):
         if len(inputs) == 0:
             return
         reorderings = "{"
@@ -144,10 +160,14 @@ class Gen_Test_Code:
             reorderings = reorderings[:-3]
         elif reorderings[-2:] == ", ":
             reorderings = reorderings[:-2] + "}"
-        print("\t.reorder(" + reorderings + ")", file=self.file)
+        if path == 0:
+            print("\t.reorder(" + reorderings + ")", file=self.file)
+        else:
+            print("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")", file=self.file)
+
         
     def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int):
-        print("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
+        print("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")", file=self.file)
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
         """Returns all possible orderings of indexes
@@ -309,7 +329,7 @@ if __name__ == "__main__":
     }
     sched_enum('X', ['A','B','C','D'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
     print("\n")
-    counter_printing = 7
+    counter_printing = 15
     counter = 1
     test_num = 1
     
@@ -320,4 +340,5 @@ if __name__ == "__main__":
                 Gen_Test_Code(schedule, "Test " + str(test_num), sys.stdout)
                 test_num += 1
             # break
-            
+          
+# TODO path is wrong when printing
