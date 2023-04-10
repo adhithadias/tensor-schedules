@@ -14,7 +14,7 @@ class Gen_Test_Code:
         # retrieves all paths for fusion
         self.get_paths([], config)
         
-        print(self.paths, file=sys.stdout)
+        # print(self.paths, file=sys.stdout)
         
         for path in self.paths:
             # get all indices
