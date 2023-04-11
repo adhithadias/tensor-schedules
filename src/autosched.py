@@ -436,11 +436,11 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
         post_loops = get_input_idx_list(post_expr, tensor_accesses)
         
         print('producer1 schedules: ', pre_output, pre_expr, flush=True)
-        producer1_schedules = get_schedules('0'*depth+output, pre_output, pre_expr, tensor_accesses, pre_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1)
+        producer1_schedules = get_schedules_unfused('0'*depth+output, pre_output, pre_expr, tensor_accesses, pre_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1)
         print('number of producer1 schedules: ', len(producer1_schedules), flush=True)
         
         print('producer2 schedules: ', post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, flush=True)
-        producer2_schedules = get_schedules(output+'0'*depth, post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, 0, len(post_expr), depth + 1)
+        producer2_schedules = get_schedules_unfused(output+'0'*depth, post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, 0, len(post_expr), depth + 1)
         print('number of producer2 schedules: ', len(producer2_schedules), flush=True)
         
         for j, s1 in enumerate(producer1_schedules):
