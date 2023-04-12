@@ -197,7 +197,7 @@ def test_autoschedule3_fused():
     results = get_schedules(output, accesses['A'], expr, accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(expr), 1, cache)
     print('number of all the fused results:', len(results))
     printer = PrintConfigVisitor(accesses)
-    found1, found2, found3 = False, False, False
+    found1, found2, found3, found4 = False, False, False, False
     for i, schedule in enumerate(results):
         if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
             schedule.accept(printer)
@@ -211,8 +211,60 @@ def test_autoschedule3_fused():
             schedule.accept(printer)
             found3 = True
             print('-----------')
+        elif ('m' in schedule.input_idx_order and ('j','l') in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found4 = True
+            print('-----------')
     
-    assert found1 == True and found2 == True and found3 == True
+    assert found1 == True and found2 == True and found3 == True and found4 == True
+    
+def test_autoschedule3_unfused():
+    # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
+    
+    accesses = {
+        'A': ('i', 'm'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'F': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B','C','D','E','F')
+    
+    cache = {}
+    results = get_schedules_unfused(output, accesses['A'], expr, accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2, found3, found4 = False, False, False, False
+    for i, schedule in enumerate(results):
+        if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found3 = True
+            print('-----------')
+        elif ('m' in schedule.input_idx_order and ('j','l') in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found4 = True
+            print('-----------')
+    
+    assert found1 == True and found2 == True and found3 == True and found4 == True
     
 def test_autoschedule4():
     # A(m) = t(j) * E(j,l) * F(l,m)

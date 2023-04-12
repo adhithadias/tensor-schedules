@@ -335,7 +335,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-                        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = False)
+                        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -364,7 +364,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         time_complexity['a'] = ta
                         nconf.time_complexity = time_complexity
                         
-                        nconf.subconfig(prod_config, cons_config, fused=False)
+                        nconf.subconfig(prod_config, cons_config, fused=True)
                         if (nconf not in scheds): scheds.add(nconf)
             
             tensor_accesses.pop(temporary)
@@ -442,58 +442,58 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         nconf.subconfig(prod_config, cons_config, fused=True)
                         if (nconf not in scheds): scheds.add(nconf)
             
-            # elif (len(post_expr) > 1):
-            #     # print('unfused')
-            #     prod_loops = tuple(prod_idx_order)
-            #     cons_loops = tuple(cons_idx_order)
-            #     new_tensor_accesses = {key: tuple([idx for idx in tensor_accesses[key]]) for key in tensor_accesses.keys()}
-            #     new_tensor_accesses[temporary] = pre_ind
+            elif (len(post_expr) > 1):
+                # print('unfused')
+                prod_loops = tuple(prod_idx_order)
+                cons_loops = tuple(cons_idx_order)
+                new_tensor_accesses = {key: tuple([idx for idx in tensor_accesses[key]]) for key in tensor_accesses.keys()}
+                new_tensor_accesses[temporary] = pre_ind
                 
-            #     # print('-->', prod_loops, cons_loops, new_tensor_accesses, flush=True)
+                # print('-->', prod_loops, cons_loops, new_tensor_accesses, flush=True)
                 
-            #     # prod_configs = get_placeholder_configs(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr))
-            #     prod_configs = get_schedules(temporary, new_prod_output_indices, post_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache)
-            #     # cons_configs = get_placeholder_configs(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr))
-            #     cons_configs = get_schedules(output, new_cons_output_indices, new_pre_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 0, len(new_post_expr)-1, depth + 1, cache)
-            #     # print('new configs:', new_prod_output_indices, new_cons_output_indices, new_tensor_accesses)
+                # prod_configs = get_placeholder_configs(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr))
+                prod_configs = get_schedules(temporary, post_ind, post_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(post_expr), depth + 1, cache)
+                # cons_configs = get_placeholder_configs(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr))
+                cons_configs = get_schedules(output, output_idx_order, new_pre_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 0, len(new_pre_expr)-1, depth + 1, cache)
+                # print('new configs:', new_prod_output_indices, new_cons_output_indices, new_tensor_accesses)
                 
-            #     shared_loops = set(prod_loops).intersection(set(cons_loops))
-            #     for j, prod_config in enumerate(prod_configs):
-            #         for k, cons_config in enumerate(cons_configs):
-            #             input_idx_order = (prod_config.input_idx_order, cons_config.input_idx_order) # no common loops here because it is not fused
+                shared_loops = set(prod_loops).intersection(set(cons_loops))
+                for j, prod_config in enumerate(prod_configs):
+                    for k, cons_config in enumerate(cons_configs):
+                        input_idx_order = (prod_config.input_idx_order, cons_config.input_idx_order) # no common loops here because it is not fused
                         
-            #             # input_idx_order.extend(common_loops)
-            #             # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-            #             nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
-            #             # nconf.time_complexity = time_complexity
-            #             nconf.memory_complexity = [shared_loops]
-            #             nconf.memory_complexity.extend(prod_config.memory_complexity)
-            #             nconf.memory_complexity.extend(cons_config.memory_complexity)
+                        # input_idx_order.extend(common_loops)
+                        # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
+                        nconf = Config(output, expr, output_idx_order, input_idx_order, True)
+                        # nconf.time_complexity = time_complexity
+                        nconf.memory_complexity = [shared_loops]
+                        nconf.memory_complexity.extend(prod_config.memory_complexity)
+                        nconf.memory_complexity.extend(cons_config.memory_complexity)
                         
-            #             time_complexity = {}
-            #             tr = []
-            #             ta = []
-            #             common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
-            #             if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
-            #                 for tc in prod_config.time_complexity['r']:
-            #                     # print(tc)
-            #                     tr.append({**tc})
-            #             if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None): 
-            #                 for tc in cons_config.time_complexity['r']:
-            #                     tr.append({**tc})
-            #             if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
-            #                 for tc in prod_config.time_complexity['a']:
-            #                     ta.extend(tc)
-            #             if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
-            #                 for tc in cons_config.time_complexity['a']:
-            #                     ta.extend(tc)
+                        time_complexity = {}
+                        tr = []
+                        ta = []
+                        # common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
+                        if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
+                            for tc in prod_config.time_complexity['r']:
+                                # print(tc)
+                                tr.append({**tc})
+                        if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None): 
+                            for tc in cons_config.time_complexity['r']:
+                                tr.append({**tc})
+                        if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
+                            for tc in prod_config.time_complexity['a']:
+                                ta.extend(tc)
+                        if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
+                            for tc in cons_config.time_complexity['a']:
+                                ta.extend(tc)
                             
-            #             time_complexity['r'] = tr
-            #             time_complexity['a'] = ta
-            #             nconf.time_complexity = time_complexity
+                        time_complexity['r'] = tr
+                        time_complexity['a'] = ta
+                        nconf.time_complexity = time_complexity
 
-            #             nconf.subconfig(prod_config, cons_config, fused=True)
-            #             if (nconf not in scheds): scheds.add(nconf)
+                        nconf.subconfig(prod_config, cons_config, True)
+                        if (nconf not in scheds): scheds.add(nconf)
                         
             tensor_accesses.pop(temporary)
                 
