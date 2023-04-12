@@ -266,7 +266,7 @@ def test_autoschedule3_unfused():
     
     assert found1 == True and found2 == True and found3 == True and found4 == True
     
-def test_autoschedule4():
+def test_autoschedule4_fused():
     # A(m) = t(j) * E(j,l) * F(l,m)
     
     accesses = {

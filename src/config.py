@@ -1,7 +1,8 @@
 # Config class definition
 # This is a representation of schedule
+# fused = 0: unfused, 1: fused, 2: partially fused
 class Config:
-    def __init__(self, output, expr, output_idx_order = None, input_idx_order = None, fused = False, prod_on_left = None):
+    def __init__(self, output : str, expr : list, output_idx_order : tuple = None, input_idx_order : tuple = None, fused : int = 0, prod_on_left : bool = None):
         # print('Creating config with', expr, 'fused', fused, 'output_idx_order', output_idx_order, 'input_idx_order', input_idx_order)
         self.output = output
         self.expr = expr # computation

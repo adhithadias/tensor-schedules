@@ -216,7 +216,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
         memory_complexity = []
         
         # perfectly linear loop order is considered as fused = True
-        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = idx_perm, fused = True)
+        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = idx_perm, fused = 1)
         nconf.time_complexity = time_complexity
         nconf.memory_complexity = memory_complexity
         if (nconf not in scheds): scheds.add(nconf)
@@ -281,7 +281,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-                        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
+                        nconf = Config(output, expr, output_idx_order, input_idx_order, 1, True)
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -310,7 +310,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         time_complexity['a'] = ta
                         nconf.time_complexity = time_complexity
                         
-                        nconf.subconfig(prod_config, cons_config, fused=True)
+                        nconf.subconfig(prod_config, cons_config, fused=1)
                         
                         if (nconf not in scheds): scheds.add(nconf)
                  
@@ -335,7 +335,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-                        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
+                        nconf = Config(output, expr, output_idx_order, input_idx_order, 2, True)
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -364,7 +364,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         time_complexity['a'] = ta
                         nconf.time_complexity = time_complexity
                         
-                        nconf.subconfig(prod_config, cons_config, fused=True)
+                        nconf.subconfig(prod_config, cons_config, fused=2)
                         if (nconf not in scheds): scheds.add(nconf)
             
             tensor_accesses.pop(temporary)
@@ -411,7 +411,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-                        nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
+                        nconf = Config(output, expr, output_idx_order, input_idx_order, 1, False)
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -439,7 +439,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         time_complexity['a'] = ta
                         nconf.time_complexity = time_complexity
 
-                        nconf.subconfig(prod_config, cons_config, fused=True)
+                        nconf.subconfig(prod_config, cons_config, fused=1)
                         if (nconf not in scheds): scheds.add(nconf)
             
             elif (len(post_expr) > 1):
@@ -464,7 +464,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
-                        nconf = Config(output, expr, output_idx_order, input_idx_order, True)
+                        nconf = Config(output, expr, output_idx_order, input_idx_order, 2, False)
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -492,7 +492,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         time_complexity['a'] = ta
                         nconf.time_complexity = time_complexity
 
-                        nconf.subconfig(prod_config, cons_config, True)
+                        nconf.subconfig(prod_config, cons_config, 2)
                         if (nconf not in scheds): scheds.add(nconf)
                         
             tensor_accesses.pop(temporary)
@@ -548,8 +548,8 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
                 idx_perms = list(itertools.permutations(loop_indices))
                 idx_perms = [idx_perm for idx_perm in idx_perms if is_valid_idx_perm(idx_perm, tensor_idx_order_constraints, expr, output)]
                 for idx_perm in idx_perms:
-                    unfused = Config(output, expr, output_idx_order, idx_perm, False)
-                    unfused.subconfig(s1, s2, False)
+                    unfused = Config(output, expr, output_idx_order, idx_perm, 0)
+                    unfused.subconfig(s1, s2, 0)
                     
                     time_complexity = {}
                     time_complexity['r'] = [{idx: 0 for idx in idx_perm}]
