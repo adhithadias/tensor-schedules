@@ -47,13 +47,12 @@ def prune_using_depth(schedules : list) -> list:
         if (pruned_array[i]):
             continue
         
-        s1 = schedules[i]
-        s1_time_depth = get_loop_depth(schedules[i])
-        s1_memory_depth = get_memory_depth(schedules[i])
+        s1_time_depth = get_loop_depth(s1)
+        s1_memory_depth = get_memory_depth(s1)
         
         # we have seen the same complexities before
         if (s1_time_depth, s1_memory_depth) in complexities:
-            results.append(schedules[i])
+            results.append(s1)
             continue
         
         for j, s2 in enumerate(schedules):
@@ -63,9 +62,8 @@ def prune_using_depth(schedules : list) -> list:
             if (pruned_array[j]):
                 continue
             
-            s2 = schedules[j]
-            s2_time_depth = get_loop_depth(schedules[j])
-            s2_memory_depth = get_memory_depth(schedules[j])
+            s2_time_depth = get_loop_depth(s2)
+            s2_memory_depth = get_memory_depth(s2)
             
             # s2 schedule is better than s1 schedule, we can prune s1 schedule
             if ((s1_time_depth >= s2_time_depth and s1_memory_depth > s2_memory_depth)
@@ -82,7 +80,7 @@ def prune_using_depth(schedules : list) -> list:
                 continue
             
         if (not pruned_array[i]):
-            results.append(schedules[i])
+            results.append(s1)
             complexities.add((s1_time_depth, s1_memory_depth))
             
     return results
