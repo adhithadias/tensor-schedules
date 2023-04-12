@@ -1,9 +1,13 @@
 from z3 import Int
-from src.autosched import sched_enum, get_schedules_unfused
+from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3
 
 schedules = []
+# 2 A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
+# 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
+# 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
+# 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
 test = 4
 
 if test == 0:
@@ -54,7 +58,7 @@ elif test == 2: # Tensor contraction
         # 'A': []
     }
     # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 0)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1)
 elif test == 3: # <SDDMM, SpMM>
     # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
     accesses = {
@@ -71,8 +75,12 @@ elif test == 3: # <SDDMM, SpMM>
         # 'E': [],
         # 'A': []
     }
+    tensor_expression = ('B','C','D','E')
+    cache = {}
+    
     # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l'), tensor_idx_order_constraints, 0)
+    # schedules = get_schedules('A', accesses['A'], tensor_expression, accesses, ('i','j','k','l'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l'), tensor_idx_order_constraints, 1, cache)
 elif test == 4: # <SDDMM, SpMM, GEMM>
     # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
     accesses = {
@@ -90,8 +98,12 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
         # 'E': [],
         # 'A': []
     }
+    tensor_expression = ('B','C','D','E','F')
+    cache = {}
+    
     # sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0)
+    schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    # schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
 
 elif test == 5:
     # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
@@ -114,6 +126,20 @@ printer = PrintConfigVisitor(accesses)
 
 print('\n\n\n\n\n\n\n', flush = True)
 print('schedule generation completed\n', len(schedules), flush = True)
+
+for i, schedule in enumerate(schedules):
+    if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+        schedule.accept(printer)
+        found1 = True
+        print('-----------')
+    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+        schedule.accept(printer)
+        found2 = True
+        print('-----------')
+    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+        schedule.accept(printer)
+        found3 = True
+        print('-----------')
 
 print('\n\n\n\n\n\n\n')
 

@@ -183,17 +183,19 @@ def get_placeholder_configs(output: str, output_idx_order: list, expr: list, ten
     return scheds
 
 
-def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_accesses: dict, loop_order: tuple, tensor_idx_order_constraints: dict, start : int, end : int, depth : int, cache : dict, bigger_cache : dict, is_print = False) -> set:
+def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_accesses: dict, loop_order: tuple, tensor_idx_order_constraints: dict, start : int, end : int, depth : int, cache : dict, is_print = False) -> set:
+    
+    assert depth > 0
     
     if ((output, output_idx_order, loop_order, expr) in cache):
-        print('found in bigger cache', (output, output_idx_order, loop_order, expr), flush=True)
-        return bigger_cache[(output, output_idx_order, loop_order, expr)]
+        # print('found in cache', (output, output_idx_order, loop_order, expr), flush=True)
+        return cache[(output, output_idx_order, loop_order, expr)]
         
     if is_print: print(loop_order, end='', flush=True)
     if (len(loop_order) == 0): return set()
     
     if is_print: print(depth, end='', flush=True)
-    print('get_schedules', output, output_idx_order, loop_order, expr, tensor_accesses, tensor_idx_order_constraints, start, end, flush=True)
+    # print('get_schedules', output, output_idx_order, loop_order, expr, tensor_accesses, tensor_idx_order_constraints, start, end, flush=True)
     # itertools returns a list of tuples
     idx_perms = list(itertools.permutations(loop_order))
     # print(loop_order, len(idx_perms), flush=True)
@@ -206,17 +208,8 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
     scheds = set()
     for i, idx_perm in enumerate(idx_perms):
         
-        if ((output, output_idx_order, idx_perm, expr) in cache):
-            print('found in cache', (output, output_idx_order, idx_perm, expr), flush=True)
-            local_scheds = cache[(output, output_idx_order, idx_perm, expr)]
-            scheds.update(local_scheds)
-            # for local_sched in local_scheds:
-            #     if (local_sched not in scheds): scheds.add(local_sched)
-            continue
-        
-        local_scheds = set()
-        print('---', flush=True)
-        print(idx_perm, flush=True)
+        # print('---', flush=True)
+        # print(idx_perm, flush=True)
         time_complexity = {}
         time_complexity['r'] = [get_time_complexity(set(idx_perm), expr, tensor_idx_order_constraints)]
         time_complexity['a'] = []
@@ -227,22 +220,20 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
         nconf.time_complexity = time_complexity
         nconf.memory_complexity = memory_complexity
         if (nconf not in scheds): scheds.add(nconf)
-        if (nconf not in local_scheds): local_scheds.add(nconf)
         
         if (len(expr) <= 2 or len(loop_order) == 1):
-            cache[(output, output_idx_order, idx_perm, expr)] = local_scheds
             continue
         
         for i in range(start + 1, end):
             # Now break the expression into smaller ones
             pre_expr, post_expr = expr[:i], expr[i:]
-            print('pre_expr, post_expr:', pre_expr, post_expr, flush=True)
+            # print('pre_expr, post_expr:', pre_expr, post_expr, flush=True)
             
             # get the list of schedules for pre and post expr
             # TODO - need to pass the output indexes to both sched_enum calls
             # since this is a sub module
             pre_ind, post_ind = define_data_layout(output_idx_order, pre_expr, post_expr, tensor_accesses)
-            print('producer and consumer indices:', pre_ind, post_ind, flush=True)
+            # print('producer and consumer indices:', pre_ind, post_ind, flush=True)
             idx_prod_list = get_input_idx_list(pre_expr, tensor_accesses)
             
             temporary = ("_" * depth) + output
@@ -250,13 +241,13 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
             # print((str("_"*depth+output)), post_expr, flush=True)
             new_post_expr = tuple([temporary]) + post_expr
             # print(new_post_expr, flush=True)
-            print('input_expr_breakdown:', pre_expr, new_post_expr, flush=True)
+            # print('input_expr_breakdown:', pre_expr, new_post_expr, flush=True)
             idx_cons_list = get_input_idx_list(new_post_expr, tensor_accesses)
             
             prod_idx_order = [idx for idx in idx_perm if idx in idx_prod_list]
             cons_idx_order = [idx for idx in idx_perm if idx in idx_cons_list]
             
-            print('producer and consumer idx order:', prod_idx_order, cons_idx_order, flush=True)
+            # print('producer and consumer idx order:', prod_idx_order, cons_idx_order, flush=True)
             
             i = 0
             for (prod_idx, cons_idx) in zip(prod_idx_order, cons_idx_order):
@@ -266,7 +257,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                     break
                     
             if (i != 0): # some loops can be fused
-                print('fused')
+                # print('fused')
                 common_loops = tuple(prod_idx_order[:i])
                 prod_loops = tuple(prod_idx_order[i:])
                 cons_loops = tuple(cons_idx_order[i:])
@@ -278,9 +269,9 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                 new_tensor_accesses[temporary] = new_prod_output_indices
                 
                 # prod_configs = get_placeholder_configs(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr))
-                prod_configs = get_schedules(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache, bigger_cache)
+                prod_configs = get_schedules(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache)
                 # cons_configs = get_placeholder_configs(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr))
-                cons_configs = get_schedules(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr), depth + 1, cache, bigger_cache)
+                cons_configs = get_schedules(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr), depth + 1, cache)
                 # print('new configs:', new_prod_output_indices, new_cons_output_indices, new_tensor_accesses)
                 
                 shared_loops = set(prod_loops).intersection(set(cons_loops))
@@ -322,10 +313,9 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         nconf.subconfig(prod_config, cons_config, fused=True)
                         
                         if (nconf not in scheds): scheds.add(nconf)
-                        if (nconf not in local_scheds): local_scheds.add(nconf)
                  
             # adding else part does not terminate the program       
-            else:
+            elif (len(pre_expr) > 1):
                 # print('unfused')
                 prod_loops = tuple(prod_idx_order)
                 cons_loops = tuple(cons_idx_order)
@@ -334,8 +324,8 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                 
                 # print('-->', prod_loops, cons_loops, new_tensor_accesses, flush=True)
                 
-                prod_configs = get_schedules(temporary, pre_ind, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache, bigger_cache)
-                cons_configs = get_schedules(output, output_idx_order, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr), depth + 1, cache, bigger_cache)
+                prod_configs = get_schedules(temporary, pre_ind, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache)
+                cons_configs = get_schedules(output, output_idx_order, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr), depth + 1, cache)
                 
                 # print('-->', prod_configs, cons_configs, flush=True)
                 shared_loops = set(prod_loops).intersection(set(cons_loops))
@@ -376,10 +366,10 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         
                         nconf.subconfig(prod_config, cons_config, fused=False)
                         if (nconf not in scheds): scheds.add(nconf)
-                        if (nconf not in local_scheds): local_scheds.add(nconf)
             
             tensor_accesses.pop(temporary)
             
+            # post expression as producer
             idx_prod_list = get_input_idx_list(post_expr, tensor_accesses)
             
             temporary = (depth * "_") + output
@@ -409,9 +399,9 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                 new_tensor_accesses[temporary] = new_prod_output_indices
                 
                 # prod_configs = get_placeholder_configs(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr))
-                prod_configs = get_schedules(temporary, new_prod_output_indices, post_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache, bigger_cache)
+                prod_configs = get_schedules(temporary, new_prod_output_indices, post_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(post_expr), depth + 1, cache)
                 # cons_configs = get_placeholder_configs(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr))
-                cons_configs = get_schedules(output, new_cons_output_indices, new_pre_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 0, len(new_post_expr)-1, depth + 1, cache, bigger_cache)
+                cons_configs = get_schedules(output, new_cons_output_indices, new_pre_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 0, len(new_pre_expr)-1, depth + 1, cache)
                 # print('new configs:', new_prod_output_indices, new_cons_output_indices, new_tensor_accesses)
                 
                 shared_loops = set(prod_loops).intersection(set(cons_loops))
@@ -451,27 +441,82 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
 
                         nconf.subconfig(prod_config, cons_config, fused=True)
                         if (nconf not in scheds): scheds.add(nconf)
-                        if (nconf not in local_scheds): local_scheds.add(nconf)
+            
+            # elif (len(post_expr) > 1):
+            #     # print('unfused')
+            #     prod_loops = tuple(prod_idx_order)
+            #     cons_loops = tuple(cons_idx_order)
+            #     new_tensor_accesses = {key: tuple([idx for idx in tensor_accesses[key]]) for key in tensor_accesses.keys()}
+            #     new_tensor_accesses[temporary] = pre_ind
+                
+            #     # print('-->', prod_loops, cons_loops, new_tensor_accesses, flush=True)
+                
+            #     # prod_configs = get_placeholder_configs(temporary, new_prod_output_indices, pre_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr))
+            #     prod_configs = get_schedules(temporary, new_prod_output_indices, post_expr, new_tensor_accesses, prod_loops, tensor_idx_order_constraints, 0, len(pre_expr), depth + 1, cache)
+            #     # cons_configs = get_placeholder_configs(output, new_cons_output_indices, new_post_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 1, len(new_post_expr))
+            #     cons_configs = get_schedules(output, new_cons_output_indices, new_pre_expr, new_tensor_accesses, cons_loops, tensor_idx_order_constraints, 0, len(new_post_expr)-1, depth + 1, cache)
+            #     # print('new configs:', new_prod_output_indices, new_cons_output_indices, new_tensor_accesses)
+                
+            #     shared_loops = set(prod_loops).intersection(set(cons_loops))
+            #     for j, prod_config in enumerate(prod_configs):
+            #         for k, cons_config in enumerate(cons_configs):
+            #             input_idx_order = (prod_config.input_idx_order, cons_config.input_idx_order) # no common loops here because it is not fused
+                        
+            #             # input_idx_order.extend(common_loops)
+            #             # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
+            #             nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = input_idx_order, fused = True)
+            #             # nconf.time_complexity = time_complexity
+            #             nconf.memory_complexity = [shared_loops]
+            #             nconf.memory_complexity.extend(prod_config.memory_complexity)
+            #             nconf.memory_complexity.extend(cons_config.memory_complexity)
+                        
+            #             time_complexity = {}
+            #             tr = []
+            #             ta = []
+            #             common_idx_for_complexity = get_time_complexity(common_loops, expr, tensor_idx_order_constraints)
+            #             if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
+            #                 for tc in prod_config.time_complexity['r']:
+            #                     # print(tc)
+            #                     tr.append({**tc})
+            #             if ('r' in cons_config.time_complexity and cons_config.time_complexity['r'] is not None): 
+            #                 for tc in cons_config.time_complexity['r']:
+            #                     tr.append({**tc})
+            #             if ('r' in prod_config.time_complexity and prod_config.time_complexity['r'] is not None): 
+            #                 for tc in prod_config.time_complexity['a']:
+            #                     ta.extend(tc)
+            #             if ('a' in cons_config.time_complexity and cons_config.time_complexity['a'] is not None):
+            #                 for tc in cons_config.time_complexity['a']:
+            #                     ta.extend(tc)
+                            
+            #             time_complexity['r'] = tr
+            #             time_complexity['a'] = ta
+            #             nconf.time_complexity = time_complexity
+
+            #             nconf.subconfig(prod_config, cons_config, fused=True)
+            #             if (nconf not in scheds): scheds.add(nconf)
                         
             tensor_accesses.pop(temporary)
                 
             # else: # none of the loops can be fused
                 # print("unfusible", flush=True)
           
-        # cache the output
-        # output, output_idx_order, idx_perm, expr
-        cache[(output, output_idx_order, idx_perm, expr)] = local_scheds
-        
+    # cache the output
+    # output, output_idx_order, idx_perm, expr
     for i, idx_perm in enumerate(idx_perms):
-        bigger_cache[(output, output_idx_order, idx_perm, expr)] = scheds    
+        cache[(output, output_idx_order, idx_perm, expr)] = scheds    
     # if is_print: print('num scheds: ', len(scheds), flush=True)
     return scheds
 
-def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, tensor_accesses: dict, loop_order: tuple, tensor_idx_order_constraints: dict, depth : int = 0) -> list:
+def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, tensor_accesses: dict, loop_order: tuple, tensor_idx_order_constraints: dict, depth : int, cache : dict) -> list:
+    
+    assert depth > 0
+    
+    if ((output, output_idx_order, loop_order, expr) in cache):
+        return cache[(output, output_idx_order, loop_order, expr)]
     
     # print('get_schedules: ', expr)
     # get the fused schedules
-    schedules = get_schedules(output, output_idx_order, expr, tensor_accesses, loop_order, tensor_idx_order_constraints, 0, len(expr), depth)
+    schedules = get_schedules(output, output_idx_order, expr, tensor_accesses, loop_order, tensor_idx_order_constraints, 0, len(expr), depth, cache)
     # schedules = list(schedules)
     # print('done with fused schedules count: ', len(schedules), flush=True)
     
@@ -489,11 +534,11 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
         post_loops = get_input_idx_list(post_expr, tensor_accesses)
         
         # print('producer1 schedules: ', pre_output, pre_expr, flush=True)
-        producer1_schedules = get_schedules_unfused('0'*depth+output, pre_output, pre_expr, tensor_accesses, pre_loops, tensor_idx_order_constraints, depth + 1)
+        producer1_schedules = get_schedules_unfused('0'*depth+output, pre_output, pre_expr, tensor_accesses, pre_loops, tensor_idx_order_constraints, depth + 1, cache)
         # print('number of producer1 schedules: ', len(producer1_schedules), flush=True)
         
         # print('producer2 schedules: ', post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, flush=True)
-        producer2_schedules = get_schedules_unfused(output+'0'*depth, post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, depth + 1)
+        producer2_schedules = get_schedules_unfused(output+'0'*depth, post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, depth + 1, cache)
         # print('number of producer2 schedules: ', len(producer2_schedules), flush=True)
         
         for j, s1 in enumerate(producer1_schedules):
@@ -527,7 +572,8 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
                     
                     if not (unfused in schedules): 
                         schedules.add(unfused)
-                        
+            
+    cache[(output, output_idx_order, loop_order, expr)] = schedules            
     return schedules
         
 
