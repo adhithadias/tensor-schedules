@@ -17,8 +17,7 @@ count = {
 }
 
 class Solver_Config:
-    def __init__(self, output: str, expr: list, output_idx_order: list, tensor_accesses: dict,
-                tensor_idx_order_constraints: dict, scheds: list) -> None:
+    def __init__(self, tensor_accesses: dict, tensor_idx_order_constraints: dict) -> None:
         constraints = []
         # TODO change to account for sparse tensors
         self.solver = Solver()
@@ -64,7 +63,6 @@ class Solver_Config:
 
         # saves solver backtracking point
         self.solver.push()
-        print(self.solver)
 
         self.total_indices["all"] = {
             **self.total_indices["dense"], **self.total_indices["sparse"]}
@@ -98,7 +96,7 @@ class Solver_Config:
             elif time_complexity_2 != None:
                 config_1.z3_time_complexity = time_complexity_2
             else:
-                config_1.z3_time_complexity = None
+                config_1.z3_time_complexity = 0
         if(config_2.z3_time_complexity == None):
             time_complexity_1 = self.get_z3_expr(config_2.time_complexity['r'])
             time_complexity_2 = self.get_z3_expr(config_2.time_complexity['a'])
@@ -109,7 +107,7 @@ class Solver_Config:
             elif time_complexity_2 != None:
                 config_2.z3_time_complexity = time_complexity_2
             else:
-                config_2.z3_time_complexity = None
+                config_2.z3_time_complexity = 0
         if(config_1.z3_memory_complexity == None):
             memory_complexity = self.get_z3_expr(config_1.memory_complexity)
             if(memory_complexity != None):
@@ -256,11 +254,10 @@ class Solver_Config:
         result_array = []
         pruned_array = bitarray(len(schedule_list))
         pruned_array.setall(0)
-        
         for i, s1 in enumerate(schedule_list):
             if pruned_array[i]:
                 continue
-            for j, s2 in enumerate(schedules[i:]):  #TODO check if can change schedules to schedules[i:]
+            for j, s2 in enumerate(schedule_list):  #TODO check if can change schedules to schedules[i:]
                 if (pruned_array[j]):
                     continue
                 compar = self.compare_schedules(s1,s2)
@@ -274,61 +271,59 @@ class Solver_Config:
                 result_array.append(s1)
         return result_array
 
-schedules = []
-# accesses = {
-#     'X': ['i', 'm'],
-#     'A': ['i', 'j'],
-#     'B': ['j', 'k'],
-#     'C': ['k', 'l'],
-#     'D': ['l', 'm']
-# }
-# tensor_idx_order_constraints = {
-#     'A': [('j', 'i')],
-#     # 'B': [],
-#     # 'C': [],
-#     # 'D': [],
-# }
-# sched_enum('X', ['A','B','C'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
+if __name__ == "__main__":
+    schedules = []
+    # accesses = {
+    #     'X': ['i', 'm'],
+    #     'A': ['i', 'j'],
+    #     'B': ['j', 'k'],
+    #     'C': ['k', 'l'],
+    #     'D': ['l', 'm']
+    # }
+    # tensor_idx_order_constraints = {
+    #     'A': [('j', 'i')],
+    #     # 'B': [],
+    #     # 'C': [],
+    #     # 'D': [],
+    # }
+    # sched_enum('X', ['A','B','C'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
 
-accesses = {
-    'X': ['i', 'm'],
-    'A': ['i', 'j'],
-    'B': ['j', 'k'],
-    'C': ['k', 'l'],
-    'D': ['l', 'm']
-}
-tensor_idx_order_constraints = {
-    'A': [('j', 'i')],
-    # 'B': [],
-    # 'C': [],
-    # 'D': [],
-}
-sched_enum('X', ['A', 'B', 'C', 'D'], accesses['X'],
-          accesses, tensor_idx_order_constraints, schedules)
+    accesses = {
+        'X': ['i', 'm'],
+        'A': ['i', 'j'],
+        'B': ['j', 'k'],
+        'C': ['k', 'l'],
+        'D': ['l', 'm']
+    }
+    tensor_idx_order_constraints = {
+        'A': [('j', 'i')],
+        # 'B': [],
+        # 'C': [],
+        # 'D': [],
+    }
+    sched_enum('X', ['A', 'B', 'C', 'D'], accesses['X'],
+              accesses, tensor_idx_order_constraints, schedules)
 
-solver = Solver_Config('X', ['A', 'B', 'C', 'D'], accesses['X'],
-                      accesses, tensor_idx_order_constraints, schedules)
-# print(solver.get_z3_expr([{'i', 'k', 'jpos'}, {'l', 'i', 'jpos'}]))
+    solver = Solver_Config(accesses, tensor_idx_order_constraints)
+    # print(solver.get_z3_expr([{'i', 'k', 'jpos'}, {'l', 'i', 'jpos'}]))
 
-schedules = solver.prune_using_depth(schedules)
-schedules = solver.prune_schedules(schedules)
+    schedules = solver.prune_using_depth(schedules)
+    schedules = solver.prune_schedules(schedules)
 
-print('\n\n\n\n\n\n\n')
-print(len(schedules))
+    print('\n\n\n\n\n\n\n')
+    print(len(schedules))
 
-print('\n\n\n\n\n\n\n')
-pruned_schedules = solver.prune_using_depth(schedules)
-print(len(pruned_schedules))
+    print('\n\n\n\n\n\n\n')
 
-print('/**************************************************************************/')
-print('/********************** PRINTING SCHEDULES ********************************/')
-print('/**************************************************************************/')
+    print('/**************************************************************************/')
+    print('/********************** PRINTING SCHEDULES ********************************/')
+    print('/**************************************************************************/')
 
-printer = PrintConfigVisitor(accesses)
-for schedule in pruned_schedules:
-    schedule.accept(printer)
-    print('-----------')
+    printer = PrintConfigVisitor(accesses)
+    for schedule in schedules:
+        schedule.accept(printer)
+        print('-----------')
 
-# for sched in range(len(schedules) - 1):
-    # solver.compare_schedules(schedules[randint(0, len(schedules) - 1)], schedules[randint(0, len(schedules) - 1)])
-    # solver.compare_schedules(schedules[sched], schedules[sched + 1])
+    # for sched in range(len(schedules) - 1):
+        # solver.compare_schedules(schedules[randint(0, len(schedules) - 1)], schedules[randint(0, len(schedules) - 1)])
+        # solver.compare_schedules(schedules[sched], schedules[sched + 1])
