@@ -1,19 +1,23 @@
 from z3 import Int
-from src.autosched import sched_enum
+from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3
 
 schedules = []
-test = 2
+# 2 A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
+# 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
+# 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
+# 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
+test = 4
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
     accesses = {
-        'X': ['i', 'm'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l'],
-        'D': ['l', 'm']
+        'X': ('i', 'm'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l'),
+        'D': ('l', 'm')
     }
     tensor_idx_order_constraints = {
         'A': [('j', 'i')],
@@ -25,10 +29,10 @@ if test == 0:
 elif test == 1:
     # X(i,l) = A(i,j) * B(j,k) * C(k,l)
     accesses = {
-        'X': ['i', 'l'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l']
+        'X': ('i', 'l'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l')
     }
     tensor_idx_order_constraints = {
         'A': [('j', 'i')],
@@ -40,11 +44,11 @@ elif test == 1:
 elif test == 2: # Tensor contraction
     # A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n)
     accesses = {
-        'A': ['l', 'm', 'n'],
-        'B': ['i', 'j', 'k'],
-        'C': ['i', 'l'],
-        'D': ['j', 'm'],
-        'E': ['k', 'n']
+        'A': ('l', 'm', 'n'),
+        'B': ('i', 'j', 'k'),
+        'C': ('i', 'l'),
+        'D': ('j', 'm'),
+        'E': ('k', 'n')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i'), ('k','j'), ('k','i')],
@@ -53,15 +57,16 @@ elif test == 2: # Tensor contraction
         # 'E': [],
         # 'A': []
     }
-    sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1)
 elif test == 3: # <SDDMM, SpMM>
     # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
     accesses = {
-        'A': ['i', 'l'],
-        'B': ['i', 'j'],
-        'C': ['i', 'k'],
-        'D': ['j', 'k'],
-        'E': ['j', 'l']
+        'A': ('i', 'l'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i')],
@@ -70,16 +75,21 @@ elif test == 3: # <SDDMM, SpMM>
         # 'E': [],
         # 'A': []
     }
-    sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    tensor_expression = ('B','C','D','E')
+    cache = {}
+    
+    # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    # schedules = get_schedules('A', accesses['A'], tensor_expression, accesses, ('i','j','k','l'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l'), tensor_idx_order_constraints, 1, cache)
 elif test == 4: # <SDDMM, SpMM, GEMM>
     # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
     accesses = {
-        'A': ['i', 'm'],
-        'B': ['i', 'j'],
-        'C': ['i', 'k'],
-        'D': ['j', 'k'],
-        'E': ['j', 'l'],
-        'F': ['l', 'm']
+        'A': ('i', 'm'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i')],
@@ -88,14 +98,20 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
         # 'E': [],
         # 'A': []
     }
-    sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    tensor_expression = ('B','C','D','E','F')
+    cache = {}
+    
+    # sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    # schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+
 elif test == 5:
     # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
     accesses = {
-        'A': ['i', 'l', 'm'],
-        'B': ['i', 'j', 'k'],
-        'C': ['j', 'l'],
-        'D': ['k', 'm']
+        'A': ('i', 'l', 'm'),
+        'B': ('i', 'j', 'k'),
+        'C': ('j', 'l'),
+        'D': ('k', 'm')
     }
     tensor_idx_order_constraints = {
         'B': [('j', 'i'), ('k','j'), ('k','i')],
@@ -108,19 +124,33 @@ elif test == 5:
 
 printer = PrintConfigVisitor(accesses)
 
-print('\n\n\n\n\n\n\n')
-print('schedule generation completed\n', len(schedules))
+print('\n\n\n\n\n\n\n', flush = True)
+print('schedule generation completed\n', len(schedules), flush = True)
+
+for i, schedule in enumerate(schedules):
+    if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+        schedule.accept(printer)
+        found1 = True
+        print('-----------')
+    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+        schedule.accept(printer)
+        found2 = True
+        print('-----------')
+    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+        schedule.accept(printer)
+        found3 = True
+        print('-----------')
 
 print('\n\n\n\n\n\n\n')
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 
 depth_pruned_schedules = prune_using_depth(schedules)
-print('number of depth pruned schdeules:', len(depth_pruned_schedules))
+print('number of depth pruned schdeules:', len(depth_pruned_schedules), flush = True)
 
-print('\n\n/**************************************************************************/')
-print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/')
-print('/**************************************************************************/')
+print('\n\n/**************************************************************************/', flush = True)
+print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/', flush = True)
+print('/**************************************************************************/', flush = True)
 
 for schedule in depth_pruned_schedules:
     schedule.accept(printer)
@@ -158,16 +188,16 @@ elif (test == 5):
                     i * j * k < 1000 * i * jpos * kpos]  # 0.001 * i*j < i*jpos
 
 z3_pruned_schedules = prune_using_z3(depth_pruned_schedules, z3_variables, z3_constraints)
-print('number of z3 pruned schdeules:', len(z3_pruned_schedules))
+print('number of z3 pruned schdeules:', len(z3_pruned_schedules), flush = True)
 
 
-print('\n\n/**************************************************************************/')
-print('/********************** PRINTING Z3 PRUNED SCHEDULES ********************************/')
-print('/**************************************************************************/')
+print('\n\n/**************************************************************************/', flush = True)
+print('/********************** PRINTING Z3 PRUNED SCHEDULES ********************************/', flush = True)
+print('/**************************************************************************/', flush = True)
 
 for schedule in z3_pruned_schedules:
     schedule.accept(printer)
-    print('-----------')
+    print('-----------', flush = True)
 
 #     # all the schedules with fused:True must be given to SparseLNR
 #     # all the schedules with fused:False must be given to TACO

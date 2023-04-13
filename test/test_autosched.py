@@ -1,6 +1,364 @@
 import pytest
-from src.autosched import unfused, fused
+from src.autosched import unfused, fused, sched_enum, get_schedules, get_schedules_unfused
+from src.visitor import PrintConfigVisitor
 from src.config import Config
+from src.util import define_data_layout
+
+def test_autoschedule1_unfused():
+    # A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n)
+    
+    accesses = {
+        'A': ('l', 'm', 'n'),
+        'B': ('i', 'j', 'k'),
+        'C': ('i', 'l'),
+        'D': ('j', 'm'),
+        'E': ('k', 'n')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i'), ('k','j'), ('k','i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B','C', 'D','E')
+    loop_order = ('i','j','k','l','m','n')
+    cache = {}
+    
+    results = get_schedules_unfused(output, accesses[output], expr, accesses, loop_order, tensor_idx_order_constraints, 1, cache)
+    print('number of all the results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2, found3 = False, False, False
+    for i, schedule in enumerate(results):
+        if ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('j','k','m','n') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('m',('j','k'),('k','n')) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('m','k',('j',),('n',)) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found3 = True
+            print('-----------')
+        # elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+        #     schedule.accept(printer)
+        #     found3 = True
+        #     print('---')
+    
+    assert found1 == True and found2 == True and found3 == True
+
+def test_autoschedule1_fused():
+    # A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n)
+    
+    accesses = {
+        'A': ('l', 'm', 'n'),
+        'B': ('i', 'j', 'k'),
+        'C': ('i', 'l'),
+        'D': ('j', 'm'),
+        'E': ('k', 'n')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i'), ('k','j'), ('k','i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B', 'C', 'D','E')
+    output_idx_order = ['j','k','m','n']
+    
+    cache = {}
+    results = get_schedules('A', ('l','m','n'), expr, accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    print('number of all the results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2, found3 = False, False, False
+    for i, schedule in enumerate(results):
+        if ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('j','k','m','n') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('m',('j','k'),('k','n')) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order and ('m','k',('j',),('n',)) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found3 = True
+            print('-----------')
+        # elif ('l' in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+        #     schedule.accept(printer)
+        #     found3 = True
+        #     print('---')
+    
+    assert found1 == True and found2 == True and found3 == True
+
+def test_autoschedule2_fused():
+    # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
+    
+    accesses = {
+        'A': ('i', 'l'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B', 'C', 'D','E')
+    
+    cache = {}
+    results = get_schedules(output, accesses['A'], expr, accesses, ('i','j','k','l'), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1 = False
+    for i, schedule in enumerate(results):
+        if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l',) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+    
+    assert found1 == True
+    
+def test_autoschedule2_unfused():
+    # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
+    
+    accesses = {
+        'A': ('i', 'l'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B', 'C', 'D','E')
+    
+    cache = {}
+    results = get_schedules_unfused(output, accesses['A'], expr, accesses, ('i','j','k','l'), tensor_idx_order_constraints, 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1 = False
+    for i, schedule in enumerate(results):
+        if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l',) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        # else:
+        #     schedule.accept(printer)
+        #     print('---')
+    
+    assert found1 == True
+    
+    
+def test_autoschedule3_fused():
+    # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
+    
+    accesses = {
+        'A': ('i', 'm'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'F': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B','C','D','E','F')
+    
+    cache = {}
+    results = get_schedules(output, accesses['A'], expr, accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2, found3, found4 = False, False, False, False
+    for i, schedule in enumerate(results):
+        if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found3 = True
+            print('-----------')
+        elif ('m' in schedule.input_idx_order and ('j','l') in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found4 = True
+            print('-----------')
+    
+    assert found1 == True and found2 == True and found3 == True and found4 == True
+    
+def test_autoschedule3_unfused():
+    # A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m)
+    
+    accesses = {
+        'A': ('i', 'm'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'F': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('B','C','D','E','F')
+    
+    cache = {}
+    results = get_schedules_unfused(output, accesses['A'], expr, accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2, found3, found4 = False, False, False, False
+    for i, schedule in enumerate(results):
+        if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found3 = True
+            print('-----------')
+        elif ('m' in schedule.input_idx_order and ('j','l') in schedule.input_idx_order and ('i','j','k') in schedule.input_idx_order):
+            schedule.accept(printer)
+            found4 = True
+            print('-----------')
+    
+    assert found1 == True and found2 == True and found3 == True and found4 == True
+    
+def test_autoschedule4_fused():
+    # A(m) = t(j) * E(j,l) * F(l,m)
+    
+    accesses = {
+        'A': ('m',),
+        't': ('j',),
+        'E': ('j', 'l'),
+        'F': ('l', 'm')
+    }
+    tensor_idx_order_constraints = {
+        # 't': [],
+        # 'E': [],
+        # 'F': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A'
+    expr = ('t','E','F')
+    
+    cache = {}
+    results = get_schedules(output, accesses['A'], expr, accesses, ('j','l','m'), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    print('number of all the fused results:', len(results))
+    printer = PrintConfigVisitor(accesses)
+    found1, found2 = False, False
+    for i, schedule in enumerate(results):
+        if ('j' in schedule.input_idx_order and 'l' in schedule.input_idx_order and 'm' in schedule.input_idx_order):
+            schedule.accept(printer)
+            found1 = True
+            print('-----------')
+        elif ('l' in schedule.input_idx_order and ('j',) in schedule.input_idx_order and ('m',) in schedule.input_idx_order):
+            schedule.accept(printer)
+            found2 = True
+            print('-----------')
+        else:
+            schedule.accept(printer)
+            print('---')
+    
+    assert found1 == True and found2 == True
+
+
+def test_autosched1():
+    # A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n)
+    
+    accesses = {
+        'A': ('l', 'm', 'n'),
+        'B': ('i', 'j', 'k'),
+        'C': ('i', 'l'),
+        'D': ('j', 'm'),
+        'E': ('k', 'n')
+    }
+    tensor_idx_order_constraints = {
+        'B': [('j', 'i'), ('k','j'), ('k','i')],
+        # 'C': [],
+        # 'D': [],
+        # 'E': [],
+        # 'A': []
+    }
+    results = []
+    output = 'A_'
+    expr = ['D','E']
+    output_idx_order = ['j','k','m','n']
+    sched_enum(output, expr, output_idx_order, accesses, tensor_idx_order_constraints, results)
+    
+    print('number of configs:', len(results))
+    
+    printer = PrintConfigVisitor(accesses)
+    for schedule in results:
+        schedule.accept(printer)
+        print('-----------')
+        
+    for i in range(1, len(expr)):
+        # Now break the expression into smaller ones
+        pre_expr, post_expr = expr[:i], expr[i:]
+        print('pre_expr:', pre_expr, 'post_expr:', post_expr)
+        
+        pre_ind, post_ind = define_data_layout(output_idx_order, pre_expr, post_expr, accesses)
+        
+        print('pre_ind:', pre_ind, 'post_ind:', post_ind)
+        
+        pre_sched, post_sched = [], []
+        sched_enum("_" + output, pre_expr, pre_ind, accesses, tensor_idx_order_constraints, pre_sched)
+        sched_enum(output + "_", post_expr, post_ind, accesses, tensor_idx_order_constraints, post_sched)
+        
+        print('pre_sched_len:', len(pre_sched), 'post_sched_len:', len(post_sched))
+        
+        for schedule in pre_sched:
+            schedule.accept(printer)
+            print('-----------')
+            
+        for schedule in post_sched:
+            schedule.accept(printer)
+            print('-----------')
+    
 
 def test_autosched_unfused1():
     # B(j,k)*C(k,l)*D(l,m)

@@ -14,11 +14,11 @@ def test_union_list():
 
 def test_get_input_idx_set():
     accesses = {
-        'X': ['i', 'm'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l'],
-        'D': ['l', 'm']
+        'X': ('i', 'm'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l'),
+        'D': ('l', 'm')
     }
 
     l = get_input_idx_list(['A','B','C','D'], accesses)

@@ -33,12 +33,12 @@ def get_input_idx_list(expr: list, tensor_accesses: dict):
     for tensor in expr:
         assert type(tensor) == str
         idxes = tensor_accesses[tensor]
-        assert type(idxes) == list
+        assert type(idxes) == tuple
         for idx in idxes:
             assert type(idx) == str
             idx_set.add(idx)
         
-    idx_set = list(idx_set)
+    idx_set = tuple(idx_set)
     return idx_set
 
 def append_list_to_list_of_lists(l1: list, l2: list):
@@ -157,11 +157,11 @@ def define_data_layout(output_idx_order, pre_expr, post_expr, tensor_accesses):
     post_inds = union_list(set_pre_and_post, set_output_and_post) # list(set(set_pre_and_post) | set(set_output_and_post))
 
     # tuple of pre and post indices
-    return (pre_inds, post_inds)
+    return (tuple(pre_inds), tuple(post_inds))
 
 
 
-def is_valid_idx_perm(idx_perm: list, tensor_idx_order_constraints: dict, input_tensors: list, output_tensor: str) -> bool:
+def is_valid_idx_perm(idx_perm: tuple, tensor_idx_order_constraints: dict, input_tensors: tuple, output_tensor: str) -> bool:
     assert all([type(idx) == str for idx in idx_perm])
 
     # expr contains the list of tensors in the expression that the 
