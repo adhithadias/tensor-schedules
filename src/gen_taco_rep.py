@@ -3,6 +3,11 @@ from src.autosched import sched_enum
 import sys
 from copy import deepcopy
 from random import randint
+import regex as re
+
+header_to_read = r'/\*.*\*/'
+footer_to_read = r'/\*.*\*/'
+# path = "~/SparseLNR_Most_Recent"
 
 class Gen_Test_Code:
     def __init__(self, config:Config, test_name:str, file):
@@ -32,8 +37,7 @@ class Gen_Test_Code:
                     new_reorderings = []
                     i = 0
                     while i < len(old_ordering):
-                        if reordering[i] == old_ordering[i]:
-                            i += 1
+                        if reordering[i] == old_ordering[i]: i += 1
                         else:
                             list_old = [old_ordering[i]]
                             list_new = [reordering[i]]
@@ -42,11 +46,9 @@ class Gen_Test_Code:
                                 list_old.append(old_ordering[i])
                                 list_new.append(reordering[i])
                                 i += 1
-                            if len(list_new) > 1:
-                                new_reorderings.append(list_new)
+                            if len(list_new) > 1: new_reorderings.append(list_new)
                     self.reorders.append(new_reorderings)
-                else:
-                    self.reorders.append([])                    
+                else: self.reorders.append([])                    
         
         self.add_header()
         
@@ -57,10 +59,8 @@ class Gen_Test_Code:
             else:
                 self.add_vector(name=("path" + str(i)))
 
-        
-        
         # print scheduling commands
-        print("stmt = stmt", file=self.file)
+        self.print_data("stmt = stmt")
         
         for i, reorder in enumerate(self.reorders):
             self.add_reorder(reorder, i)
@@ -71,14 +71,13 @@ class Gen_Test_Code:
                     self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
                 else:
                     self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
-
-                # self.add_loopfuse(self.get_pos(config_to_split, bool(self.paths[i][-1])), config_to_split.prod_on_left, i)
-            else:
-                self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
-        
-        
+            else: self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
+        self.print_data(";", 2)
         self.add_end()
         
+    def print_data(self, data:str, num_tabs=1) -> None:
+      print(data, file=self.file)
+      
     def get_indices(self, input_list:list) -> None:
         for item in input_list:
             if type(item) == list:
@@ -123,8 +122,6 @@ class Gen_Test_Code:
             if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == list and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == list:
                 self.get_paths(path + [1], config.cons)
             
-            
-            
             # if config.prod_on_left:
             #     self.get_paths(path + [0], config.prod)
             #     self.get_paths(path + [1], config.cons)
@@ -134,16 +131,16 @@ class Gen_Test_Code:
         
     
     def add_header(self):
-        print("/* BEGIN " + self.test_name + " TEST */", file=self.file)
+        self.print_data("/* BEGIN " + self.test_name + " TEST */")
     
     def add_end(self):
-        print("*/ END " + self.test_name + " TEST */", file=self.file)
+        self.print_data("/* END " + self.test_name + " TEST */")
         
     def add_vector(self, name: str, type="int", init=""):
         if len(init) == 0:
-            print("vector<" + type + "> " + name + ";", file=self.file)
+            self.print_data("vector<" + type + "> " + name + ";")
         else:
-            print("vector<" + type + "> " + name + " = " + init + ";", file=self.file)
+            self.print_data("vector<" + type + "> " + name + " = " + init + ";")
     def add_reorder(self, inputs:list, path=0):
         if len(inputs) == 0:
             return
@@ -161,13 +158,13 @@ class Gen_Test_Code:
         elif reorderings[-2:] == ", ":
             reorderings = reorderings[:-2] + "}"
         if path == 0:
-            print("\t.reorder(" + reorderings + ")", file=self.file)
+            self.print_data("\t.reorder(" + reorderings + ")")
         else:
-            print("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")", file=self.file)
+            self.print_data("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
 
         
     def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int):
-        print("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")", file=self.file)
+        self.print_data("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
         """Returns all possible orderings of indexes
@@ -312,14 +309,107 @@ def count_fusions(config:Config):
     else:
         return 1 + count_fusions(config.prod) + count_fusions(config.cons)
     
+class Write_Test_Code(Gen_Test_Code):
+    def __init__(self, config: Config, test_name: str, filename: str):
+        # text to hold lines indicating schedule
+        self.schedule_text = []
+        
+        # test name line of C++ code to recognize
+        self.test_regex = self.get_test_regex(test_name)
+        
+        # open file for reading
+        try:
+            r_file_ptr = open(filename, "r")
+        except OSError:
+            print("Failed to open file for reading", file=sys.stderr)
+            return
+        except TypeError:
+            print("Invalid type of filename.  Please enter a string", file=sys.stderr)
+            return
+        
+        # initialize parent class
+        super().__init__(config, test_name, r_file_ptr)
+        
+        # initialize list of all lines in file
+        new_text = []
+        
+        # read lines until test line is read, fill test line, fill remaining lines
+        test_read = False
+        header_read = False
+        footer_read = False
+        
+        for line in r_file_ptr:
+            if test_read: 
+                new_text.append(line)
+                continue
+            text = re.search(self.test_regex, line)
+            if text: 
+                # change to true so less computations
+                test_read = True
+                try:
+                    # read and store lines until header is reached
+                    new_text.append(line)
+                    
+                    for line in r_file_ptr:
+                        # next_line = r_file_ptr.readline()
+                        if re.search(header_to_read, line): 
+                            header_read = True
+                            break
+                        new_text.append(line)
+                        
+                    # add schedule text in
+                    new_text.extend(self.schedule_text)
+                    
+                    # read only until footer is reached
+                    for line in r_file_ptr:
+                        # next_line = r_file_ptr.readline()
+                        if re.search(footer_to_read, line): 
+                            footer_read = True
+                            break
+                except EOFError:
+                    print("Invalid header or footer", file=sys.stderr)
+                    r_file_ptr.close()
+                    return
+            else: new_text.append(line)
+        
+        r_file_ptr.close()
+        
+        # check if valid 
+        if not test_read: 
+            print("Invalid test name", file=sys.stderr)
+            return
+        if not header_read:
+            print("No header present", file=sys.stderr)
+            return
+        if not footer_read:
+            print("No footer present", file=sys.stderr)
+            return
+        
+        # write new compiled info back to file
+        w_file_ptr = open(filename, "w")
+        w_file_ptr.writelines(new_text)
+        w_file_ptr.close()
+
+    def print_data(self, data: str, num_tabs=1) -> None:
+        """Override print_data to write all info into list
+
+        Args:
+            data (str): data to append to list
+        """
+        self.schedule_text.append("\t" * num_tabs + data + "\n")
+    
+    def get_test_regex(self, test_name: str):
+        return re.compile(f"TEST\(workspaces, {test_name}\)")
+    
+    
 if __name__ == "__main__":
     schedules = []
     accesses = {
-        'X': ['i', 'm'],
-        'A': ['i', 'j'],
-        'B': ['j', 'k'],
-        'C': ['k', 'l'],
-        'D': ['l', 'm']
+        'X': ('i', 'm'),
+        'A': ('i', 'j'),
+        'B': ('j', 'k'),
+        'C': ('k', 'l'),
+        'D': ('l', 'm')
     }
     tensor_idx_order_constraints = {
         'A': [('j', 'i')],
@@ -337,8 +427,13 @@ if __name__ == "__main__":
         if count_fusions(schedule) == 2 and schedule.fused:
             counter = (counter % counter_printing) + 1
             if counter == counter_printing:
-                Gen_Test_Code(schedule, "Test " + str(test_num), sys.stdout)
+                # Gen_Test_Code(schedule, "Test " + str(test_num), sys.stdout)
+                Write_Test_Code(schedule, "loopfuse", "tests-workspaces.cpp")
                 test_num += 1
+                break
             # break
+          
+
+          
           
 # TODO path is wrong when printing
