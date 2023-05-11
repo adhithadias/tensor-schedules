@@ -6,9 +6,9 @@ from src.visitor import PrintConfigVisitor
 from bitarray import bitarray
 
 min_dense = 10
-max_dense = 100
-min_sparse = 5
-max_sparse = 50
+max_dense = 1000
+min_sparse = 0
+max_sparse = 500
 count = {
     "unsat,unsat": 0,
     "unsat,sat": 0,
@@ -78,10 +78,9 @@ class Solver_Config:
                     mult_expr = self.total_indices["all"][index]
                 else:
                     mult_expr = mult_expr * self.total_indices["all"][index]
-            if(add_expr == None):
-                add_expr = mult_expr
-            else:
-                add_expr = add_expr + mult_expr
+            if mult_expr == None: continue
+            elif add_expr == None: add_expr = mult_expr
+            else: add_expr = add_expr + mult_expr
         return add_expr
 
     def compare_schedules(self, config_1: Config, config_2: Config) -> int:
