@@ -423,6 +423,8 @@ if __name__ == "__main__":
     counter = 1
     test_num = 1
     
+    
+    
     for schedule in schedules:
         if count_fusions(schedule) == 2 and schedule.fused:
             counter = (counter % counter_printing) + 1
