@@ -214,23 +214,21 @@ class Solver_Config:
         pruned_array = bitarray(len(schedules))
         pruned_array.setall(0)
 
-        for i in range(0, len(schedules)):
+        for i,s1 in enumerate(schedules):
             if (pruned_array[i]):
                 continue
 
-            s1 = schedules[i]
             s1_time_depth = self.get_loop_depth(s1)
             s1_memory_depth = self.get_memory_depth(s1)
 
             # we have seen the same complexities before
             if (s1_time_depth, s1_memory_depth) in complexities:
-                results.append(schedules[i])
+                results.append(s1)
                 continue
 
-            for j in range(0, len(schedules)):
+            for j, s2 in enumerate(schedules):
                 if (pruned_array[j]):
                     continue
-                s2 = schedules[j]
                 s2_time_depth = self.get_loop_depth(s2)
                 s2_memory_depth = self.get_memory_depth(s2)
 

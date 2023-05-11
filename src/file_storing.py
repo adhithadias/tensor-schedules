@@ -3,7 +3,7 @@ from src.visitor import PrintDictVisitor, PrintConfigVisitor
 import sys
 import json
 
-def store_json(tensor_accesses:dict, output_tensor:str, config_list:list, filename:str):
+def store_json(tensor_accesses:dict, config_list:list, filename:str):
     assert len(config_list) > 0
     assert type(config_list[0]) == Config
     
