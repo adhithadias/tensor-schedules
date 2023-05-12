@@ -10,12 +10,14 @@ import itertools
 import sys
 from copy import deepcopy
 import re
+import time
 
 get_schedule_func = "get_schedules_unfused"
 # get_schedule_func = "get_schedules"
 # get_schedule_func = "sched_enum"
 
 def print_example():
+    print("python3 -m src.main_store_json [json file(s)] [test number(s)]")
     print("Example execution:")
     print("\tpython3 -m src.main_store_json test1.json test2.json test3.json 1 2 3")
     print("\tThis runs tests 1, 2 and 3 and stores them in the respective json files")
@@ -27,6 +29,7 @@ def print_to_json(test_to_run, testnum, filename):
     # for test_num in tests_to_run:
     # file_ptr = open(filename, 'w')
     print("---------------------------------------------------")
+    test_start_time = time.time()
     print(f'Running TEST {testnum}\n')
     schedules = []
     output = test_to_run["output_tens"]
@@ -83,18 +86,20 @@ def print_to_json(test_to_run, testnum, filename):
     else:
         print("No scheduling function input", file=sys.stderr)
         exit()
-    print(f'{len(schedules)} schedule(s) enumerated\n')
+    print(f'{len(schedules)} schedule(s) enumerated in {round(time.time() - test_start_time, 4)} seconds\n')
     
+    depth_start_time = time.time()
     print(f'Pruning schedules using depth')
     pruned_schedules = solver.prune_using_depth(schedules)
-    print(f'{len(pruned_schedules)} schedule(s) unpruned\n')
+    print(f'{len(pruned_schedules)} schedule(s) unpruned ({round(time.time()-depth_start_time, 4)} seconds)\n')
     
+    z3_start_time = time.time()
     print(f'Pruning schedules using Z3')
     pruned_schedules = solver.prune_schedules(pruned_schedules)
     
     store_json(test_to_run["accesses"], pruned_schedules, filename)
-    print(f'{len(pruned_schedules)} schedule(s) stored to {filename}\n')
-    print(f'TEST {test_num} finished')
+    print(f'{len(pruned_schedules)} schedule(s) stored to {filename} ({round(time.time() - z3_start_time,4)} seconds)\n')
+    print(f'TEST {test_num} finished in {round(time.time() - test_start_time, 4)} seconds')
     
 
 
