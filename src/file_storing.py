@@ -57,8 +57,8 @@ def read_json(filename:str) -> list:
     for schedule in new_dict["schedules"]:
         config_list.append(get_config(schedule))
     
-    printer = PrintConfigVisitor(new_dict["accesses"])    
-    for config in config_list:
-        config.accept(printer)
+    # printer = PrintConfigVisitor(new_dict["accesses"])    
+    # for config in config_list:
+    #     config.accept(printer)
     
     return config_list

@@ -2,6 +2,7 @@ import subprocess
 from src.gen_taco_rep import Write_Test_Code
 from src.config import Config
 from src.file_storing import read_json
+from src.print_help import Main_Run_Test, Print_Help_Visitor
 import sys
 import re
 import os
@@ -22,37 +23,19 @@ command = "make taco-test/fast"
 # incomplete argument
 run_arg = "workspaces._"
 
-def print_help_info():
-    print("Proper usage:")
-    print("python3 -m src.main_run_test [test_file] [json file(s)] [test name(s)]")
-    print("\nExample execution:")
-    print("python3 -m src.main_run_test tests-workspaces.cpp test1.json test2.json test3.json test1 test2 test3")
-
 def get_arg(test): return re.sub("_", test, deepcopy(run_arg))
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "help":
-        print_help_info()
-        exit()
-    elif len(sys.argv) < 4:
-        print("Too few arguments\n", file=sys.stderr)
-        print_help_info()
-        exit()
-    elif len(sys.argv) % 2:
-        print("Invalid arguments given.  Give file name(s) and test number(s) as command line arguments\n", file=sys.stderr)
-        print_help_info()
-        exit()
-        
+    main_class = Main_Run_Test(sys.argv)
+    print_visitor = Print_Help_Visitor()
+    main_class.accept(print_visitor)
+    
     filenames = []
     tests_to_run = []
 
     for arg in sys.argv[2:int((len(sys.argv) + 2) / 2)]:
-        if re.match(".*\.json", arg) == None:
-            print("All file inputs must be json files", file=sys.stderr)
-            exit()
         filenames.append(arg)
     for arg in sys.argv[int((len(sys.argv) + 2) / 2):]:
-        # TODO maybe check if it matches a test in my test file?  May be too much unnecessary work
         tests_to_run.append(arg)
 
     assert len(set(filenames)) == len(filenames)

@@ -5,6 +5,7 @@ from src.config import Config
 from src.solver_config import Solver_Config
 from src.visitor import PrintConfigVisitor
 from src.util import *
+from src.print_help import Main_Store_JSON, Print_Help_Visitor
 # from src.gen_taco_rep import Write_Test_Code
 import itertools
 import sys
@@ -15,13 +16,6 @@ import time
 get_schedule_func = "get_schedules_unfused"
 # get_schedule_func = "get_schedules"
 # get_schedule_func = "sched_enum"
-
-def print_example():
-    print("python3 -m src.main_store_json [json file(s)] [test number(s)]")
-    print("Example execution:")
-    print("\tpython3 -m src.main_store_json test1.json test2.json test3.json 1 2 3")
-    print("\tThis runs tests 1, 2 and 3 and stores them in the respective json files")
-
 
 def print_to_json(test_to_run, testnum, filename):
     assert type(filename) == str
@@ -105,28 +99,17 @@ def print_to_json(test_to_run, testnum, filename):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Invalid arguments given.  Give file name(s) and test number(s) as command line arguments\n", file=sys.stderr)
-        print_example()
-        exit()
-    elif sys.argv[1].lower() == "help":
-        print_example()
-        exit()
-    elif (len(sys.argv) + 1) % 2: 
-        print("Invalid arguments given.  Give file name(s) and test number(s) as command line arguments\n", file=sys.stderr)
-        print_example()
-        exit()
+    main_store_json = Main_Store_JSON(sys.argv)
+    print_visitor = Print_Help_Visitor()
+    main_store_json.accept(print_visitor)
     
     filenames = []
     test_nums = []
     tests_to_run = []
     
     for arg in sys.argv[1:int((len(sys.argv) + 1) / 2)]:
-        assert re.match(".*\.json", arg) != None
         filenames.append(arg)
     for arg in sys.argv[int((len(sys.argv) + 1) / 2):]:
-        assert re.match("[0-9]+", arg) != None
-        assert int(arg) < len(tests)
         test_nums.append(arg)
         tests_to_run.append(tests[int(arg)])
     
