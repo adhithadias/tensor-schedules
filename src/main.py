@@ -2,13 +2,14 @@ from z3 import Int
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3
+from src.file_storing import store_json, read_json, lists_to_tuples
 
 schedules = []
 # 2 A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 4
+test = 0
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -57,8 +58,9 @@ elif test == 2: # Tensor contraction
         # 'E': [],
         # 'A': []
     }
+    cache = {}
     # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1, cache)
 elif test == 3: # <SDDMM, SpMM>
     # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
     accesses = {
@@ -198,6 +200,33 @@ print('/************************************************************************
 for schedule in z3_pruned_schedules:
     schedule.accept(printer)
     print('-----------', flush = True)
+    
+    
+store_json(accesses, z3_pruned_schedules, "test.json")
+read_configs = read_json("test.json")
+
+
+assert len(read_configs) == len(z3_pruned_schedules)
+# print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+
+# total_count = len(z3_pruned_schedules)
+# count_wrong = 0
+for i in range(len(z3_pruned_schedules)):
+    if type(z3_pruned_schedules[i].output_idx_order) == list: z3_pruned_schedules[i].output_idx_order = lists_to_tuples(z3_pruned_schedules[i].output_idx_order)
+    if type(z3_pruned_schedules[i].input_idx_order) == list: z3_pruned_schedules[i].input_idx_order = lists_to_tuples(z3_pruned_schedules[i].input_idx_order)
+    if type(z3_pruned_schedules[i].expr) == list: z3_pruned_schedules[i].expr = lists_to_tuples(z3_pruned_schedules[i].expr)
+    
+    assert z3_pruned_schedules[i] == read_configs[i]
+    # if(z3_pruned_schedules[i] != read_configs[i]):
+    #     count_wrong = count_wrong + 1
+    #     z3_pruned_schedules[i].accept(printer)
+    #     read_configs[i].accept(printer)
+        
+# print(f'total count: {total_count}')
+# print(f'wrong count: {count_wrong}')
+
+
+
 
 #     # all the schedules with fused:True must be given to SparseLNR
 #     # all the schedules with fused:False must be given to TACO

@@ -8,6 +8,7 @@ import sys
 
 tests = []
 
+# 0
 tests.append({
   "accesses": {
       'X': ('i', 'm'),
@@ -19,9 +20,11 @@ tests.append({
   "tensor_idx_order_constraints": {
       'A': [('j', 'i')]
   },
-  "output_tens": 'X'
+  "output_tens": 'X',
+  "z3_parameters": []
 })
 
+# 1
 tests.append({
   "accesses": {
       'X': ('i', 'l'),
@@ -34,6 +37,8 @@ tests.append({
   },
   "output_tens": 'X'
 })
+
+# 2
 tests.append({
   "accesses": {
       'A': ('l', 'm', 'n'),
@@ -47,6 +52,8 @@ tests.append({
   },
   "output_tens": 'A'
 })
+
+# 3
 tests.append({
   "accesses": {
       'A': ('i', 'l'),
@@ -60,6 +67,8 @@ tests.append({
   },
   "output_tens": 'A'
 })
+
+# 4
 tests.append({
   "accesses": {
       'A': ('i', 'm'),
@@ -74,6 +83,8 @@ tests.append({
   },
   "output_tens": 'A'
 })
+
+# 5
 tests.append({
   "accesses": {
       'A': ('i', 'l', 'm'),
@@ -86,10 +97,6 @@ tests.append({
   },
   "output_tens": 'A'
 })
-
-
-
-
 
 def run_algorithm(tests_to_run):
     if type(tests_to_run) == int:
@@ -130,4 +137,4 @@ def run_algorithm(tests_to_run):
 
 
 if __name__ == "__main__":
-    run_algorithm([3])
+    run_algorithm([4])
