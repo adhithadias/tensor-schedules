@@ -84,6 +84,23 @@ def prune_using_depth(schedules : list) -> list:
             complexities.add((s1_time_depth, s1_memory_depth))
             
     return results
+
+def prune_using_memory_depth(schedules : set, memory_depth_thresh : int) -> list:
+    n = len(schedules)
+    print('pruninng', n, 'schedules using memory depth', memory_depth_thresh, flush = True)
+    results = []
+    
+    for i, s1 in enumerate(schedules):
+        s1_memory_depth = get_memory_depth(s1)
+        
+        if (s1_memory_depth > memory_depth_thresh):
+            continue
+        
+        results.append(s1)
+        
+    print('pruned', n - len(results), 'schedules', flush = True)
+    return results
+
             
 def get_time_memory_z3_complexity(time_complexity : list, memory_complexity : list, z3_variables : dict) -> tuple:
     

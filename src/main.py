@@ -1,14 +1,14 @@
 from z3 import Int
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
-from src.prune import prune_using_depth, prune_using_z3
+from src.prune import prune_using_depth, prune_using_z3, prune_using_memory_depth
 
 schedules = []
 # 2 A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 4
+test = 5
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -57,8 +57,9 @@ elif test == 2: # Tensor contraction
         # 'E': [],
         # 'A': []
     }
+    cache = {}
     # sched_enum('A', ['B','C','D','E'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E'), accesses, ('i','j','k','l','m','n'), tensor_idx_order_constraints, 1, cache)
 elif test == 3: # <SDDMM, SpMM>
     # A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l)
     accesses = {
@@ -102,8 +103,8 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
     cache = {}
     
     # sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
-    # schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+    # schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
 
 elif test == 5:
     # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
@@ -142,6 +143,8 @@ for i, schedule in enumerate(schedules):
         print('-----------')
 
 print('\n\n\n\n\n\n\n')
+
+schedules = prune_using_memory_depth(schedules, 2)
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 
