@@ -101,6 +101,9 @@ def main(argv: Optional[Sequence[str]] = None):
                     exit()
                 else: print("No Errors")
                 
+                print("------")
+                print(stdout_lines[-3:])
+                print("--------")
                 if re.match("FAILED", stdout_lines[-1]): exit()
                   
               
