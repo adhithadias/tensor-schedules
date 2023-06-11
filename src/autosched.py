@@ -283,6 +283,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
                         nconf = Config(output, expr, output_idx_order, input_idx_order, 1, True)
+                        nconf.original_idx_perm = idx_perm
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -337,6 +338,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
                         nconf = Config(output, expr, output_idx_order, input_idx_order, 2, True)
+                        nconf.original_idx_perm = idx_perm
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -413,6 +415,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
                         nconf = Config(output, expr, output_idx_order, input_idx_order, 1, False)
+                        nconf.original_idx_perm = idx_perm
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -466,6 +469,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         # input_idx_order.extend(common_loops)
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
                         nconf = Config(output, expr, output_idx_order, input_idx_order, 2, False)
+                        nconf.original_idx_perm = idx_perm
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
