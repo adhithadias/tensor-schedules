@@ -11,6 +11,7 @@ class Config:
         self.output_idx_order = output_idx_order
         self.input_idx_order = input_idx_order
         self.prod_on_left = prod_on_left
+        self.original_idx_perm = None
         self.prod = None  # Config schedule for producer
         self.cons = None  # Config schedule for consumer
         self.time_complexity = {}
