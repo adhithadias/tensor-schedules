@@ -104,8 +104,8 @@ elif test == 4: # <SDDMM, SpMM, GEMM>
     cache = {}
     
     # sched_enum('A', ['B','C','D','E', 'F'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
-    schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
-    # schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+    # schedules = get_schedules('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 0, len(tensor_expression), 1, cache)
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D','E','F'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
 
 elif test == 5:
     # A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m)
@@ -144,6 +144,8 @@ for i, schedule in enumerate(schedules):
         print('-----------')
 
 print('\n\n\n\n\n\n\n')
+
+schedules = prune_using_memory_depth(schedules, 2)
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 

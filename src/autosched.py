@@ -219,6 +219,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
         nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = idx_perm, fused = 1)
         nconf.time_complexity = time_complexity
         nconf.memory_complexity = memory_complexity
+        nconf.original_idx_perm = idx_perm
         if (nconf not in scheds): scheds.add(nconf)
         
         if (len(expr) <= 2 or len(loop_order) == 1):
@@ -620,7 +621,7 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
     if len(expr) <= 2:
         return scheds
 
-    print("output:", output, "expr:", expr, "p_n: ", len(idx_perms), flush=True)
+    # print("output:", output, "expr:", expr, "p_n: ", len(idx_perms), flush=True)
     for i in range(1, len(expr)):
         # Now break the expression into smaller ones
         pre_expr, post_expr = expr[:i], expr[i:]
@@ -635,15 +636,15 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
         sched_enum(output + "_", post_expr, post_ind, tensor_accesses, tensor_idx_order_constraints, post_sched)
 
         n_post_sched = len(post_sched)
-        print("output:", output, str(output_idx_order), "expr:", expr, "sched_size", len(scheds), flush = True)
-        print("creating fused and unfused schedules. pre_sched: ", len(pre_sched), " post_sched: ", len(post_sched), flush = True)
+        # print("output:", output, str(output_idx_order), "expr:", expr, "sched_size", len(scheds), flush = True)
+        # print("creating fused and unfused schedules. pre_sched: ", len(pre_sched), " post_sched: ", len(post_sched), flush = True)
         # create all possible schedules
         for i, s1 in enumerate(pre_sched):
             for j, s2 in enumerate(post_sched):
                 s1 = pre_sched[i]
                 s2 = post_sched[j]
                 # print("s1:", s1, "s2:", s2)
-                if ((i * n_post_sched + j) % 10000 == 0): print(i, j, "s1:", s1, "s2:", s2, flush = True)
+                # if ((i * n_post_sched + j) % 10000 == 0): print(i, j, "s1:", s1, "s2:", s2, flush = True)
                 # create unfused schedule
                 # fused = False schedules are created here
                 unfused(output, expr, output_idx_order, s1, s2, scheds)
@@ -663,7 +664,7 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
                 # scheds.extend(y)
                 fused(output, expr, output_idx_order, s2, s1, False, scheds, tensor_idx_order_constraints) # s2 producer, s1 consumer
                 # scheds.extend(z)
-        print("fused and unfused schedules created", flush = True)
+        # print("fused and unfused schedules created", flush = True)
     
     #return all schedules
     # return scheds
