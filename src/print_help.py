@@ -24,6 +24,12 @@ def print_bold(text: str, file=""):
   if file == "": print(print_colors.BOLD + text + print_colors.ENDC)
   else: print(print_colors.BOLD + text + print_colors.ENDC, file=file)
 
+def is_valid_file_type(file_name, file_type):
+  if re.match(".*\." + file_type + "$", file_name) != None: return True
+  else: return False
+  
+
+
 
 class Main_Tester:
   def __init__(self, file:str, argv:list, usage:str, example:str, extra="") -> None:

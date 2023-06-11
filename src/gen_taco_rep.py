@@ -65,22 +65,33 @@ class Gen_Test_Code:
         for i, reorder in enumerate(self.reorders):
             self.add_reorder(reorder, i)
             config_to_split = self.retrieve_path(self.paths[i], config)
-            if i != 0:
-                parent_config = self.retrieve_path(self.paths[i][:-1], config)
-                if (parent_config.prod and self.paths[i][-1] == 0) or not parent_config.prod_on_left:
-                    self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
-                else:
-                    self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
-            else: self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
+            # if i != 0:
+            if config_to_split.prod and config_to_split.prod_on_left:
+                self.add_loopfuse(len(config_to_split.prod.expr), config_to_split.prod_on_left, i)
+            elif config_to_split.cons and not config_to_split.prod_on_left:
+                self.add_loopfuse(len(config_to_split.cons.expr) - 1, config_to_split.prod_on_left, i)
+            else: 
+                assert SyntaxError
+                
+                
+                
+                
+                
+                # parent_config = self.retrieve_path(self.paths[i][:-1], config)
+                # if (parent_config.prod and self.paths[i][-1] == 0) or not parent_config.prod_on_left:
+                #     self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
+                # else:
+                #     self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
+            # else: self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
         self.print_data(";", 2)
         self.add_end()
         
     def print_data(self, data:str, num_tabs=1) -> None:
       print(data, file=self.file)
       
-    def get_indices(self, input_list:list) -> None:
-        for item in input_list:
-            if type(item) == list:
+    def get_indices(self, input_tuple:tuple) -> None:
+        for item in input_tuple:
+            if type(item) == tuple:
                 self.get_indices(item)
             else:
                 self.indices.add(item)
@@ -105,21 +116,21 @@ class Gen_Test_Code:
                 next_config = config.cons
             return self.retrieve_path(ordering[1:], next_config)
     
-    def get_paths(self, path:list, config:Config) -> None:
+    def get_paths(self, path:tuple, config:Config) -> None:
         """This retrieves all possible paths of fusion
 
         Args:
-            path (list): path so far of fusion
+            path (tuple): path so far of fusion
             config (Config): Config class
         """
-        if type(config.input_idx_order[-1]) != list:
+        if type(config.input_idx_order[-1]) != tuple:
             return
         else:
             self.paths.append(path)
             
-            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == list and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == list:
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple:
                 self.get_paths(path + [0], config.prod)
-            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == list and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == list:
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple:
                 self.get_paths(path + [1], config.cons)
             
             # if config.prod_on_left:
@@ -141,12 +152,12 @@ class Gen_Test_Code:
             self.print_data("vector<" + type + "> " + name + ";")
         else:
             self.print_data("vector<" + type + "> " + name + " = " + init + ";")
-    def add_reorder(self, inputs:list, path=0):
+    def add_reorder(self, inputs:tuple, path=0):
         if len(inputs) == 0:
             return
         reorderings = "{"
         for input in inputs:
-            if type(input) != list:
+            if type(input) != tuple and type(input) != list:
                 reorderings += str(input) + ", "
             else:
                 if reorderings[-2:] == ", ":
@@ -243,7 +254,7 @@ class Gen_Test_Code:
       consumer = []
       prod_read = False
       for input_idx in input_idx_order:
-        if type(input_idx) == list:
+        if type(input_idx) == tuple:
           if not prod_read:
             prod_read = True
             producer = self.get_index_orders_from_idx_order(input_idx)
@@ -350,20 +361,20 @@ class Write_Test_Code(Gen_Test_Code):
                     # read and store lines until header is reached
                     new_text.append(line)
                     
-                    for line in r_file_ptr:
+                    for line2 in r_file_ptr:
                         # next_line = r_file_ptr.readline()
-                        if re.search(header_to_read, line): 
+                        if re.search(header_to_read, line2): 
                             header_read = True
                             break
-                        new_text.append(line)
+                        new_text.append(line2)
                         
                     # add schedule text in
                     new_text.extend(self.schedule_text)
                     
                     # read only until footer is reached
-                    for line in r_file_ptr:
+                    for line2 in r_file_ptr:
                         # next_line = r_file_ptr.readline()
-                        if re.search(footer_to_read, line): 
+                        if re.search(footer_to_read, line2): 
                             footer_read = True
                             break
                 except EOFError:
