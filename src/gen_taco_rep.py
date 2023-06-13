@@ -14,25 +14,33 @@ class Gen_Test_Code:
         self.test_name = test_name
         self.file = file
         self.paths = []
-        self.reorders = [] 
+        self.reorders = []
+        self.extra_paths = []
+        self.extra_reorders = []
         
         # retrieves all paths for fusion
         self.get_paths([], config)
-        
+        self.get_extra_paths()
         # print(self.paths, file=sys.stdout)
         
         for path in self.paths:
             # get all indices
             given_config = self.retrieve_path(path, config)
-            self.indices = set()
-            self.get_indices(given_config.input_idx_order)
-            reordering = self.get_reordering(given_config.input_idx_order)
+            # self.indices = set()
+            # self.get_indices(given_config.input_idx_order)
+            # reordering = self.get_reordering(given_config.input_idx_order)
+            
+            reordering = given_config.original_idx_perm
+            # print(reordering)
             
             if len(self.reorders) == 0:
                 self.reorders.append(reordering)
             else:
-                index = [str(el) for el in self.paths].index(str(path[:-1]))
-                old_ordering = [i for i in self.reorders[index] if i in reordering]
+                old_ordering = None
+                for end_point in range(len(path)):
+                    index = [str(el) for el in self.paths].index(str(path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.reorders[index] if i in reordering]
+                    if len(old_ordering) > 0: break
                 if(str(reordering) != str(old_ordering)):
                     new_reorderings = []
                     i = 0
@@ -50,9 +58,58 @@ class Gen_Test_Code:
                     self.reorders.append(new_reorderings)
                 else: self.reorders.append([])                    
         
+        for extra_path in self.extra_paths:
+            given_config = self.retrieve_path(extra_path, config)
+            reordering = given_config.original_idx_perm
+            
+            if len(self.reorders) == 0:
+                self.extra_reorders.append(reordering)
+            else:
+                old_ordering = None
+                for end_point in range(len(extra_path)):  
+                    index = [str(el) for el in self.paths].index(str(extra_path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.reorders[index] if i in reordering]
+                    if len(old_ordering) > 0: break
+                # print()
+                # print(reordering)
+                # print(self.reorders[index])
+                # print(old_ordering)
+                # print(given_config)
+                # print(extra_path)
+                # print()
+                
+                if(str(reordering) != str(old_ordering)):
+                    new_reorderings = []
+                    i = 0
+                    while i < len(old_ordering):
+                        if reordering[i] == old_ordering[i]: i += 1
+                        else:
+                            list_old = [old_ordering[i]]
+                            list_new = [reordering[i]]
+                            i += 1
+                            while(set(list_old) != set(list_new) and i < len(old_ordering)):
+                                list_old.append(old_ordering[i])
+                                list_new.append(reordering[i])
+                                i += 1
+                            if len(list_new) > 1: new_reorderings.append(list_new)
+                    self.extra_reorders.append(new_reorderings)
+                else: self.extra_reorders.append([])  
+        
+        # removing extra paths
+        temp_path = []
+        temp_reorders = []
+        for i, extra_reorder in enumerate(self.extra_reorders):
+            if len(extra_reorder) == 0 or (len(extra_reorder) == 1 and len(extra_reorder[0]) == 0):
+                continue
+            temp_path.append(self.extra_paths[i])
+            temp_reorders.append(extra_reorder)
+            
+        self.extra_reorders = temp_reorders
+        self.extra_paths = temp_path
+        
         self.add_header()
         
-        for i, path in enumerate(self.paths):
+        for i, path in enumerate(self.paths + self.extra_paths):
             # add paths
             if(len(path) > 0):  
                 self.add_vector(name=("path" + str(i)), init=("{" + ", ".join([str(el) for el in path]) + "}"))
@@ -72,20 +129,18 @@ class Gen_Test_Code:
                 self.add_loopfuse(len(config_to_split.cons.expr) - 1, config_to_split.prod_on_left, i)
             else: 
                 assert SyntaxError
-                
-                
-                
-                
-                
                 # parent_config = self.retrieve_path(self.paths[i][:-1], config)
                 # if (parent_config.prod and self.paths[i][-1] == 0) or not parent_config.prod_on_left:
                 #     self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
                 # else:
                 #     self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
             # else: self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
+        for i, extra_reorder in enumerate(self.extra_reorders):
+            self.add_reorder(extra_reorder, i + len(self.reorders))
+        
         self.print_data(";", 2)
         self.add_end()
-        
+    
     def print_data(self, data:str, num_tabs=1) -> None:
       print(data, file=self.file)
       
@@ -140,6 +195,12 @@ class Gen_Test_Code:
             #     self.get_paths(path + [1], config.prod)
             #     self.get_paths(path + [0], config.cons)
         
+    def get_extra_paths(self):
+        for path in self.paths:
+            if (path + [0]) not in self.paths:
+                self.extra_paths.append(path + [0])
+            if (path + [1]) not in self.paths:
+                self.extra_paths.append(path + [1])
     
     def add_header(self):
         self.print_data("/* BEGIN " + self.test_name + " TEST */")
@@ -434,16 +495,14 @@ if __name__ == "__main__":
     counter = 1
     test_num = 1
     
-    
-    
     for schedule in schedules:
-        if count_fusions(schedule) == 2 and schedule.fused:
+        # if count_fusions(schedule) == 2 and schedule.fused:
             counter = (counter % counter_printing) + 1
-            if counter == counter_printing:
+            # if counter == counter_printing:
                 # Gen_Test_Code(schedule, "Test " + str(test_num), sys.stdout)
-                Write_Test_Code(schedule, "loopfuse", "tests-workspaces.cpp")
-                test_num += 1
-                break
+            Write_Test_Code(schedule, "loopfuse", "tests-workspaces.cpp")
+            test_num += 1
+            break
             # break
           
 

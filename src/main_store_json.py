@@ -93,9 +93,14 @@ def print_to_json(test_to_run, testnum, filename):
         exit()
     print(f'{len(schedules)} schedule(s) enumerated in {get_time(test_start_time)} seconds\n')
     
+    memory_depth_start_time = time.time()
+    print(f'Pruning schedules using memory depth')
+    pruned_schedules = solver.prune_using_memory_depth(schedules, 2)
+    print(f'{len(pruned_schedules)} schedule(s) unpruned ({get_time(memory_depth_start_time)} seconds)\n')
+    
     depth_start_time = time.time()
     print(f'Pruning schedules using depth')
-    pruned_schedules = solver.prune_using_depth(schedules)
+    pruned_schedules = solver.prune_using_depth(pruned_schedules)
     print(f'{len(pruned_schedules)} schedule(s) unpruned ({get_time(depth_start_time)} seconds)\n')
     
     z3_start_time = time.time()
@@ -105,6 +110,13 @@ def print_to_json(test_to_run, testnum, filename):
     store_json(test_to_run["accesses"], pruned_schedules, filename)
     print(f'{len(pruned_schedules)} schedule(s) stored to {filename} ({get_time(z3_start_time)} seconds)\n')
     print(f'TEST {test_num} finished in {get_time(test_start_time)} seconds')
+    
+    for i, config1 in enumerate(pruned_schedules):
+        for j, config2 in enumerate(pruned_schedules):
+            if i == j: continue
+            if config1 == config2:
+                print(config1)
+        
     
 
 

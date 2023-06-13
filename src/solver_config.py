@@ -247,6 +247,23 @@ class Solver_Config:
                 results.append(s1)
                 complexities.add((s1_time_depth, s1_memory_depth))
         return results  
+    
+    def prune_using_memory_depth(self, schedules : set, memory_depth_thresh : int) -> list:
+        n = len(schedules)
+        print('pruning', n, 'schedules using memory depth', memory_depth_thresh, flush = True)
+        results = []
+        
+        for i, s1 in enumerate(schedules):
+            s1_memory_depth = self.get_memory_depth(s1)
+            
+            if (s1_memory_depth > memory_depth_thresh):
+                continue
+            
+            results.append(s1)
+            
+        print('pruned', n - len(results), 'schedules', flush = True)
+        return results
+    
     def prune_schedules(self, schedule_list=list):
         result_array = []
         pruned_array = bitarray(len(schedule_list))
