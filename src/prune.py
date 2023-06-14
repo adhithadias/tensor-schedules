@@ -57,7 +57,7 @@ def prune_using_depth(schedules : list) -> list:
         
         for j, s2 in enumerate(schedules):
             
-            if ((i * n + j) % 100000 == 0): print(i, j, s1, s2, flush = True)
+            # if ((i * n + j) % 100000 == 0): print(i, j, s1, s2, flush = True)
             
             if (pruned_array[j]):
                 continue

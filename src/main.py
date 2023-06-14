@@ -128,36 +128,37 @@ printer = PrintConfigVisitor(accesses)
 print('\n\n\n\n\n\n\n', flush = True)
 print('schedule generation completed\n', len(schedules), flush = True)
 
-for i, schedule in enumerate(schedules):
-    if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
-        schedule.accept(printer)
-        found1 = True
-        print('-----------')
-    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
-        schedule.accept(printer)
-        found2 = True
-        print('-----------')
-    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
-        schedule.accept(printer)
-        found3 = True
-        print('-----------')
+# for i, schedule in enumerate(schedules):
+#     if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found1 = True
+#         print('-----------')
+#     elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found2 = True
+#         print('-----------')
+#     elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found3 = True
+#         print('-----------')
 
-print('\n\n\n\n\n\n\n')
+# print('\n\n\n\n\n\n\n')
 
 schedules = prune_using_memory_depth(schedules, 2)
+print('number of memory depth pruned schdeules:', len(schedules), flush = True)
 
 # TODO - maybe add other pruning strategies here, like pruning if memory depth is larger than some number
 
 depth_pruned_schedules = prune_using_depth(schedules)
 print('number of depth pruned schdeules:', len(depth_pruned_schedules), flush = True)
 
-print('\n\n/**************************************************************************/', flush = True)
-print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/', flush = True)
-print('/**************************************************************************/', flush = True)
+# print('\n\n/**************************************************************************/', flush = True)
+# print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/', flush = True)
+# print('/**************************************************************************/', flush = True)
 
-for schedule in depth_pruned_schedules:
-    schedule.accept(printer)
-    print('-----------')
+# for schedule in depth_pruned_schedules:
+#     schedule.accept(printer)
+#     print('-----------')
 
 i = Int('i')
 j = Int('j')
