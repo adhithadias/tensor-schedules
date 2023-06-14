@@ -63,6 +63,10 @@ python3 -m test.test_union_list
 python3 -m src.main_store_json [json file(s)] [test number(s)]
 
 # run tests and stores runtimes in csv test file(s)
-python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] [optional args]
+python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] -p [path to taco repository] [optional args]
 
+```
+## To Download Tensors
+```bash
+./load_tensors.sh
 ```
