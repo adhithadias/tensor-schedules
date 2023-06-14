@@ -50,3 +50,19 @@ pytest -s test/test_autosched.py::test_autoschedule1
 python3 -m <test dir>.<test name>
 python3 -m test.test_union_list
 ```
+## To Run Tests
+```bash
+# test numbers
+0 -> X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
+2 -> A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
+3 -> A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
+4 -> A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
+5 -> A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
+
+# store tests into specified json files
+python3 -m src.main_store_json [json file(s)] [test number(s)]
+
+# run tests and stores runtimes in csv test file(s)
+python3 -m src.main_run_test.py -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] [optional args]
+
+```
