@@ -62,12 +62,19 @@ python3 -m test.test_union_list
 # store tests into specified json files
 python3 -m src.main_store_json [json file(s)] [test number(s)]
 
+# example
+python3 -m src.main_store_json test2.json 2
+
 # run tests and stores runtimes in csv test file(s)
 python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] -p [path to taco repository] [optional args]
 
-add -r to display messages about runtime of the python script
+# example
+python3 -m src.main_run_test -o test2.csv -f test2.json -t loopcontractfuse -p ~/SparseLNR
+
+* add -r to display messages about runtime of the python script
 ```
 ## To Download Tensors
 ```bash
 ./load_tensors.sh
+This will create a downloads folder and put tns and mtx files in it
 ```
