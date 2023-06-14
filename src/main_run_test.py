@@ -5,6 +5,7 @@ import sys
 import re
 import os
 import csv
+from math import floor
 from time import time
 from copy import deepcopy
 from statistics import mean, stdev
@@ -26,8 +27,13 @@ def print_idx_orders(config:Config, num_indent = 0):
     print_idx_orders(config.prod, num_indent + 1)
     print_idx_orders(config.cons, num_indent + 1)
     
+def convert_sec_min_sec(seconds) -> list:
+    """converts seconds into minutes and seconds
 
-
+    Args:
+        seconds (number): number of seconds to convert
+    """
+    return [floor(seconds / 60), round(seconds - (floor(seconds / 60) * 60), 3)]
 
 
 def main(argv: Optional[Sequence[str]] = None):
@@ -97,6 +103,50 @@ def main(argv: Optional[Sequence[str]] = None):
             
             writer.writerow(header_row)
         
+            # # write basic testing code first
+            # basic_test_code = Write_Test_Code(config_list[0], test_name, test_file, basic_config=True)
+            # make_basic_output = subprocess.Popen(f'(cd {path_makefile} && {command})', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+            # make_basic_output.wait()
+            # if messages: print(f'Basic test compiled')
+            # # individual times to compute for given schedule
+            # output_times = []
+
+            # start_time = time()
+
+            # # statement in the form forall(i, forall, j, where(etc.))
+            # schedule_stmt = ""
+            # schedule_commands = []
+            
+            # for test_iter in range(num_tests):
+            #     # runs test
+            #     test_output = subprocess.Popen(f'{path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                
+            #     # wait for output to generate
+            #     test_output.wait()
+                
+            #     stdout_lines = test_output.stdout.readlines()
+            #     stderr_lines = test_output.stderr.readlines()
+            #     print("".join(stdout_lines))
+            #     if test_iter == 0:
+            #         # gets schedule statement of given schedule
+            #         schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
+                  
+            #     time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
+            #     output_times.append(time_to_run)
+            # if messages: print(f'Basic Config Test Passed With 0 Errors in {round(time() - start_time, 3)} seconds')
+            # # print(schedule_stmt, schedule_commands)
+            # # print(output_times)
+            # # print(re.sub(",", "\",\"", schedule_stmt))
+            # del basic_test_code
+            
+            # schedule_stmt = re.sub("\n", "", schedule_stmt)
+            # new_row = [schedule_stmt, "\n".join(schedule_commands)]
+            # new_row.extend(output_times)
+            # int_times = [int(output_time) for output_time in output_times]
+            # new_row.extend([round(mean(int_times),3), round(stdev(int_times),3)])
+            # writer.writerow(new_row)
+            # if messages: print()
+            
             for iter, config in enumerate(config_list):
                 # write testing code into testing file
                 test_code = Write_Test_Code(config, test_name, test_file)
@@ -109,6 +159,7 @@ def main(argv: Optional[Sequence[str]] = None):
                 
                 # individual times to compute for given schedule
                 output_times = []
+                expected_times = []
                 
                 start_time = time()
                 
@@ -150,7 +201,6 @@ def main(argv: Optional[Sequence[str]] = None):
                     
                     stdout_lines = test_output.stdout.readlines()
                     stderr_lines = test_output.stderr.readlines()
-                    
                     if test_iter == 0:
                         if stderr_lines:
                             print("".join(stdout_lines))
@@ -179,19 +229,29 @@ def main(argv: Optional[Sequence[str]] = None):
                         # gets schedule statement of given schedule
                         schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
                       
-                    time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
+                    # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
+                    time_to_run = stdout_lines[7]
                     output_times.append(time_to_run)
+                    if iter == 0:
+                        expected_times.append(stdout_lines[8])
+                        
                 if messages: print(f'Config {iter + 1} Test Passed With 0 Errors in {round(time() - start_time, 3)} seconds')
                 # print(schedule_stmt, schedule_commands)
                 # print(output_times)
                 # print(re.sub(",", "\",\"", schedule_stmt))
                 del test_code
+                if iter == 0:
+                    new_row = ["Default", ""]
+                    new_row.extend(expected_times)
+                    float_times = [float(expected_time) for expected_time in expected_times]
+                    new_row.extend([round(mean(float_times),6), round(stdev(float_times),6)])
+                    writer.writerow(new_row)
                 
                 schedule_stmt = re.sub("\n", "", schedule_stmt)
                 new_row = [schedule_stmt, "\n".join(schedule_commands)]
                 new_row.extend(output_times)
-                int_times = [int(output_time) for output_time in output_times]
-                new_row.extend([mean(int_times), stdev(int_times)])
+                float_times = [float(output_time) for output_time in output_times]
+                new_row.extend([round(mean(float_times),6), round(stdev(float_times),6)])
                 writer.writerow(new_row)
                 if messages: print()
                 
@@ -204,7 +264,9 @@ def main(argv: Optional[Sequence[str]] = None):
                 
                 # break
         if messages: print(f'{test_name} test finished in {round(time() - time_test_start, 3)} seconds')
-    if messages: print(f'All tests ran in {round(time() - program_start_time, 3)} seconds')
+    if messages: 
+        total_time = convert_sec_min_sec(round(time() - program_start_time, 3))
+        print(f'All tests ran in {total_time[0]} minutes and {total_time[1]} seconds')
         
 if __name__ == "__main__":
     exit(main())
