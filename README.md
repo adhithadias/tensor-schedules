@@ -65,6 +65,7 @@ python3 -m src.main_store_json [json file(s)] [test number(s)]
 # run tests and stores runtimes in csv test file(s)
 python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] -p [path to taco repository] [optional args]
 
+add -r to display messages about runtime of the python script
 ```
 ## To Download Tensors
 ```bash
