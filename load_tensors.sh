@@ -15,10 +15,10 @@ do
   else
     if [ -e $DIR/downloads/${LAST_PORTION%.*} ]
     then
-      echo "${LAST_PORTION%.*} found"
+        echo "${LAST_PORTION%.*} found"
     else
       BEFORE_GZ=${LAST_PORTION%.*}
-      if [ -e ${BEFORE_GZ%.*}.mtx ]
+      if [ -e $DIR/downloads/${BEFORE_GZ%.*}.mtx ]
       then 
         echo "${BEFORE_GZ%.*} found"
       else
