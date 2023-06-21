@@ -28,18 +28,52 @@ def print_idx_orders(config:Config, num_indent = 0):
     print_idx_orders(config.prod, num_indent + 1)
     print_idx_orders(config.cons, num_indent + 1)
     
-def convert_sec_min_sec(seconds) -> list:
+def convert_sec_hour_min_sec(seconds) -> list:
     """converts seconds into minutes and seconds
 
     Args:
         seconds (number): number of seconds to convert
     """
-    return [floor(seconds / 60), round(seconds - (floor(seconds / 60) * 60), 3)]
+    return [floor(seconds / 3600), floor(seconds / 60), round(seconds - (floor(seconds / 60) * 60), 3)]
+
+def get_time(start_time):
+  return round(time() - start_time, 4)
+  
+def print_message(message):
+    if messages: print(message, flush=True)
+    
+def print_extra_message(message):
+    if extra_messages: print(message, flush=True)
+    
+def print_time_message(message:str, start_time, newline=False, only_time=False):
+    total_time = convert_sec_hour_min_sec(get_time(start_time))
+    newline_char = ""
+    plural_hour = ""
+    plural_min = ""
+    in_word = " in "
+    
+    if newline:
+        newline_char = "\n"
+    
+    if only_time:
+        in_word = ""
+    
+    if total_time[0] == 1:
+        plural_hour = "s"
+    if total_time[1] == 1:
+        plural_min = "s"
+        
+    if total_time[1] == 0:
+        print_message(f'{message}{in_word}{total_time[1]} seconds{newline_char}')
+    elif total_time[0] == 0:
+        print_message(f'{message}{in_word}{total_time[0]} minute{plural_min} and {total_time[1]} seconds{newline_char}')
+    else:
+        print_message(f'{message}{in_word}{total_time[0]} hour{plural_hour}, {total_time[1]} minute{plural_min} and {total_time[2]} seconds{newline_char}')
 
 
 def main(argv: Optional[Sequence[str]] = None):
     print('starting to evaluate the script', flush=True)
-    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test.py -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] [optional args]")
+    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] [optional args]")
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
     parser.add_argument('-o', '--output_files', help='csv file(s) for writing tests into', nargs='+', required=True)
@@ -49,6 +83,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
+    parser.add_argument('-x', '--extra_messages', action='store_true', help='enable printing of extra progress messages')
     parser.add_argument('-v', '--type', help="matrices or tensors. 0 is matrices, 1 is 3D tensors", required=True, type=int)
     
     args = vars(parser.parse_args(argv))
@@ -60,10 +95,13 @@ def main(argv: Optional[Sequence[str]] = None):
     num_tests = args['num_tests']
     path_root = args['path']
     debug = args['debug']
+    global messages
     messages = args['messages']
+    global extra_messages
+    extra_messages = args['extra_messages']
     type_of_data = args['type']
     
-    print(test_file, flush=True)
+    print_extra_message(test_file)
     # relative path to Makefile
     path_makefile = path_root + "/build"
 
@@ -88,7 +126,7 @@ def main(argv: Optional[Sequence[str]] = None):
         if not is_valid_file_type(json_file, "json"): continue
         config_list = read_json(json_file)
         
-        print(len(config_list), 'configs found for the given evaluation', flush=True)
+        print_message(f'{len(config_list)} configs found for the given evaluation')
         
         tensor_list = []
         if (type_of_data == 0):
@@ -98,7 +136,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"]
         elif (type_of_data == 1):
             tensor_list = ["vast-2015-mc1-3d.tns", "nell-1.tns", "nell-2.tns", "flickr-3d.tns"]
-        tensor_file_path = "/home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/"
+        tensor_file_path = "~/tensor-schedules/downloads/"
         
         with open(out_file, 'w', newline='') as csvfile2:
             eval_writer = csv.writer(csvfile2, delimiter=',')
@@ -119,7 +157,7 @@ def main(argv: Optional[Sequence[str]] = None):
                 tensor_file = tensor_file_path + tensor
                 os.environ["TENSOR_FILE"] = tensor_file
                 
-                print('evaluating tensor', tensor, flush=True)
+                print_extra_message(f'evaluating tensor {tensor}')
             
                 # for i, config1 in enumerate(config_list):
                 #     for j, config2 in enumerate(config_list):
@@ -146,54 +184,10 @@ def main(argv: Optional[Sequence[str]] = None):
                     
                     writer.writerow(header_row)
                     csvfile.flush()
-                
-                    # # write basic testing code first
-                    # basic_test_code = Write_Test_Code(config_list[0], test_name, test_file, basic_config=True)
-                    # make_basic_output = subprocess.Popen(f'(cd {path_makefile} && {command})', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
-                    # make_basic_output.wait()
-                    # if messages: print(f'Basic test compiled')
-                    # # individual times to compute for given schedule
-                    # output_times = []
-
-                    # start_time = time()
-
-                    # # statement in the form forall(i, forall, j, where(etc.))
-                    # schedule_stmt = ""
-                    # schedule_commands = []
-                    
-                    # for test_iter in range(num_tests):
-                    #     # runs test
-                    #     test_output = subprocess.Popen(f'{path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
-                        
-                    #     # wait for output to generate
-                    #     test_output.wait()
-                        
-                    #     stdout_lines = test_output.stdout.readlines()
-                    #     stderr_lines = test_output.stderr.readlines()
-                    #     print("".join(stdout_lines))
-                    #     if test_iter == 0:
-                    #         # gets schedule statement of given schedule
-                    #         schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
-                        
-                    #     time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
-                    #     output_times.append(time_to_run)
-                    # if messages: print(f'Basic Config Test Passed With 0 Errors in {round(time() - start_time, 3)} seconds')
-                    # # print(schedule_stmt, schedule_commands)
-                    # # print(output_times)
-                    # # print(re.sub(",", "\",\"", schedule_stmt))
-                    # del basic_test_code
-                    
-                    # schedule_stmt = re.sub("\n", "", schedule_stmt)
-                    # new_row = [schedule_stmt, "\n".join(schedule_commands)]
-                    # new_row.extend(output_times)
-                    # int_times = [int(output_time) for output_time in output_times]
-                    # new_row.extend([round(mean(int_times),3), round(stdev(int_times),3)])
-                    # writer.writerow(new_row)
-                    # if messages: print()
                     
                     for iter, config in enumerate(config_list):
                         
-                        print(iter, ': tensor: ', tensor, 'config:', config, flush=True)
+                        print_extra_message(f'{iter}: tensor: {tensor}, config: {config}')
                         # write testing code into testing file
                         test_code = Write_Test_Code(config, test_name, test_file)
                         # compiles with changed config
@@ -205,9 +199,11 @@ def main(argv: Optional[Sequence[str]] = None):
                         stderr_lines = make_output.stderr.readlines()
                         
                         if (stderr_lines):
-                            print('make std out', stdout_lines, flush=True)
-                            print('make std err', stderr_lines, flush=True)
-                        if messages: print(f'Config {iter + 1}/{len(config_list)} test compiled', flush=True)
+                            stdout_lines_str = "\n".join(stdout_lines)
+                            stderr_lines_str = "\n".join(stderr_lines)
+                            print_extra_message(f'make std out: {stdout_lines_str}')
+                            print_extra_message(f'make std err: {stderr_lines_str}')
+                        print_message(f'Config {iter + 1}/{len(config_list)} test compiled')
                         
                         # individual times to compute for given schedule
                         output_times = []
@@ -246,6 +242,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         # outer for loop here
                         
                         # runs test
+                        # print(f'TENSOR_FILE={tensor_file} {path_test} {get_arg(test_name)}')
                         test_output = subprocess.Popen(f'TENSOR_FILE={tensor_file} {path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
                         
                         # wait for output to generate
@@ -253,8 +250,10 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         stdout_lines = test_output.stdout.readlines()
                         stderr_lines = test_output.stderr.readlines()
-                        print(stdout_lines, flush=True)
-                        print("\n", flush=True)
+                        stdout_lines_str = "\n".join(stdout_lines)
+                        stderr_lines_str = "\n".join(stderr_lines)
+                        print_extra_message(stdout_lines_str, flush=True)
+                        print_message("\n", flush=True)
                         # if test_iter == 0:
                         if stderr_lines:
                             print("".join(stdout_lines), flush=True)
@@ -280,8 +279,8 @@ def main(argv: Optional[Sequence[str]] = None):
                             print_idx_orders(config)
                             exit()
                             
-                            # gets schedule statement of given schedule
-                            schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
+                        # gets schedule statement of given schedule
+                        schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
                             
                         # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
                         for test_iter in range(num_tests):
@@ -290,10 +289,9 @@ def main(argv: Optional[Sequence[str]] = None):
                             if iter == 0:
                                 expected_times.append(float(stdout_lines[8 + test_iter*2]))
                                 
-                        if messages: print(f'Config {iter + 1} Test Passed With 0 Errors in {round(time() - start_time, 3)} seconds', flush=True)
-                        # print(schedule_stmt, schedule_commands)
-                        # print(output_times)
-                        # print(re.sub(",", "\",\"", schedule_stmt))
+                        print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
+                        print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
+                        
                         del test_code
                         if iter == 0:
                             new_row = ["Default", ""]
@@ -312,34 +310,22 @@ def main(argv: Optional[Sequence[str]] = None):
                         writer.writerow(new_row)
                         csvfile.flush()
                         
-                        if messages: print("", flush=True)
+                        print_message("", flush=True)
                         
                         if (min_time > round(statistics.median(float_times),6)):
                             min_time = round(statistics.median(float_times),6)
                             min_time_std = round(stdev(float_times),6)
                             min_config = config
                             
-                        
-                        
-                        # break
-                        
-                        # print()
-                        # print(stdout_lines[6])
-                        # print(stdout_lines[7])
-                        # print(test_output.stderr.readlines())
-                        
-                        # break
-                    
                     data_row = [tensor, min_time, min_time_std, default_time, default_time_std, min_config]
                     eval_writer.writerow(data_row)
                     csvfile2.flush()
-                    
-                if messages: print(f'{test_name} test finished in {round(time() - time_test_start, 3)} seconds', flush=True)
+                
+                print_time_message(f'{test_name} test finished', time_test_start)
                 
                 del os.environ['TENSOR_FILE']
     if messages: 
-        total_time = convert_sec_min_sec(round(time() - program_start_time, 3))
-        print(f'All tests ran in {total_time[0]} minutes and {total_time[1]} seconds')
+        print_time_message(f'All tests ran', program_start_time)
         
 if __name__ == "__main__":
     exit(main())

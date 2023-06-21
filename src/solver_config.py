@@ -4,6 +4,8 @@ from random import randint
 from z3 import *
 from src.visitor import PrintConfigVisitor
 from bitarray import bitarray
+import json
+import re
 
 min_dense = 10
 max_dense = 1000
@@ -16,10 +18,38 @@ count = {
     "sat,sat": 0
 }
 
+max_capture_expr_len = 5
+
+z3_num = "(?:0\\.[0-9]+)|(?:[1-9]+[0-9]*(?:(?:\\.[0-9]+)?))|(?:0)"
+z3_var = "(?:[a-zA-Z_][a-zA-Z_0-9]*)"
+extra_expr1 = "".join(
+    [f'\\s*(?:(?P<op{num}_expr1>[\\*/\\+-])\\s*(?P<var_num{num+1}_expr1>{z3_var}|{z3_num})\\s*)?' for num in range(max_capture_expr_len)])
+extra_expr2 = "".join(
+    [f'\\s*(?:(?P<op{num}_expr2>[\\*/\\+-])\\s*(?P<var_num{num+1}_expr2>{z3_var}|{z3_num})\\s*)?' for num in range(max_capture_expr_len)])
+z3_expr1 = f'(?P<var_num0_expr1>{z3_var}|{z3_num})' + extra_expr1
+z3_expr2 = f'(?P<var_num0_expr2>{z3_var}|{z3_num})' + extra_expr2
+
+constraint_types = {
+    ">": f'((?:{z3_expr1})\\s*\\>\\s*(?:{z3_expr2}))',
+    ">=": f'((?:{z3_expr1})\\s*\\>=\\s*(?:{z3_expr2}))',
+    "<": f'((?:{z3_expr1})\\s*\\<\\s*(?:{z3_expr2}))',
+    "<=": f'((?:{z3_expr1})\\s*\\<=\\s*(?:{z3_expr2}))'
+}
+          
+        
+
 class Solver_Config:
-    def __init__(self, tensor_accesses: dict, tensor_idx_order_constraints: dict) -> None:
+    def __init__(self, tensor_accesses: dict, tensor_idx_order_constraints: dict, z3_constraints: None) -> None:
+        """Generates a solver configuration
+
+        Args:
+            tensor_accesses (dict): tensor and their corresponding indices
+            tensor_idx_order_constraints (dict): index order constraints to establish sparsity
+            z3_constraints (list[str]): optional z3 constraints. Must be a list. Defaults to None.
+        """
+        
         constraints = []
-        # TODO change to account for sparse tensors
+        # [x] change to account for sparse tensors
         self.solver = Solver()
 
         # list of all indices separated by dense/sparse
@@ -28,7 +58,7 @@ class Solver_Config:
             "sparse": {},
             "all": {}
         }
-
+    
         # get dense set of indices
         dense_set = set(index for indexes in tensor_accesses.values()
                         for index in indexes)
@@ -47,26 +77,90 @@ class Solver_Config:
         # initializes sparse index variables as ints
         for element in sparse_set:
             self.total_indices["sparse"][element] = Int(element)
+        
+        # initializes all indices together
+        self.total_indices["all"] = {
+            **self.total_indices["dense"], **self.total_indices["sparse"]}
+    
+        if z3_constraints != None:
+            # adds minimum and maximum constraints for dense
+            for index in self.total_indices["dense"].values():
+                # print(index > min_dense)
+                self.solver.add(index > min_dense, index < max_dense)
 
-        # adds minimum and maximum constraints for dense
-        for index in self.total_indices["dense"].values():
-            self.solver.add(index > min_dense, index < max_dense)
+            # adds minimum and maximum constraints for sparse
+            for index in self.total_indices["sparse"].values():
+                self.solver.add(index > min_sparse, index < max_sparse)
 
-        # adds minimum and maximum constraints for sparse
-        for index in self.total_indices["sparse"].values():
-            self.solver.add(index > min_sparse, index < max_sparse)
-
-        # add sparse constraints
-        for key in self.total_indices["sparse"].keys():
-            self.solver.add(
-                self.total_indices["sparse"][key] < self.total_indices["dense"][key[0:-3]])
+            # add sparse constraints
+            for key in self.total_indices["sparse"].keys():
+                self.solver.add(
+                    self.total_indices["sparse"][key] < self.total_indices["dense"][key[0:-3]])
+        else:
+            z3_constraints = self.parse_z3_constraints(z3_constraints)
+            self.solver.add(z3_constraints)
 
         # saves solver backtracking point
         self.solver.push()
 
-        self.total_indices["all"] = {
-            **self.total_indices["dense"], **self.total_indices["sparse"]}
+    def parse_z3_constraints(self, constraint_list: list):
+      z3_constraints = []
+      for constraint in constraint_list:
+        for constraint_type, reg_exp in constraint_types.items():
+          if re.fullmatch(reg_exp, constraint):
+            expr_dict = re.fullmatch(reg_exp, constraint).groupdict()
+            excess_terms = []
+            for key, value in expr_dict.items():
+              if value == None:
+                excess_terms.append(key)
+            for term in excess_terms:
+              del expr_dict[term]
+            left_expr = [value for key,value in expr_dict.items() if key[-1] == '1']
+            right_expr = [value for key,value in expr_dict.items() if key[-1] == '2']
+            left_z3_expr = self.get_single_side_z3_expr(left_expr)
+            right_z3_expr = self.get_single_side_z3_expr(right_expr)
+            
+            if constraint_type == '>':
+                full_z3_expr = left_z3_expr > right_z3_expr
+            elif constraint_type == '>=':
+                full_z3_expr = left_z3_expr >= right_z3_expr
+            elif constraint_type == '<':
+                full_z3_expr = left_z3_expr < right_z3_expr
+            elif constraint_type == '<=':
+                full_z3_expr = left_z3_expr <= right_z3_expr
+            
+            z3_constraints.append(full_z3_expr)
+      return z3_constraints
 
+    def __get_float_int(self, num):
+        try:
+            return int(num)
+        except:
+            return float(num)
+
+# TODO make this better with order of operations
+    def get_single_side_z3_expr(self, expr):
+        z3_expr = None
+        if expr[0] in self.total_indices["all"].keys(): z3_expr = self.total_indices["all"][expr[0]]
+        else: 
+            z3_expr = self.__get_float_int(expr[0])
+        for index in range(1, len(expr), 2):
+            temp_z3_expr = None
+            if expr[index + 1] in self.total_indices["all"].keys():
+                temp_z3_expr = self.total_indices["all"][expr[index + 1]]
+            else:
+                temp_z3_expr = self.__get_float_int(expr[index + 1])
+
+            if expr[index] == '*':
+                z3_expr = z3_expr * temp_z3_expr
+            elif expr[index] == '+':
+                z3_expr = z3_expr + temp_z3_expr
+            elif expr[index] == '-':
+                z3_expr = z3_expr-+ temp_z3_expr
+            elif expr[index] == '/':
+                z3_expr = z3_expr / temp_z3_expr
+        return z3_expr
+    
     def get_z3_expr(self, complexity: list):
         add_expr = None
         for expr in complexity:
@@ -74,6 +168,7 @@ class Solver_Config:
                 return None
             mult_expr = None
             for index in expr:
+            
                 if(mult_expr == None):
                     mult_expr = self.total_indices["all"][index]
                 else:
