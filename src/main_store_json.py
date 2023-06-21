@@ -177,7 +177,7 @@ def main(argv: Optional[Sequence[str]] = None):
     # print_visitor = Print_Help_Visitor()
     # main_store_json.accept(print_visitor)
 
-    parser = argparse.ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_run_test -f [configuration file(s)] [optional arguments]", formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\taccesses:\n\t\t\t\t[tensor]: list[indices]\n\t\ttensor_idx_order_constraints:\n\t\t\t\t[tensor]: list[list[indices]]\n\t\toutput_tensor: [tensor]\n\t\ttest_json_file: [json file to store configs into]\n\t\t(optional) z3_constraints: list[constraints]', required=True, nargs="+")
     parser.add_argument('-o', '--function_type', default='get_schedules_unfused', help='optional argument to change function for generating schedules (default: %(default)s)', choices=['get_schedules_unfused', 'get_schedules', 'sched_enum'])
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')

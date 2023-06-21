@@ -77,7 +77,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
-    parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to store configs into]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\ttype:\t\t\t[0 for matrix test, 1 for tensor test]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
+    parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to read configs from]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\ttype:\t\t\t[0 for matrix test, 1 for tensor test]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
     parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
     parser.add_argument('-t', '--tensor_file_path', help='path to downloads folder containing tensors and matrices (default: %(default)s)', default=os.curdir + "/downloads/")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
