@@ -7,6 +7,8 @@ import regex as re
 
 header_to_read = r'/\*.*\*/'
 footer_to_read = r'/\*.*\*/'
+test_rep_for_loop = r'(\s*for\s*\(\s*int \s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*0\s*;\s*\2<\s*)(\d)(\s*;\s*\2\+\+\s*\)\s*{\s*)'
+
 # path = "~/SparseLNR_Most_Recent"
 
 class Gen_Test_Code:
@@ -382,7 +384,7 @@ def count_fusions(config:Config):
         return 1 + count_fusions(config.prod) + count_fusions(config.cons)
     
 class Write_Test_Code(Gen_Test_Code):
-    def __init__(self, config: Config, test_name: str, filename: str):
+    def __init__(self, config: Config, test_name: str, filename: str, num_tests=None):
         # text to hold lines indicating schedule
         self.schedule_text = []
         
@@ -438,6 +440,16 @@ class Write_Test_Code(Gen_Test_Code):
                         if re.search(footer_to_read, line2): 
                             footer_read = True
                             break
+                          
+                    # read until for loop reached
+                    if num_tests != None:
+                        for line2 in r_file_ptr:
+                            if re.search(test_rep_for_loop, line2):
+                                new_text.append(re.sub(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>', line2))
+                                break
+                            else: new_text.append(line2)
+                        
+                    
                 except EOFError:
                     print("Invalid header or footer", file=sys.stderr)
                     r_file_ptr.close()

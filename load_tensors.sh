@@ -6,6 +6,11 @@ then
   mkdir $DIR/downloads
 fi
 
+if [ ! -e $DIR/temp/ ]
+then
+  mkdir $DIR/temp
+fi
+
 while IFS= read -r line
 do
   LAST_PORTION=${line##*/}

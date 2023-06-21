@@ -74,11 +74,11 @@ def print_time_message(message:str, start_time, newline=False, only_time=False):
 
 def main(argv: Optional[Sequence[str]] = None):
     print('starting to evaluate the script', flush=True)
-    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] [optional args]")
+    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] [optional args]", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
     # parser.add_argument('-o', '--output_files', help='csv file(s) for writing tests into', nargs='+', required=True)
-    parser.add_argument('-f', '--config_files', help='test configuration file(s)', nargs='+', required=True)
+    parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to store configs into]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\ttype:\t\t\t[0 for matrix test, 1 for tensor test]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
     # # parser.add_argument('-f', '--json_files', help='json file(s) to read configs from', nargs='+', required=True)
     # parser.add_argument('-t', '--test_names', help='name of corresponding test(s)', nargs='+', required=True)
     # parser.add_argument('-n', '--num_tests', help='number of tests for each config to run', type=int, default=100)
@@ -135,7 +135,10 @@ def main(argv: Optional[Sequence[str]] = None):
         out_file = new_dict["output_csv_file"]
         time_test_start = time()
         type_of_data = new_dict["type"]
-        num_tests = new_dict["num_tests"]
+        try:
+            num_tests = new_dict["num_tests"]
+        except:
+            num_tests = None
         
         # make sure file types are correct
         if not is_valid_file_type(out_file, "csv"): continue
@@ -205,7 +208,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         print_extra_message(f'{iter}: tensor: {tensor}, config: {config}')
                         # write testing code into testing file
-                        test_code = Write_Test_Code(config, test_name, test_file)
+                        test_code = Write_Test_Code(config, test_name, test_file, num_tests)
                         # compiles with changed config
                         make_output = subprocess.Popen(f'(cd {path_makefile} && {command})', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
                         
