@@ -74,36 +74,29 @@ def print_time_message(message:str, start_time, newline=False, only_time=False):
 
 def main(argv: Optional[Sequence[str]] = None):
     print('starting to evaluate the script', flush=True)
-    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] [optional args]", formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
-    # parser.add_argument('-o', '--output_files', help='csv file(s) for writing tests into', nargs='+', required=True)
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to store configs into]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\ttype:\t\t\t[0 for matrix test, 1 for tensor test]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
-    # # parser.add_argument('-f', '--json_files', help='json file(s) to read configs from', nargs='+', required=True)
-    # parser.add_argument('-t', '--test_names', help='name of corresponding test(s)', nargs='+', required=True)
-    # parser.add_argument('-n', '--num_tests', help='number of tests for each config to run', type=int, default=100)
     parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
+    parser.add_argument('-t', '--tensor_file_path', help='path to downloads folder containing tensors and matrices (default: %(default)s)', default=os.curdir + "/downloads/")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
     parser.add_argument('-m', '--messages', action='store_true', help='enable printing of progress')
     parser.add_argument('-x', '--extra_messages', action='store_true', help='enable printing of extra progress messages')
-    # parser.add_argument('-v', '--type', help="matrices or tensors. 0 is matrices, 1 is 3D tensors", required=True, type=int)
     
     args = vars(parser.parse_args(argv))
-    # output_files = args['output_files']
     config_files = args["config_files"]
-    # json_files = args['json_files']
-    # test_names = args['test_names']
-    # num_tests = args['num_tests']
     path_root = args['path']
+    tensor_file_path = args['tensor_file_path']
     test_file = f'{path_root}/test/{args["test_file"]}'
     debug = args['debug']
     global messages
     messages = args['messages']
     global extra_messages
     extra_messages = args['extra_messages']
-    # type_of_data = args['type']
     
     print_extra_message(test_file)
+    
     # relative path to Makefile
     path_makefile = path_root + "/build"
 
@@ -155,7 +148,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"]
         elif (type_of_data == 1):
             tensor_list = ["vast-2015-mc1-3d.tns", "nell-1.tns", "nell-2.tns", "flickr-3d.tns"]
-        tensor_file_path = "~/tensor-schedules/downloads/"
+        # tensor_file_path = "~/tensor-schedules/downloads/"
         
         with open(out_file, 'w', newline='') as csvfile2:
             eval_writer = csv.writer(csvfile2, delimiter=',')
