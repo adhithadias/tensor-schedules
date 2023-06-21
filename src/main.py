@@ -1,7 +1,7 @@
 from z3 import Int
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
-from src.prune import prune_using_depth, prune_using_z3
+from src.prune import prune_using_depth, prune_using_z3, prune_using_memory_depth
 from src.file_storing import store_json, read_json, lists_to_tuples
 
 schedules = []
@@ -9,7 +9,7 @@ schedules = []
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 0
+test = 2
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)

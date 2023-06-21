@@ -6,6 +6,7 @@ import re
 import os
 import csv
 import statistics
+import json
 from math import floor
 from time import time
 from copy import deepcopy
@@ -34,7 +35,7 @@ def convert_sec_hour_min_sec(seconds) -> list:
     Args:
         seconds (number): number of seconds to convert
     """
-    return [floor(seconds / 3600), floor(seconds / 60), round(seconds - (floor(seconds / 60) * 60), 3)]
+    return [floor(seconds / 3600), floor(seconds / 60) % 60, round(seconds - (floor(seconds / 60) * 60), 3)]
 
 def get_time(start_time):
   return round(time() - start_time, 4)
@@ -48,8 +49,8 @@ def print_extra_message(message):
 def print_time_message(message:str, start_time, newline=False, only_time=False):
     total_time = convert_sec_hour_min_sec(get_time(start_time))
     newline_char = ""
-    plural_hour = ""
-    plural_min = ""
+    plural_hour = "s"
+    plural_min = "s"
     in_word = " in "
     
     if newline:
@@ -59,47 +60,48 @@ def print_time_message(message:str, start_time, newline=False, only_time=False):
         in_word = ""
     
     if total_time[0] == 1:
-        plural_hour = "s"
+        plural_hour = ""
     if total_time[1] == 1:
-        plural_min = "s"
+        plural_min = ""
         
     if total_time[1] == 0:
-        print_message(f'{message}{in_word}{total_time[1]} seconds{newline_char}')
+        print_message(f'{message}{in_word}{total_time[2]} seconds{newline_char}')
     elif total_time[0] == 0:
-        print_message(f'{message}{in_word}{total_time[0]} minute{plural_min} and {total_time[1]} seconds{newline_char}')
+        print_message(f'{message}{in_word}{total_time[1]} minute{plural_min} and {total_time[2]} seconds{newline_char}')
     else:
         print_message(f'{message}{in_word}{total_time[0]} hour{plural_hour}, {total_time[1]} minute{plural_min} and {total_time[2]} seconds{newline_char}')
 
 
 def main(argv: Optional[Sequence[str]] = None):
     print('starting to evaluate the script', flush=True)
-    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -o [csv test file(s)] -f [json test file(s)] -t [test name(s)] [optional args]")
+    parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] [optional args]")
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
-    parser.add_argument('-o', '--output_files', help='csv file(s) for writing tests into', nargs='+', required=True)
-    parser.add_argument('-f', '--json_files', help='json file(s) to read configs from', nargs='+', required=True)
-    parser.add_argument('-t', '--test_names', help='name of corresponding test(s)', nargs='+', required=True)
-    parser.add_argument('-n', '--num_tests', help='number of tests for each config to run', type=int, default=100)
+    # parser.add_argument('-o', '--output_files', help='csv file(s) for writing tests into', nargs='+', required=True)
+    parser.add_argument('-f', '--config_files', help='test configuration file(s)', nargs='+', required=True)
+    # # parser.add_argument('-f', '--json_files', help='json file(s) to read configs from', nargs='+', required=True)
+    # parser.add_argument('-t', '--test_names', help='name of corresponding test(s)', nargs='+', required=True)
+    # parser.add_argument('-n', '--num_tests', help='number of tests for each config to run', type=int, default=100)
     parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
-    parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
+    parser.add_argument('-m', '--messages', action='store_true', help='enable printing of progress')
     parser.add_argument('-x', '--extra_messages', action='store_true', help='enable printing of extra progress messages')
-    parser.add_argument('-v', '--type', help="matrices or tensors. 0 is matrices, 1 is 3D tensors", required=True, type=int)
+    # parser.add_argument('-v', '--type', help="matrices or tensors. 0 is matrices, 1 is 3D tensors", required=True, type=int)
     
     args = vars(parser.parse_args(argv))
+    # output_files = args['output_files']
+    config_files = args["config_files"]
+    # json_files = args['json_files']
+    # test_names = args['test_names']
+    # num_tests = args['num_tests']
     path_root = args['path']
     test_file = f'{path_root}/test/{args["test_file"]}'
-    output_files = args['output_files']
-    json_files = args['json_files']
-    test_names = args['test_names']
-    num_tests = args['num_tests']
-    path_root = args['path']
     debug = args['debug']
     global messages
     messages = args['messages']
     global extra_messages
     extra_messages = args['extra_messages']
-    type_of_data = args['type']
+    # type_of_data = args['type']
     
     print_extra_message(test_file)
     # relative path to Makefile
@@ -112,14 +114,28 @@ def main(argv: Optional[Sequence[str]] = None):
     command = "make -j 8"
     
     # number of tests must match
-    assert len(output_files) == len(json_files) and len(output_files) == len(test_names)
+    # assert len(output_files) == len(json_files) and len(output_files) == len(test_names)
     
     # print(output_files, json_files, test_names)  
     
     program_start_time = time()
     # run tests for each test case
-    for out_file, json_file, test_name in zip(output_files, json_files, test_names):
+    # for out_file, json_file, test_name in zip(output_files, json_files, test_names):
+    for config_file in config_files:
+        try:
+            fileptr = open(config_file, "r")
+            new_dict = json.load(fileptr)
+            fileptr.close()
+        except OSError:
+            print("Invalid JSON file for reading", file=sys.stderr)
+            return
+
+        json_file = new_dict["test_json_file"]
+        test_name = new_dict["test_name"]
+        out_file = new_dict["output_csv_file"]
         time_test_start = time()
+        type_of_data = new_dict["type"]
+        num_tests = new_dict["num_tests"]
         
         # make sure file types are correct
         if not is_valid_file_type(out_file, "csv"): continue
@@ -199,8 +215,8 @@ def main(argv: Optional[Sequence[str]] = None):
                         stderr_lines = make_output.stderr.readlines()
                         
                         if (stderr_lines):
-                            stdout_lines_str = "\n".join(stdout_lines)
-                            stderr_lines_str = "\n".join(stderr_lines)
+                            stdout_lines_str = "".join(stdout_lines)
+                            stderr_lines_str = "".join(stderr_lines)
                             print_extra_message(f'make std out: {stdout_lines_str}')
                             print_extra_message(f'make std err: {stderr_lines_str}')
                         print_message(f'Config {iter + 1}/{len(config_list)} test compiled')
@@ -250,10 +266,10 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         stdout_lines = test_output.stdout.readlines()
                         stderr_lines = test_output.stderr.readlines()
-                        stdout_lines_str = "\n".join(stdout_lines)
-                        stderr_lines_str = "\n".join(stderr_lines)
-                        print_extra_message(stdout_lines_str, flush=True)
-                        print_message("\n", flush=True)
+                        stdout_lines_str = "".join(stdout_lines)
+                        stderr_lines_str = "".join(stderr_lines)
+                        print_extra_message(stdout_lines_str)
+                        print_message("\n")
                         # if test_iter == 0:
                         if stderr_lines:
                             print("".join(stdout_lines), flush=True)
@@ -310,7 +326,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         writer.writerow(new_row)
                         csvfile.flush()
                         
-                        print_message("", flush=True)
+                        print_message("")
                         
                         if (min_time > round(statistics.median(float_times),6)):
                             min_time = round(statistics.median(float_times),6)
