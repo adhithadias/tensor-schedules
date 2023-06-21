@@ -50,6 +50,126 @@ pytest -s test/test_autosched.py::test_autoschedule1
 python3 -m <test dir>.<test name>
 python3 -m test.test_union_list
 ```
+
+## TACO Test Setup
+```bash
+# setup
+TEST(workspaces, [test name]) {
+  [variable declarations]
+  [load tensor file for reading]
+  [tensor declarations and packing]
+  [index declarations]
+  [computation declaration]
+  ...
+  /* [any text] */
+  ...
+  /* [any text] */
+  [extra transformations]
+  ...
+  [declare expected (no transformations)]
+  [declare timing variables]
+  for (int [var] = 0; [var] < [any integer]; [var]++) {
+    [time computation with transformations]
+    [time computation without transformations]
+    ...
+  }
+  ...
+}
+
+# example
+TEST(workspaces, loopcontractfuse_real) {
+  int L = 16;
+  int M = 16;
+  int N = 16;
+  Tensor<double> A("A", {L, M, N}, Format{Dense, Dense, Dense});
+
+  std::string mat_file = util::getFromEnv("TENSOR_FILE", "");
+
+  Tensor<double> B = read(mat_file, Format({Dense, Sparse, Sparse}), true);
+  B.setName("B");
+  B.pack();
+
+  Tensor<double> C("C", {B.getDimension(0), L}, Format{Dense, Dense});
+  for (int i=0; i<B.getDimension(0); i++) {
+    for (int l=0; l<L; l++) {
+      C.insert({i, l}, (double) i);
+    }
+  }
+  C.pack();
+  Tensor<double> D("D", {B.getDimension(1), M}, Format{Dense, Dense});
+  for (int j=0; j<B.getDimension(1); j++) {
+    for (int m=0; m<M; m++) {
+      D.insert({j, m}, (double) j);
+    }
+  }
+  D.pack();
+  Tensor<double> E("E", {B.getDimension(2), N}, Format{Dense, Dense});
+  for (int k=0; k<B.getDimension(2); k++) {
+    for (int n=0; n<N; n++) {
+      E.insert({k, n}, (double) k);
+    }
+  }
+  E.pack();
+
+  IndexVar i("i"), j("j"), k("k"), l("l"), m("m"), n("n");
+  A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n);
+
+  IndexStmt stmt = A.getAssignment().concretize();
+
+  std::cout << stmt << endl;
+
+	/* BEGIN loopcontractfuse_real TEST */
+	vector<int> path0;
+	vector<int> path1 = {0};
+	vector<int> path2 = {1};
+	vector<int> path3 = {0, 1};
+	stmt = stmt
+		.reorder({l, i, j, k, m, n})
+		.loopfuse(3, true, path0)
+		.loopfuse(2, true, path1)
+		.reorder(path2, {n, m, k})
+		.reorder(path3, {k, j})
+		;
+	/* END loopcontractfuse_real TEST */
+
+
+  stmt = stmt.concretize();
+  cout << "final stmt: " << stmt << endl;
+  printCodeToFile("loopcontractfuse", stmt);
+
+  A.compile(stmt.concretize());
+  A.assemble();
+
+  Tensor<double> expected("expected", {N, N, N}, Format{Dense, Dense, Dense});
+  expected(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n);
+  expected.compile();
+  expected.assemble();
+
+  clock_t begin;
+  clock_t end;
+
+  for (int i=0; i<3; i++) {
+    begin = clock();
+    A.compute(stmt);
+    end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC * 1000;
+
+    begin = clock();
+    expected.compute();
+    end = clock();
+    double elapsed_secs_ref = double(end - begin) / CLOCKS_PER_SEC * 1000;
+
+    std::cout << elapsed_secs << std::endl;
+    std::cout << elapsed_secs_ref << std::endl;
+  }
+
+std::cout << "workspaces, loopcontractfuse -> execution completed for matrix: " << mat_file << std::endl;
+
+}
+
+
+```
+
 ## To Download Tensors
 ```bash
 ./load_tensors.sh
