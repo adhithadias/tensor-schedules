@@ -26,6 +26,6 @@
     "i * j < 1000 * i * jpos"
   ],
   "output_csv_file": "test4.csv",
-  "type": 0,
+  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx"],
   "num_tests": 10
 }

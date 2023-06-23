@@ -25,6 +25,6 @@
     "i * j * k < 1000 * i * jpos * kpos"
   ],
   "output_csv_file": "test5.csv",
-  "type": 1,
+    "eval_files": ["flickr-3d.tns", "nell-1.tns", "nell-2.tns", "vast-2015-mc1-3d.tns"],
   "num_tests": 10
 }

@@ -77,7 +77,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(description='Tests time of various fused and unfused schedules as found by autoscheduler.', usage="python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
-    parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to read configs from]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\ttype:\t\t\t[0 for matrix test, 1 for tensor test]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
+    parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to read configs from]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\teval_files:\t\t[mtx/tns files to run]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
     parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
     parser.add_argument('-t', '--tensor_file_path', help='path to downloads folder containing tensors and matrices (default: %(default)s)', default=os.curdir + "/downloads/")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
@@ -126,8 +126,10 @@ def main(argv: Optional[Sequence[str]] = None):
         json_file = new_dict["test_json_file"]
         test_name = new_dict["test_name"]
         out_file = new_dict["output_csv_file"]
+        # type_of_data = new_dict["type"]
+        tensor_list = new_dict["eval_files"]
+        
         time_test_start = time()
-        type_of_data = new_dict["type"]
         try:
             num_tests = new_dict["num_tests"]
         except:
@@ -140,14 +142,14 @@ def main(argv: Optional[Sequence[str]] = None):
         
         print_message(f'{len(config_list)} configs found for the given evaluation')
         
-        tensor_list = []
-        if (type_of_data == 0):
-            # "com-Amazon.mtx", amazon one fails saying mtx signature is not available 
-            tensor_list = ["bcsstk17.mtx", "cant.mtx", "consph.mtx", 
-                        "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx",
-                        "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"]
-        elif (type_of_data == 1):
-            tensor_list = ["vast-2015-mc1-3d.tns", "nell-1.tns", "nell-2.tns", "flickr-3d.tns"]
+        # tensor_list = []
+        # if (type_of_data == 0):
+        #     # "com-Amazon.mtx", amazon one fails saying mtx signature is not available 
+        #     tensor_list = ["bcsstk17.mtx", "cant.mtx", "consph.mtx", 
+        #                 "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx",
+        #                 "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"]
+        # elif (type_of_data == 1):
+        #     tensor_list = ["vast-2015-mc1-3d.tns", "nell-1.tns", "nell-2.tns", "flickr-3d.tns"]
         # tensor_file_path = "~/tensor-schedules/downloads/"
         
         with open(out_file, 'w', newline='') as csvfile2:
@@ -215,7 +217,7 @@ def main(argv: Optional[Sequence[str]] = None):
                             stderr_lines_str = "".join(stderr_lines)
                             print_extra_message(f'make std out: {stdout_lines_str}')
                             print_extra_message(f'make std err: {stderr_lines_str}')
-                        print_message(f'Config {iter + 1}/{len(config_list)} test compiled')
+                        print_message(f'Config {iter + 1}/{len(config_list)} test compiled for tensor {tensor}')
                         
                         # individual times to compute for given schedule
                         output_times = []
