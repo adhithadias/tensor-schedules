@@ -203,7 +203,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         print_extra_message(f'{iter}: tensor: {tensor}, config: {config}')
                         # write testing code into testing file
-                        test_code = Write_Test_Code(config, test_name, test_file, num_tests)
+                        test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1)
                         # compiles with changed config
                         make_output = subprocess.Popen(f'(cd {path_makefile} && {command})', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
                         
@@ -298,10 +298,10 @@ def main(argv: Optional[Sequence[str]] = None):
                             
                         # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
                         for test_iter in range(num_tests):
-                            time_to_run = float(stdout_lines[7 + test_iter*2])
+                            time_to_run = float(stdout_lines[9 + test_iter*2])
                             output_times.append(time_to_run)
                             if iter == 0:
-                                expected_times.append(float(stdout_lines[8 + test_iter*2]))
+                                expected_times.append(float(stdout_lines[10 + test_iter*2]))
                                 
                         print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
                         print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
@@ -314,7 +314,7 @@ def main(argv: Optional[Sequence[str]] = None):
                             new_row.extend([round(statistics.median(float_times),6), round(stdev(float_times),6)])
                             writer.writerow(new_row)
                             default_time = round(statistics.median(float_times),6)
-                            default_time_std = stdev(float_times)
+                            default_time_std = round(stdev(float_times),6)
                         
                         schedule_stmt = re.sub("\n", "", schedule_stmt)
                         new_row = [schedule_stmt, "\n".join(schedule_commands)]
