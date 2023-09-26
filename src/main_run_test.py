@@ -78,7 +78,7 @@ def main(argv: Optional[Sequence[str]] = None):
     
     parser.add_argument('-c', '--test_file', help='cpp file to write scheduling code into', default="tests-workspaces.cpp")
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\ttest_json_file:\t\t[json file to read configs from]\n\t\ttest_name:\t\t[taco test name]\n\t\toutput_csv_file:\t[csv file to output stats]\n\t\teval_files:\t\t[mtx/tns files to run]\n\t\t(optional) num_tests:\t[number of iterations of a given test to run]', nargs='+', required=True)
-    parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Most_Recent")
+    parser.add_argument('-p', '--path', help='path to taco directory', default="../SparseLNR_Final")
     parser.add_argument('-t', '--tensor_file_path', help='path to downloads folder containing tensors and matrices (default: %(default)s)', default=os.curdir + "/downloads/")
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
     parser.add_argument('-m', '--messages', action='store_true', help='enable printing of progress')
@@ -102,6 +102,13 @@ def main(argv: Optional[Sequence[str]] = None):
 
     # relative path to taco-test executable
     path_test = path_makefile + "/bin/taco-test"
+    
+    # add folder locations for input/output files
+    TENSOR_JSON_FILE_FOLDER = 'tensors_stored/'
+    CONFIG_JSON_FILE_FOLDER = 'test_configs/'
+    OUTPUT_CSV_FOLDER = 'test_outputs/'
+    
+    config_files = [CONFIG_JSON_FILE_FOLDER + config_file for config_file in config_files]
 
     # Makefile command to run
     command = "make -j 8"
@@ -123,11 +130,13 @@ def main(argv: Optional[Sequence[str]] = None):
             print("Invalid JSON file for reading", file=sys.stderr)
             return
 
-        json_file = new_dict["test_json_file"]
+        json_file = TENSOR_JSON_FILE_FOLDER + new_dict["test_json_file"]
         test_name = new_dict["test_name"]
-        out_file = new_dict["output_csv_file"]
+        out_file_temp = new_dict["output_csv_file"]
+        out_file = OUTPUT_CSV_FOLDER + out_file_temp
         # type_of_data = new_dict["type"]
         tensor_list = new_dict["eval_files"]
+        test_data = not new_dict["real"]
         
         time_test_start = time()
         try:
@@ -164,14 +173,14 @@ def main(argv: Optional[Sequence[str]] = None):
             eval_writer.writerow(header_row)
             csvfile2.flush()
             
-            out_temp = out_file
-        
+            
+            if test_data: tensor_list = ["testing"]
             for tensor in tensor_list:
-                out_file = tensor + "_" + out_temp
-                tensor_file = tensor_file_path + tensor
-                os.environ["TENSOR_FILE"] = tensor_file
-                
-                print_extra_message(f'evaluating tensor {tensor}')
+                if not test_data:
+                    out_file_temp = tensor + "_" + out_file_temp
+                    tensor_file = tensor_file_path + tensor
+                    os.environ["TENSOR_FILE"] = tensor_file
+                    print_extra_message(f'evaluating tensor {tensor}')
             
                 # for i, config1 in enumerate(config_list):
                 #     for j, config2 in enumerate(config_list):
@@ -187,7 +196,7 @@ def main(argv: Optional[Sequence[str]] = None):
                 min_config = None
             
                 
-                with open("temp/" + out_file, 'w', newline='') as csvfile:
+                with open("temp/" + out_file_temp, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter=',')
                     list_times = ["Time " + str(num + 1) for num in range(num_tests)]
                     # print(len(list_times))
@@ -203,7 +212,11 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         print_extra_message(f'{iter}: tensor: {tensor}, config: {config}')
                         # write testing code into testing file
-                        test_code = Write_Test_Code(config, test_name, test_file, num_tests)
+                        if num_tests != None:
+                            test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1)
+                        else:
+                            test_code = Write_Test_Code(config, test_name, test_file, num_tests)
+
                         # compiles with changed config
                         make_output = subprocess.Popen(f'(cd {path_makefile} && {command})', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
                         
@@ -257,7 +270,9 @@ def main(argv: Optional[Sequence[str]] = None):
                         
                         # runs test
                         # print(f'TENSOR_FILE={tensor_file} {path_test} {get_arg(test_name)}')
-                        test_output = subprocess.Popen(f'TENSOR_FILE={tensor_file} {path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                        if test_data: test_output = subprocess.Popen(f'{path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                        else: test_output = subprocess.Popen(f'TENSOR_FILE={tensor_file} {path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                        # test_output = subprocess.Popen(f'{path_test} {get_arg(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
                         
                         # wait for output to generate
                         test_output.wait()
@@ -298,10 +313,10 @@ def main(argv: Optional[Sequence[str]] = None):
                             
                         # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
                         for test_iter in range(num_tests):
-                            time_to_run = float(stdout_lines[7 + test_iter*2])
+                            time_to_run = float(stdout_lines[9 + test_iter*2])
                             output_times.append(time_to_run)
                             if iter == 0:
-                                expected_times.append(float(stdout_lines[8 + test_iter*2]))
+                                expected_times.append(float(stdout_lines[10 + test_iter*2]))
                                 
                         print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
                         print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
@@ -314,7 +329,7 @@ def main(argv: Optional[Sequence[str]] = None):
                             new_row.extend([round(statistics.median(float_times),6), round(stdev(float_times),6)])
                             writer.writerow(new_row)
                             default_time = round(statistics.median(float_times),6)
-                            default_time_std = stdev(float_times)
+                            default_time_std = round(stdev(float_times),6)
                         
                         schedule_stmt = re.sub("\n", "", schedule_stmt)
                         new_row = [schedule_stmt, "\n".join(schedule_commands)]
@@ -337,7 +352,7 @@ def main(argv: Optional[Sequence[str]] = None):
                 
                 print_time_message(f'{test_name} test finished', time_test_start)
                 
-                del os.environ['TENSOR_FILE']
+                if not test_data : del os.environ['TENSOR_FILE']
     if messages: 
         print_time_message(f'All tests ran', program_start_time)
         

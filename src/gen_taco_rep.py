@@ -7,7 +7,7 @@ import regex as re
 
 header_to_read = r'/\*.*\*/'
 footer_to_read = r'/\*.*\*/'
-test_rep_for_loop = r'(\s*for\s*\(\s*int \s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*0\s*;\s*\2<\s*)(\d)(\s*;\s*\2\+\+\s*\)\s*{\s*)'
+test_rep_for_loop = r'(\s*for\s*\(\s*int \s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*0\s*;\s*\2<\s*)(\d+)(\s*;\s*\2\+\+\s*\)\s*{\s*)'
 
 # path = "~/SparseLNR_Most_Recent"
 
