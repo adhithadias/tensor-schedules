@@ -9,7 +9,7 @@ schedules = []
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 2
+test = 4
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -181,6 +181,7 @@ if (test == 2):
 elif (test == 3 or test == 4):
     z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
                     k >= 8, k <= 256, l >= 8, l <= 256, jpos >= 0,
+                    m >= 8, m <=256,
                     100 * i * jpos < i * j,   # i*jpos < 0.01 * i*j
                     i * j < 1000 * i * jpos]  # 0.001 * i*j < i*jpos
     # can pass additional constraints here like limit additional memory
