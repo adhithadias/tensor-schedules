@@ -82,7 +82,7 @@ class Solver_Config:
         self.total_indices["all"] = {
             **self.total_indices["dense"], **self.total_indices["sparse"]}
     
-        if z3_constraints != None:
+        if z3_constraints == None:
             # adds minimum and maximum constraints for dense
             for index in self.total_indices["dense"].values():
                 # print(index > min_dense)
@@ -164,11 +164,12 @@ class Solver_Config:
     def get_z3_expr(self, complexity: list):
         add_expr = None
         for expr in complexity:
-            if(type(expr) != set and type(expr) != list):
+            temp_expr = expr
+            if type(temp_expr) == dict: temp_expr = set([index for index in temp_expr.keys()])
+            if(type(temp_expr) != set and type(temp_expr) != list):
                 return None
             mult_expr = None
-            for index in expr:
-            
+            for index in temp_expr:
                 if(mult_expr == None):
                     mult_expr = self.total_indices["all"][index]
                 else:
@@ -372,9 +373,9 @@ class Solver_Config:
                 compar = self.compare_schedules(s1,s2)
                 
                 if compar == 1:
-                    pruned_array[j] = True
-                elif compar == -1:
                     pruned_array[i] = True
+                elif compar == -1:
+                    pruned_array[j] = True
                     break
             if not pruned_array[i]:
                 result_array.append(s1)
