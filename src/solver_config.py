@@ -58,6 +58,9 @@ class Solver_Config:
             "sparse": {},
             "all": {}
         }
+        
+        self.accesses = tensor_accesses
+        self.extra_accesses = {}
     
         # get dense set of indices
         dense_set = set(index for indexes in tensor_accesses.values()
@@ -102,6 +105,16 @@ class Solver_Config:
 
         # saves solver backtracking point
         self.solver.push()
+        
+    def __add_extra_accesses(self, config:Config):  
+        if config.prod == None:
+            self.extra_accesses[config.output] = config.input_idx_order
+        else:
+            self.__add_accesses(config.prod)
+            self.__add_accesses(config.cons)
+            
+    def __remove_extra_accesses(self):
+        self.extra_accesses = {}
 
     def parse_z3_constraints(self, constraint_list: list):
       z3_constraints = []
@@ -293,7 +306,6 @@ class Solver_Config:
 
         return max_
 
-
     def get_memory_depth(self, schedule: Config) -> int:
         assert type(schedule.memory_complexity) == list
         max_: int = 0
@@ -379,6 +391,187 @@ class Solver_Config:
                     break
             if not pruned_array[i]:
                 result_array.append(s1)
+        return result_array
+    
+    def __is_leaf_node_schedule(self, config: Config) -> bool:
+        """Checks if given config is a leaf node"""
+        if config.prod == None or config.cons == None: return True
+        else: return False
+    
+    def __get_leaf_configs(self, config: Config, index_order: list, depth=0) -> list:
+        """Gets leaf configs and returns list of tuples in the form:\n
+        (leaf config class, index order, z3)"""
+        assert isinstance(index_order, list)
+        # assert isinstance(config, Config)
+        total_leaves = []
+        
+        index_order = copy.copy(index_order)
+        if config.fused != 0:
+            index_order.extend([index for index in config.input_idx_order if type(index) == str])
+        else:
+            total_leaves.extend((config, config.input_idx_order, self.__compute_z3_same_loop_nest(config, index_order)))
+        
+        # return if leaf node reached
+        if self.__is_leaf_node_schedule(config): 
+            return [(config, index_order, self.__compute_z3_same_loop_nest(config, index_order))]
+        
+        # recursively traverse tree to get leaves
+        prod_leaves = self.__get_leaf_configs(config.prod, index_order, depth + 1)
+        cons_leaves = self.__get_leaf_configs(config.cons, index_order, depth + 1)
+        
+        total_leaves.extend(prod_leaves)
+        total_leaves.extend(cons_leaves)
+        
+        return total_leaves
+    
+    def __get_z3_sum_of_mult(self, expressions=list):
+        add_expr = 0
+        
+        for expression in expressions:
+            mult_expr = 0
+            for inner_expr in expression:
+                new_expr = None
+                if type(inner_expr) == str:
+                    new_expr = self.total_indices["all"][inner_expr]
+                else:
+                    new_expr = inner_expr
+                    
+                if mult_expr == 0: mult_expr = new_expr
+                else: mult_expr = mult_expr * new_expr
+            add_expr += mult_expr
+        
+        return add_expr
+                
+    def __compute_z3_same_loop_nest(self, config: Config, loop_order: list):
+        """Given a config and loop order and returns z3 expression representing cache value"""
+        # compute cost based on number of times accessing given expression
+        mult_expr1 = self.__get_z3_sum_of_mult([loop_order])
+        
+        # compute cost based on location within tensor
+        total_cost = 0
+        
+        indices = []
+        self.__add_extra_accesses(config)
+        for tensor in config.expr:
+            if tensor in self.accesses and loop_order[-1] in self.accesses[tensor]:
+                idx = self.accesses[tensor].index(loop_order[-1])
+                cost = self.accesses[tensor][:idx]
+                
+                indices.append(cost)
+            elif tensor in self.extra_accesses and loop_order[-1] in self.extra_accesses[tensor]:
+                idx = self.extra_accesses[tensor].index(loop_order[-1])
+                cost = self.extra_accesses[tensor][:idx]
+                
+                indices.append(cost)
+        self.__remove_extra_accesses()
+        
+        mult_expr2 = self.__get_z3_sum_of_mult(indices)
+        
+        return mult_expr1 * mult_expr2
+        
+    def compare_loop_nest(self, config1:Config, config2:Config):
+        config1_memory_loops = config1.memory_complexity
+        config2_memory_loops = config2.memory_complexity
+        
+        # ensure memory complexity is the same
+        for config1_loop in config1_memory_loops:
+            matched = False
+            for config2_loop in config2_memory_loops:
+                if set(config1_loop) == set(config2_loop):
+                    matched = True
+            
+            if matched == False: return 0 # invalid schedule comparison
+        
+        if len(config1_memory_loops) != len(config2_memory_loops): return 0
+        
+        # if different length of expressions altogether, not equivalent
+        config1_loops = []
+        for expr in (config1.time_complexity['r'] + config1.time_complexity['a']):
+            config1_loops.append([key for key in expr.keys()])
+        config2_loops = []
+        for expr in (config2.time_complexity['r'] + config2.time_complexity['a']):
+            config2_loops.append([key for key in expr.keys()])
+            
+        if len(config1_loops) != len(config2_loops): return 0
+        
+        config_1_leaves = self.__get_leaf_configs(config1, [])
+        config_2_leaves = self.__get_leaf_configs(config2, [])
+        assert len(config_1_leaves) == len(config_2_leaves)
+        
+        
+        # matched_config_2_leaves = []
+        
+        # matched pairing contains (config 1 expression, config 2 expression, z3 expression for cost)
+        matched_pairings = []
+        for config_1_leaf in config_1_leaves:
+            matched = False
+            config2_pairings = []
+            for config_2_leaf in config_2_leaves:
+                # check if in matched leaves: if so, continue
+                # if config_2_leaf in matched_config_2_leaves: 
+                #     continue
+                if set(config_1_leaf[1]) == set(config_2_leaf[1]):
+                    config2_pairings.append(config_2_leaf)
+                    matched = True
+            
+            if matched == False: return 0
+            config2s = [item[1] for item in matched_pairings]
+            if tuple(config2_pairings) in config2s: 
+                matched_pairings[config2s.index(tuple(config2_pairings))][0].append(config_1_leaf)
+            else: matched_pairings.append(([config_1_leaf], tuple(config2_pairings)))
+        
+        # verify matched pairs are the same length
+        for pair in matched_pairings:
+            if len(pair[0]) != len(pair[1]): return 0
+        
+        total_z3_expr1 = self.__get_z3_sum_of_mult([[config1_leaf[2]] for config1_leaf in config_1_leaves])
+        total_z3_expr2 = self.__get_z3_sum_of_mult([[config2_leaf[2]] for config2_leaf in config_2_leaves])
+        
+        c1 = total_z3_expr1 > total_z3_expr2
+        c2 = total_z3_expr1 >= total_z3_expr2
+        
+        self.solver.add(Or(c1, c2))
+        condition = self.solver.check()
+        self.solver.pop()
+        self.solver.push()
+        
+        self.solver.push()
+        self.solver.add(Or(Not(c1), Not(c2)))
+        inverse_condition = self.solver.check()  # this should be unsat to remove s1
+        self.solver.pop()
+
+        self.solver.push()
+        
+        # if condition is sat and inverse_condition is unsat, it means that s1 is worse than s2, we can remove s1
+        if condition == sat and inverse_condition == unsat:
+            return 1
+        # if condition is unsat and inverse_condition is sat, it means that s2 is worse than s1, we can remove s2
+        elif condition == unsat and inverse_condition == sat:
+            return -1
+        else:
+        # if loops are the same but one schedule doesn't dominate, remove one at random (choosing s1 in this case)
+            return 2
+        
+    # prunes out schedules that have same loop nest choosing pruned schedule based on locality
+    def prune_same_loop_nest(self, schedule_list=list):
+        result_array = []
+        pruned_array = bitarray(len(schedule_list))
+        pruned_array.setall(0)
+        
+        for i, s1 in enumerate(schedule_list):
+            if pruned_array[i]: continue
+            for j, s2 in enumerate(schedule_list):
+                if i == j: continue
+                if pruned_array[j]: continue
+                
+                to_prune = self.compare_loop_nest(s1, s2)
+                if to_prune == 0: continue
+                elif to_prune == 1 or to_prune == 2: pruned_array[i] = True
+                elif to_prune == -1 or to_prune == -2: pruned_array[j] = True
+                
+            if (not pruned_array[i]):
+                result_array.append(s1)
+        
         return result_array
 
 if __name__ == "__main__":

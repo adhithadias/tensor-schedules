@@ -134,8 +134,10 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     # initialize Z3 solver
     solver = Solver_Config(
         accesses, tensor_idx_order_constraints, z3_constraints)
+    
     print_message(f'Enumerating schedules with loop order {" ".join(indices)}')
     
+    # mostly irrelevant (as only get_schedules_unfused is needed) but generates necessary schedules
     if get_schedule_func == "get_schedules_unfused":
         schedules = get_schedules_unfused(output_tensor, accesses[output_tensor], expr, accesses, tuple(indices), tensor_idx_order_constraints, 1, cache)
     elif get_schedule_func == "get_schedules":
@@ -161,29 +163,34 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     z3_start_time = time()
     print_message(f'Pruning schedules using Z3')
     pruned_schedules = solver.prune_schedules(pruned_schedules)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', z3_start_time, True)
+    
+    locality_pruning_start_time = time()
+    print_message(f'Pruning schedules with same complexity using Z3')
+    pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
+    
+    
+    
+    # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
+    # print(pruned_schedules[0], file=sys.stdout)
     
     store_json(accesses, pruned_schedules, test_json_file)
     print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file}', z3_start_time, True)
     print_time_message(f'TEST {testnum} finished', test_start_time)
     
-    # for i, config1 in enumerate(pruned_schedules):
-    #     for j, config2 in enumerate(pruned_schedules):
-    #         if i == j: continue
-    #         if config1 == config2:
-    #             print_message(config1)
-    
 def main(argv: Optional[Sequence[str]] = None):
-    # main_store_json = Main_Store_JSON(sys.argv)
-    # print_visitor = Print_Help_Visitor()
-    # main_store_json.accept(print_visitor)
-
     parser = argparse.ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\taccesses:\n\t\t\t\t[tensor]: list[indices]\n\t\ttensor_idx_order_constraints:\n\t\t\t\t[tensor]: list[list[indices]]\n\t\toutput_tensor: [tensor]\n\t\ttest_json_file: [json file to store configs into]\n\t\t(optional) z3_constraints: list[constraints]', required=True, nargs="+")
     parser.add_argument('-o', '--function_type', default='get_schedules_unfused', help='optional argument to change function for generating schedules (default: %(default)s)', choices=['get_schedules_unfused', 'get_schedules', 'sched_enum'])
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
     
+    TEST_JSON_FILE_LOCATION = "tensors_stored/"
+    CONFIG_FILE_LOCATION = "test_configs/"
+    
     args = vars(parser.parse_args(argv))
     config_files = args["config_files"]
+    config_files = [CONFIG_FILE_LOCATION + config_file for config_file in config_files] # read from test_configs folder
     function_type = args["function_type"]
     global messages
     messages = args["messages"]
@@ -205,34 +212,17 @@ def main(argv: Optional[Sequence[str]] = None):
             tensor_idx_order_constraints[key] = [tuple(inner_list) for inner_list in value]
         output_tensor = new_dict["output_tensor"]
         test_json_file = new_dict["test_json_file"]
+        test_json_file = TEST_JSON_FILE_LOCATION + test_json_file     # place in tensors_stored folder
         try:
             z3_constraints = new_dict["z3_constraints"]
         except:
             z3_constraints = ""
         
+        
+        
         print_to_json2(accesses, tensor_idx_order_constraints, output_tensor, test_json_file, i, function_type, z3_constraints)
-
-
-    # exit()
-    
-    # filenames = []
-    # test_nums = []
-    # tests_to_run = []
-
-    # for arg in sys.argv[1:int((len(sys.argv) + 1) / 2)]:
-    #     filenames.append(arg)
-    # for arg in sys.argv[int((len(sys.argv) + 1) / 2):]:
-    #     test_nums.append(arg)
-    #     tests_to_run.append(tests[int(arg)])
-
-    # assert len(set(filenames)) == len(filenames)
-
-    # for test_to_run, test_num, filename in zip(tests_to_run, test_nums, filenames):
-    #     print_to_json(test_to_run, test_num, filename)
-
 
 
 if __name__ == "__main__":
     exit(main())
     
-

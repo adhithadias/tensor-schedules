@@ -119,8 +119,8 @@ def main(argv: Optional[Sequence[str]] = None):
     # print(output_files, json_files, test_names)  
     
     program_start_time = time()
+    
     # run tests for each test case
-    # for out_file, json_file, test_name in zip(output_files, json_files, test_names):
     for config_file in config_files:
         try:
             fileptr = open(config_file, "r")
