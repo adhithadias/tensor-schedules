@@ -195,8 +195,8 @@ class Solver_Config:
     def compare_schedules(self, config_1: Config, config_2: Config) -> int:
         # get complexities if not already gotten for given config
         if(config_1.z3_time_complexity == None):
-            time_complexity_1 = self.get_z3_expr(config_1.time_complexity['r'])
-            time_complexity_2 = self.get_z3_expr(config_1.time_complexity['a'])
+            time_complexity_1 = self.__get_z3_sum_of_mult([list(x.keys()) for x in config_1.time_complexity['r']])
+            time_complexity_2 = self.__get_z3_sum_of_mult([list(x.keys()) for x in config_1.time_complexity['a']])
             if(time_complexity_1 != None and time_complexity_2 != None):
                 config_1.z3_time_complexity = time_complexity_1 + time_complexity_2
             elif time_complexity_1 != None:
@@ -206,8 +206,8 @@ class Solver_Config:
             else:
                 config_1.z3_time_complexity = 0
         if(config_2.z3_time_complexity == None):
-            time_complexity_1 = self.get_z3_expr(config_2.time_complexity['r'])
-            time_complexity_2 = self.get_z3_expr(config_2.time_complexity['a'])
+            time_complexity_1 = self.__get_z3_sum_of_mult([list(x.keys()) for x in config_2.time_complexity['r']])
+            time_complexity_2 = self.__get_z3_sum_of_mult([list(x.keys()) for x in config_2.time_complexity['a']])
             if(time_complexity_1 != None and time_complexity_2 != None):
                 config_2.z3_time_complexity = time_complexity_1 + time_complexity_2
             elif time_complexity_1 != None:
@@ -217,14 +217,14 @@ class Solver_Config:
             else:
                 config_2.z3_time_complexity = 0
         if(config_1.z3_memory_complexity == None):
-            memory_complexity = self.get_z3_expr(config_1.memory_complexity)
+            memory_complexity = self.__get_z3_sum_of_mult(config_1.memory_complexity)
             if(memory_complexity != None):
                 config_1.z3_memory_complexity = memory_complexity
             else:
                 config_1.z3_memory_complexity = 0
                 
         if(config_2.z3_memory_complexity == None):
-            memory_complexity = self.get_z3_expr(config_2.memory_complexity)
+            memory_complexity = self.__get_z3_sum_of_mult(config_2.memory_complexity)
             if(memory_complexity != None):
                 config_2.z3_memory_complexity = memory_complexity
             else:
@@ -265,7 +265,7 @@ class Solver_Config:
         self.solver.pop()
         self.solver.push()
         
-        self.solver.push()
+        # self.solver.push()
         self.solver.add(Or(And(Not(c1), Not(c2)), And(Not(c3), Not(c4))))
         inverse_condition = self.solver.check()  # this should be unsat to remove s1
         self.solver.pop()
@@ -380,15 +380,17 @@ class Solver_Config:
             if pruned_array[i]:
                 continue
             for j, s2 in enumerate(schedule_list):  #TODO check if can change schedules to schedules[i:]
+                if i == j: continue
                 if (pruned_array[j]):
                     continue
                 compar = self.compare_schedules(s1,s2)
                 
                 if compar == 1:
                     pruned_array[i] = True
+                    break
                 elif compar == -1:
                     pruned_array[j] = True
-                    break
+                    continue
             if not pruned_array[i]:
                 result_array.append(s1)
         return result_array
