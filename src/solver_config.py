@@ -173,24 +173,6 @@ class Solver_Config:
             elif expr[index] == '/':
                 z3_expr = z3_expr / temp_z3_expr
         return z3_expr
-    
-    def get_z3_expr(self, complexity: list):
-        add_expr = None
-        for expr in complexity:
-            temp_expr = expr
-            if type(temp_expr) == dict: temp_expr = set([index for index in temp_expr.keys()])
-            if(type(temp_expr) != set and type(temp_expr) != list):
-                return None
-            mult_expr = None
-            for index in temp_expr:
-                if(mult_expr == None):
-                    mult_expr = self.total_indices["all"][index]
-                else:
-                    mult_expr = mult_expr * self.total_indices["all"][index]
-            if mult_expr == None: continue
-            elif add_expr == None: add_expr = mult_expr
-            else: add_expr = add_expr + mult_expr
-        return add_expr
 
     def compare_schedules(self, config_1: Config, config_2: Config) -> int:
         # get complexities if not already gotten for given config
@@ -455,15 +437,17 @@ class Solver_Config:
         indices = []
         self.__add_extra_accesses(config)
         for tensor in config.expr:
+            # if (tensor in self.accesses or tensor in self.extra_accesses) and len(loop_order) == 0: indices.append([0])
+            if len(loop_order) == 0: continue
+            
             if tensor in self.accesses and loop_order[-1] in self.accesses[tensor]:
                 idx = self.accesses[tensor].index(loop_order[-1])
                 cost = self.accesses[tensor][:idx]
-                
                 indices.append(cost)
+            
             elif tensor in self.extra_accesses and loop_order[-1] in self.extra_accesses[tensor]:
                 idx = self.extra_accesses[tensor].index(loop_order[-1])
                 cost = self.extra_accesses[tensor][:idx]
-                
                 indices.append(cost)
         self.__remove_extra_accesses()
         
@@ -471,6 +455,16 @@ class Solver_Config:
         
         return mult_expr1 * mult_expr2
         
+    def __get_num_common_loops(self, loop_sets:list) -> int:
+        assert type(loop_sets) == list
+        
+        min_length = min(len(x) for x in loop_sets)
+        shared_length = min_length
+        while True:
+            common_indices = set.intersection(*[set(x[:shared_length]) for x in loop_sets])
+            if len(common_indices) == shared_length: return shared_length
+            else: shared_length = len(common_indices)
+    
     def compare_loop_nest(self, config1:Config, config2:Config):
         config1_memory_loops = config1.memory_complexity
         config2_memory_loops = config2.memory_complexity
@@ -498,10 +492,23 @@ class Solver_Config:
         
         config_1_leaves = self.__get_leaf_configs(config1, [])
         config_2_leaves = self.__get_leaf_configs(config2, [])
+        
         assert len(config_1_leaves) == len(config_2_leaves)
         
+        config_1_index_orders = [config_1_leaf[1] for config_1_leaf in config_1_leaves]
+        config_2_index_orders = [config_2_leaf[1] for config_2_leaf in config_2_leaves]
+        config_index_orders = config_1_index_orders + config_2_index_orders
         
-        # matched_config_2_leaves = []
+        num_common_loops = self.__get_num_common_loops(config_index_orders)
+        z3_expr_1 = []
+        for config_leaf in config_1_leaves:
+            # config_leaf[1] = config_leaf[1][len(common_loops):]
+            z3_expr_1.append(self.__compute_z3_same_loop_nest(config_leaf[0], config_leaf[1][num_common_loops:]))
+        
+        z3_expr_2 = []
+        for config_leaf in config_2_leaves:
+            # config_leaf[1] = config_leaf[1][len(common_loops):]
+            z3_expr_2.append(self.__compute_z3_same_loop_nest(config_leaf[0], config_leaf[1][num_common_loops:]))
         
         # matched pairing contains (config 1 expression, config 2 expression, z3 expression for cost)
         matched_pairings = []
@@ -526,8 +533,8 @@ class Solver_Config:
         for pair in matched_pairings:
             if len(pair[0]) != len(pair[1]): return 0
         
-        total_z3_expr1 = self.__get_z3_sum_of_mult([[config1_leaf[2]] for config1_leaf in config_1_leaves])
-        total_z3_expr2 = self.__get_z3_sum_of_mult([[config2_leaf[2]] for config2_leaf in config_2_leaves])
+        total_z3_expr1 = self.__get_z3_sum_of_mult([[z3_expr] for z3_expr in z3_expr_1])
+        total_z3_expr2 = self.__get_z3_sum_of_mult([[z3_expr] for z3_expr in z3_expr_2])
         
         c1 = total_z3_expr1 > total_z3_expr2
         c2 = total_z3_expr1 >= total_z3_expr2
