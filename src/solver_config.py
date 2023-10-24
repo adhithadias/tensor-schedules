@@ -559,7 +559,7 @@ class Solver_Config:
             return -1
         else:
         # if loops are the same but one schedule doesn't dominate, remove one at random (choosing s1 in this case)
-            return 2
+            return 0
         
     # prunes out schedules that have same loop nest choosing pruned schedule based on locality
     def prune_same_loop_nest(self, schedule_list=list):
