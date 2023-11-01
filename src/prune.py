@@ -190,3 +190,51 @@ def prune_using_z3(schedules : list, z3_variables : dict, z3_constraints : list)
             
     return results
         
+def compute_time_complexity_runtime(expressions, dimensions=dict):
+    add_expr = 0
+        
+    for expression in expressions:
+        mult_expr = 0
+        for inner_expr in expression:
+            # new_expr = None
+            # if type(inner_expr) == str:
+            #     new_expr = self.total_indices["all"][inner_expr]
+            # else:
+            new_expr = dimensions[inner_expr]
+                
+            if mult_expr == 0: mult_expr = new_expr
+            else: mult_expr = mult_expr * new_expr
+        add_expr += mult_expr
+    
+    return add_expr
+
+
+def prune_time_runtime(schedule_list=list, dimensions=dict):
+    result_array = []
+    pruned_array = bitarray(len(schedule_list))
+    pruned_array.setall(0)
+    
+    for group_num1, group1 in enumerate(schedule_list):
+        if pruned_array[group_num1]: continue
+        config1_loops = []
+        
+        # get groups of expressions for group 1
+        for expr in (group1[0].time_complexity['r'] + group1[0].time_complexity['a']):
+            config1_loops.append([key for key in expr.keys()])
+        group1_time = compute_time_complexity_runtime(config1_loops, dimensions)
+        
+        for group_num2, group2 in enumerate(schedule_list):
+            if group_num1 == group_num2: continue
+            if pruned_array[group_num2]: continue
+            config2_loops = []
+            for expr in (group2[0].time_complexity['r'] + group2[0].time_complexity['a']):
+                config2_loops.append([key for key in expr.keys()])
+            group2_time = compute_time_complexity_runtime(config2_loops, dimensions)
+            
+            if group1_time > group2_time: pruned_array[group_num1] = 1
+            elif group1_time < group2_time: pruned_array[group_num2] = 1
+            
+        if (not pruned_array[group_num1]):
+            result_array.append(group1)
+    
+    return result_array

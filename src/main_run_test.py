@@ -17,6 +17,7 @@ from src.file_storing import read_json
 from src.print_help import Main_Run_Test, Print_Help_Visitor, is_valid_file_type
 from src.visitor import PrintConfigVisitor
 from src.testing import tests
+from src.prune import prune_time_runtime
 
 # incomplete argument
 run_arg = "workspaces._"
@@ -137,6 +138,7 @@ def main(argv: Optional[Sequence[str]] = None):
         # type_of_data = new_dict["type"]
         tensor_list = new_dict["eval_files"]
         test_data = not new_dict["real"]
+        dimensions = new_dict["dimensions"]
         
         time_test_start = time()
         try:
@@ -149,7 +151,22 @@ def main(argv: Optional[Sequence[str]] = None):
         if not is_valid_file_type(json_file, "json"): continue
         config_list = read_json(json_file)
         
+        # separate into corresponding groups
+        total_groups = config_list[-1].group + 1
+        pair_configs = []
+        total_configs_sep = 0
+        for group in range(total_groups):
+            new_set = set()
+            for config in config_list[total_configs_sep:]:
+                if config.group != group: break
+                else: new_set.add(config)
+            pair_configs.append(new_set)
+
+        
         print_message(f'{len(config_list)} configs found for the given evaluation')
+        
+        
+        
         
         # tensor_list = []
         # if (type_of_data == 0):
@@ -173,7 +190,6 @@ def main(argv: Optional[Sequence[str]] = None):
             eval_writer.writerow(header_row)
             csvfile2.flush()
             
-            
             if test_data: tensor_list = ["testing"]
             for tensor in tensor_list:
                 if not test_data:
@@ -194,7 +210,19 @@ def main(argv: Optional[Sequence[str]] = None):
                 min_time = 10000000000000000
                 min_time_std = 0
                 min_config = None
-            
+
+                # get dimensions for computation
+                dims = dimensions["other"]
+                dims = dims.update(dimensions[tensor])
+        
+                # prune using actual time complexity
+                pair_configs = prune_time_runtime(pair_configs, dims)
+                pair_unpruned = pair_configs[0]
+                # if len(pair_configs) > 1: pairs_unpruned = pair_configs[0]
+                # else: pairs_unpruned
+                
+                # prune with cache-based pruning
+                
                 
                 with open("temp/" + out_file_temp, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter=',')

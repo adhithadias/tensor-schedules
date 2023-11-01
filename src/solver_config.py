@@ -582,6 +582,99 @@ class Solver_Config:
                 result_array.append(s1)
         
         return result_array
+      
+    def __check_same_structure(self, sched1:Config, sched2:Config):
+        config1_memory_loops = sched1.memory_complexity
+        config2_memory_loops = sched2.memory_complexity
+        
+        # ensure memory complexity is the same
+        for config1_loop in config1_memory_loops:
+            matched = False
+            for config2_loop in config2_memory_loops:
+                if set(config1_loop) == set(config2_loop):
+                    matched = True
+            
+            if matched == False: return False # invalid schedule comparison
+        
+        if len(config1_memory_loops) != len(config2_memory_loops): return False
+        
+        # if different length of expressions altogether, not equivalent
+        config1_loops = []
+        for expr in (sched1.time_complexity['r'] + sched1.time_complexity['a']):
+            config1_loops.append([key for key in expr.keys()])
+        config2_loops = []
+        for expr in (sched2.time_complexity['r'] + sched2.time_complexity['a']):
+            config2_loops.append([key for key in expr.keys()])
+            
+        if len(config1_loops) != len(config2_loops): return False
+        
+        config_1_leaves = self.__get_leaf_configs(sched1, [])
+        config_2_leaves = self.__get_leaf_configs(sched2, [])
+        
+        assert len(config_1_leaves) == len(config_2_leaves)
+        
+        config_1_index_orders = [config_1_leaf[1] for config_1_leaf in config_1_leaves]
+        config_2_index_orders = [config_2_leaf[1] for config_2_leaf in config_2_leaves]
+        config_index_orders = config_1_index_orders + config_2_index_orders
+        
+        num_common_loops = self.__get_num_common_loops(config_index_orders)
+        z3_expr_1 = []
+        for config_leaf in config_1_leaves:
+            # config_leaf[1] = config_leaf[1][len(common_loops):]
+            z3_expr_1.append(self.__compute_z3_same_loop_nest(config_leaf[0], config_leaf[1][num_common_loops:]))
+        
+        z3_expr_2 = []
+        for config_leaf in config_2_leaves:
+            # config_leaf[1] = config_leaf[1][len(common_loops):]
+            z3_expr_2.append(self.__compute_z3_same_loop_nest(config_leaf[0], config_leaf[1][num_common_loops:]))
+        
+        # matched pairing contains (config 1 expression, config 2 expression, z3 expression for cost)
+        matched_pairings = []
+        for config_1_leaf in config_1_leaves:
+            matched = False
+            config2_pairings = []
+            for config_2_leaf in config_2_leaves:
+                # check if in matched leaves: if so, continue
+                # if config_2_leaf in matched_config_2_leaves: 
+                #     continue
+                if set(config_1_leaf[1]) == set(config_2_leaf[1]):
+                    config2_pairings.append(config_2_leaf)
+                    matched = True
+            
+            if matched == False: return False
+            config2s = [item[1] for item in matched_pairings]
+            if tuple(config2_pairings) in config2s: 
+                matched_pairings[config2s.index(tuple(config2_pairings))][0].append(config_1_leaf)
+            else: matched_pairings.append(([config_1_leaf], tuple(config2_pairings)))
+        
+        # verify matched pairs are the same length
+        for pair in matched_pairings:
+            if len(pair[0]) != len(pair[1]): return False
+        
+        return True
+      
+    def split_same_structure(self, schedule_list:list):
+        grouped_array = bitarray(len(schedule_list))
+        grouped_array.setall(0)
+        
+        config_groups = []
+        
+        for i, s1 in enumerate(schedule_list):
+            if grouped_array[i]: continue
+            new_set = set()
+            new_set.add(s1)
+            for j, s2 in enumerate(schedule_list):
+                if i == j: continue
+                if grouped_array[j]: continue
+                
+                if self.__check_same_structure(s1, s2): 
+                    new_set.add(s2)
+                    grouped_array[j] = 1
+                
+            config_groups.append(new_set)
+            grouped_array[i] = 1
+        
+        return config_groups
 
 if __name__ == "__main__":
     schedules = []

@@ -5,12 +5,15 @@ import json
 
 def store_json(tensor_accesses:dict, config_list:list, filename:str):
     assert len(config_list) > 0
-    assert type(config_list[0]) == Config
+    # assert type(config_list[0]) == Config
     
     printer = PrintDictVisitor(tensor_accesses)
     
-    for config in config_list:
-        config.accept(printer)
+    for i, group in enumerate(config_list):
+        for config in group:
+            config.group = i
+            config.accept(printer)
+
         
     printer.output_to_file(filename)
     

@@ -165,18 +165,24 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     pruned_schedules = solver.prune_schedules(pruned_schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', z3_start_time, True)
     
-    locality_pruning_start_time = time()
-    print_message(f'Pruning schedules with same complexity using Z3')
-    pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
+    separated_schedules = solver.split_same_structure(pruned_schedules)
+    
+    store_json(accesses, separated_schedules, test_json_file)
+    
+    
+    # locality_pruning_start_time = time()
+    # print_message(f'Pruning schedules with same complexity using Z3')
+    # pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
+    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
     
     
     
     # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
     # print(pruned_schedules[0], file=sys.stdout)
     
-    store_json(accesses, pruned_schedules, test_json_file)
+    # # store_json(accesses, pruned_schedules, test_json_file)
     print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file}', z3_start_time, True)
+    
     print_time_message(f'TEST {testnum} finished', test_start_time)
     
 def main(argv: Optional[Sequence[str]] = None):
