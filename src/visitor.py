@@ -69,7 +69,8 @@ class PrintDictVisitor(Visitor):
             "consumer": cons,
             "time_complexity": config.time_complexity,
             "memory_complexity": [list(tup) for tup in config.memory_complexity],
-            "original_idx_perm": config.original_idx_perm
+            "original_idx_perm": config.original_idx_perm,
+            "group": config.group
         }
         return new_config_dict
         

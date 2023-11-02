@@ -13,9 +13,13 @@
     ]
   },
   "output_tensor": "A",
+<<<<<<< HEAD
   "test_json_file": "test4_without_z3_pruning.json",
   "test_json_file_after_z3": "test4_with_z3_pruning.json",
   "test_best_schedule_file": "test4_best_schedule.json",
+=======
+  "test_json_file": "test4.json",
+>>>>>>> 41ddcb176736225474f9ac9bbe5725a2042856a8
   "test_name": "sddmm_spmm_gemm_real",
   "z3_constraints": [
     "i >= 5000", "i <= 15000",

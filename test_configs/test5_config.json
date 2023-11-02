@@ -27,6 +27,19 @@
     "i * j * k < 1000 * i * jpos * kpos"
   ],
   "output_csv_file": "test5.csv",
-    "eval_files": ["flickr-3d.tns", "nell-1.tns", "nell-2.tns", "vast-2015-mc1-3d.tns"],
-  "num_tests": 10
+  "eval_files": ["vast-2015-mc1-3d.tns"],
+  "dimensions": {
+    "vast-2015-mc1-3d.tns": {
+      "i": 165427,
+      "j": 11374,
+      "k": 2,
+      "nnz": 26021854
+    },
+    "other": {
+      "l": 100,
+      "m": 50
+    }
+  },
+  "num_tests": 10,
+  "real": true
 }

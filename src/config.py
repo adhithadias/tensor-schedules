@@ -19,6 +19,7 @@ class Config:
         
         self.z3_time_complexity = None
         self.z3_memory_complexity = None
+        self.group = None
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"
