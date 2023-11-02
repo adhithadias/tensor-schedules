@@ -261,6 +261,8 @@ python3 -m src.main_run_test_prev -f test3_config.json -t /home/min/a/kadhitha/w
 
 python3 -m src.main_run_test_prev -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
+python3 -m src.main_run_test_prev -f test5_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
 # Running tests
 pytest test/test_baskets.py
 

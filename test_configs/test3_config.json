@@ -27,7 +27,7 @@
   ],
   "output_csv_file": "test3.csv",
   "eval_files": ["bcsstk17.mtx", "cant.mtx", "circuit5M.mtx", "consph.mtx", "cop20k_A.mtx"],
-  "bounds": {
+  "actual_values": {
     "bcsstk17.mtx": {"i": 11000, "j": 11000, "k": 16, "l": 16, "jpos": 39},
     "cant.mtx": {"i": 62000, "j": 62000, "k": 16, "l": 16, "jpos": 65},
     "circuit5M.mtx": {"i": 5560000, "j": 556000, "k": 16, "l": 16, "jpos": 11},

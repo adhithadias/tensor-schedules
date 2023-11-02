@@ -13,13 +13,9 @@
     ]
   },
   "output_tensor": "A",
-<<<<<<< HEAD
   "test_json_file": "test4_without_z3_pruning.json",
   "test_json_file_after_z3": "test4_with_z3_pruning.json",
   "test_best_schedule_file": "test4_best_schedule.json",
-=======
-  "test_json_file": "test4.json",
->>>>>>> 41ddcb176736225474f9ac9bbe5725a2042856a8
   "test_name": "sddmm_spmm_gemm_real",
   "z3_constraints": [
     "i >= 5000", "i <= 15000",
@@ -33,7 +29,7 @@
   ],
   "output_csv_file": "test4.csv",
   "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx", "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"],
-  "bounds": {
+  "actual_values": {
     "bcsstk17.mtx": {"i": 11000, "j": 11000, "k": 16, "l": 16, "m": 16, "jpos": 39},
     "cant.mtx": {"i": 62000, "j": 62000, "k": 16, "l": 16, "m": 16, "jpos": 65},
     "circuit5M.mtx": {"i": 5560000, "j": 556000, "k": 16, "l": 16, "m": 16, "jpos": 11},

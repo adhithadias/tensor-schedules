@@ -97,6 +97,7 @@ def main(argv: Optional[Sequence[str]] = None):
     extra_messages = args['extra_messages']
     
     CONFIG_JSON_FILE_FOLDER = 'test_configs/'
+    TEST_SCHEDULES = "test_schedules/"
     config_files = [CONFIG_JSON_FILE_FOLDER + config_file for config_file in config_files]
     
     print_extra_message(test_file)
@@ -124,10 +125,11 @@ def main(argv: Optional[Sequence[str]] = None):
             new_dict = json.load(fileptr)
             fileptr.close()
         except OSError:
-            print("Invalid JSON file for reading", file=sys.stderr)
+            print("Invalid JSON file for reading. config file: ", config_file, file=sys.stderr)
             return
 
         json_file = new_dict["test_json_file_after_z3"]
+        json_file = TEST_SCHEDULES + json_file
         test_name = new_dict["test_name"]
         out_file = new_dict["output_csv_file"]
         # type_of_data = new_dict["type"]

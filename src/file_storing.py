@@ -87,7 +87,7 @@ def read_baskets_from_json(filename:str) -> list:
     try:
         fileptr = open(filename, "r")
     except OSError:
-        print("Invalid JSON file for reading", file=sys.stderr)
+        print("Invalid JSON file for reading. filename: ", filename, file=sys.stderr)
         return []
 
     new_dict = json.load(fileptr)
