@@ -1,10 +1,11 @@
 {
   "accesses": {
-    "A": ["i", "l"],
+    "A": ["i", "m"],
     "B": ["i", "j"],
     "C": ["i", "k"],
     "D": ["j", "k"],
-    "E": ["j", "l"]
+    "E": ["j", "l"],
+    "F": ["l", "m"]
   },
   "tensor_idx_order_constraints": {
     "B": [
@@ -12,18 +13,20 @@
     ]
   },
   "output_tensor": "A",
-  "test_json_file": "test3.json",
-  "test_name": "sddmm_spmm_real",
+  "test_json_file": "test4.json",
+  "test_name": "sddmm_spmm_gemm_real",
   "z3_constraints": [
     "i >= 5000", "i <= 15000",
     "j >= 5000", "j <= 15000",
     "k >= 8", "k <= 256",
     "l >= 8", "l <= 256",
+    "m >= 8", "m <= 256",
     "jpos >= 0",
     "100 * i * jpos < i * j",
     "i * j < 1000 * i * jpos"
   ],
-  "output_csv_file": "test3.csv",
-  "eval_files": ["bcsstk17.mtx", "cant.mtx", "circuit5M.mtx", "consph.mtx", "cop20k_A.mtx"],
-  "num_tests": 10
+  "output_csv_file": "test4.csv",
+  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx"],
+  "num_tests": 10,
+  "real": true
 }
