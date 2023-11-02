@@ -22,7 +22,7 @@ ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 CONFIG_JSON_FILE_FOLDER = 'test_configs/'
 TEST_SCHEDULES = "test_schedules/"
 CSV_RESULTS = "csv_results/"
-TEMP_RESULT_FOLDER="temp/"
+TEMP_RESULT_FOLDER = "temp/"
 
 # incomplete argument
 run_arg = "workspaces._"
@@ -134,7 +134,7 @@ def main(argv: Optional[Sequence[str]] = None):
         json_file = new_dict["test_json_file_after_z3"]
         json_file = TEST_SCHEDULES + json_file
         test_name = new_dict["test_name"]
-        out_file = CSV_RESULTS + new_dict["output_csv_file"]
+        out_file = new_dict["output_csv_file"]
         # type_of_data = new_dict["type"]
         tensor_list = new_dict["eval_files"]
         
