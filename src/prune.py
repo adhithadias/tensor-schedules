@@ -2,6 +2,7 @@ from bitarray import bitarray
 from functools import reduce
 from z3 import Solver, And, Or, Not, sat, unsat
 from src.config import Config
+from copy import copy
 
 
 def get_loop_depth(schedule : Config) -> int :
@@ -213,11 +214,11 @@ def prune_time_runtime(schedule_list=list, dimensions=dict):
     result_array = []
     pruned_array = bitarray(len(schedule_list))
     pruned_array.setall(0)
-    
+    # print(schedule_list)
     for group_num1, group1 in enumerate(schedule_list):
         if pruned_array[group_num1]: continue
         config1_loops = []
-        
+        group1 = list(group1)
         # get groups of expressions for group 1
         for expr in (group1[0].time_complexity['r'] + group1[0].time_complexity['a']):
             config1_loops.append([key for key in expr.keys()])
@@ -227,6 +228,8 @@ def prune_time_runtime(schedule_list=list, dimensions=dict):
             if group_num1 == group_num2: continue
             if pruned_array[group_num2]: continue
             config2_loops = []
+            group2 = list(group2)
+            # print(group1)
             for expr in (group2[0].time_complexity['r'] + group2[0].time_complexity['a']):
                 config2_loops.append([key for key in expr.keys()])
             group2_time = compute_time_complexity_runtime(config2_loops, dimensions)
@@ -236,5 +239,42 @@ def prune_time_runtime(schedule_list=list, dimensions=dict):
             
         if (not pruned_array[group_num1]):
             result_array.append(group1)
+    
+    return result_array
+   
+def compare_loop_nest(sched1, sched2, dimensions:dict):
+    total_time_complexity_1 = compute_time_complexity_runtime([complexity for complexity in sched1.time_complexity['r']] + [complexity for complexity in sched1.time_complexity['a']], dimensions)
+    total_time_complexity_2 = compute_time_complexity_runtime([complexity for complexity in sched2.time_complexity['r']] + [complexity for complexity in sched2.time_complexity['a']], dimensions)
+    
+    if total_time_complexity_1 > total_time_complexity_2:
+        return 1
+    elif total_time_complexity_2 > total_time_complexity_1:
+        return -1
+    else: return 0
+    
+    # total_z3_expr1 = compute_time_complexity_runtime([[z3_expr] for z3_expr in z3_expr_1], dimensions)
+    # total_z3_expr2 = compute_time_complexity_runtime([[z3_expr] for z3_expr in z3_expr_2])
+
+
+def prune_same_loop_nest(schedule_list:list, dimensions:dict):
+    if type(schedule_list) != list: schedule_list = list(schedule_list)
+    
+    result_array = []
+    pruned_array = bitarray(len(schedule_list))
+    pruned_array.setall(0)
+    
+    for i, s1 in enumerate(schedule_list):
+        if pruned_array[i]: continue
+        for j, s2 in enumerate(schedule_list):
+            if i == j: continue
+            if pruned_array[j]: continue
+            
+            to_prune = compare_loop_nest(s1, s2, dimensions)
+            if to_prune == 0: continue
+            elif to_prune == 1 or to_prune == 2: pruned_array[i] = True
+            elif to_prune == -1 or to_prune == -2: pruned_array[j] = True
+            
+        if (not pruned_array[i]):
+            result_array.append(s1)
     
     return result_array
