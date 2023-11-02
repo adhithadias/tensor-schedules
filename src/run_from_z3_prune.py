@@ -1,9 +1,9 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
 from z3 import Int
 from src.visitor import PrintConfigVisitor
-from src.util import Baskets
+from src.util import Baskets, get_simplified_complexity
 from src.config import Config
-from src.prune import prune_using_z3, prune_using_loop_depth, prune_baskets_using_z3, get_simplified_complexity
+from src.prune import prune_using_z3, prune_using_loop_depth, prune_baskets_using_z3
 from src.file_storing import store_json, store_baskets_to_json, read_json, read_baskets_from_json, lists_to_tuples
 from time import time
 
@@ -196,31 +196,22 @@ read_configs = read_baskets_from_json(f'test{test}_with_z3_pruning.json')
 assert len(read_configs) == len(z3_pruned_baskets)
 # print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
     
-allowed_element_size = 2621440 # 50% of the LLC
+ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 # final_constraints = {'i': 1800, 'j': 800, 'k': 1000, 'l': 64, 'm': 16, 'n': 32, 'jpos': 253, 'kpos': 253}
 # final_constraints = {'i': 1800, 'j': 1600, 'k': 2000, 'l': 64, 'm': 16, 'n': 32, 'jpos': 253, 'kpos': 253}
 # final_constraints = {'i': 320000, 'j': 2820000, 'k': 1600000, 'l': 64, 'm': 64, 'n': 64, 'jpos': 19, 'kpos': 19} # test 2, flickr-3d
 
 final_constraints = {'i': 165000, 'j': 11000, 'k': 2, 'l': 64, 'm': 64, 'n': 64, 'jpos': 12, 'kpos': 13} # test 2, vast
 
+final_constraints = {'i': 2900000, 'j': 2140000, 'k': 25500000, 'l': 64, 'm': 64, 'n': 64, 'jpos': 7, 'kpos': 7}
+
 # final_constraints = {"i": 1000000, "j": 1000000, "k": 1, "l": 1, "m": 16, "jpos": 3}
 
-best_time = -1
-best_memory = -1
-best_schedule = None
-
 tstart = time()
-for i, s1 in enumerate(read_configs.get_baskets()) :
-    
-    (t,m) = get_simplified_complexity(s1[0], s1[1], final_constraints)
-    # print(t, m)
-    if ((best_schedule == None or t < best_time or (t == best_time and m < best_memory)) and m < allowed_element_size):
-        best_time = t
-        best_memory = m
-        best_schedules = s1
+best_time, best_memory, best_schedules = read_configs.filter_with_final_constraints(final_constraints, ALLOWED_ELEMENT_SIZE)
 tend = time()
 
-print('best time:', best_time, ', best memory:', best_memory, ', time: ', best_schedules[0], ', mem:', best_schedules[1], flush = True)
+print('best time:', best_time, ', best memory:', best_memory, ', time: ', best_schedules[0], ', mem:', best_schedules[1], ', #:', len(best_schedules[2]), flush = True)
 print('time taken:', (tend - tstart)*1000, 'ms', flush = True)
 # best_schedule.accept(printer)
 

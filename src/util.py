@@ -1,5 +1,6 @@
 import itertools
 import copy
+from functools import reduce
 
 def get_idxes_up_to_branching_point(input_idx_order):
     l_linear = []
@@ -260,3 +261,33 @@ class Baskets:
         
     def get_baskets(self):
         return self.baskets
+    
+    
+    def filter_with_final_constraints(self, final_constraints, allowed_element_size):
+        best_time = -1
+        best_memory = -1
+        best_schedule = None
+
+        for i, s1 in enumerate(self.baskets) :
+            
+            (t,m) = get_simplified_complexity(s1[0], s1[1], final_constraints)
+            # print(t, m)
+            if ((best_schedule == None or t < best_time or (t == best_time and m < best_memory)) and m < allowed_element_size):
+                best_time = t
+                best_memory = m
+                best_schedules = s1
+                
+        return best_time, best_memory, best_schedules
+    
+    
+def get_simplified_complexity(time_complexity : list, memory_complexity : list, values : dict) -> tuple:
+    if (type(time_complexity) == dict):
+        tc0 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['r']], 0)
+        tc1 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['a']], 0)
+        tc = tc0 + tc1    
+    else:
+        tc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity], 0)
+      
+    mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in memory_complexity if len(setc) > 0], 0)
+    
+    return (tc, mc) 

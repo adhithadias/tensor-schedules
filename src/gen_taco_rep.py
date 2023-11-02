@@ -119,7 +119,8 @@ class Gen_Test_Code:
                 self.add_vector(name=("path" + str(i)))
 
         # print scheduling commands
-        self.print_data("stmt = stmt")
+        if (len(self.reorders) > 0 or len(self.extra_reorders)):
+            self.print_data("stmt = stmt")
         
         for i, reorder in enumerate(self.reorders):
             self.add_reorder(reorder, i)

@@ -13,11 +13,12 @@ from copy import deepcopy
 from statistics import mean, stdev
 from src.gen_taco_rep import Write_Test_Code
 from src.config import Config
-from src.file_storing import read_json
+from src.file_storing import read_json, read_baskets_from_json
 from src.print_help import Main_Run_Test, Print_Help_Visitor, is_valid_file_type
 from src.visitor import PrintConfigVisitor
 from src.testing import tests
 
+ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 # incomplete argument
 run_arg = "workspaces._"
 
@@ -126,7 +127,7 @@ def main(argv: Optional[Sequence[str]] = None):
             print("Invalid JSON file for reading", file=sys.stderr)
             return
 
-        json_file = new_dict["test_best_schedule_file"]
+        json_file = new_dict["test_json_file_after_z3"]
         test_name = new_dict["test_name"]
         out_file = new_dict["output_csv_file"]
         # type_of_data = new_dict["type"]
@@ -141,9 +142,9 @@ def main(argv: Optional[Sequence[str]] = None):
         # make sure file types are correct
         if not is_valid_file_type(out_file, "csv"): continue
         if not is_valid_file_type(json_file, "json"): continue
-        config_list = read_json(json_file)
+        baskets = read_baskets_from_json(json_file)
         
-        print_message(f'{len(config_list)} configs found for the given evaluation')
+        print_message(f'{len(baskets)} baskets found for the given evaluation')
         
         # tensor_list = []
         # if (type_of_data == 0):
@@ -168,8 +169,14 @@ def main(argv: Optional[Sequence[str]] = None):
             csvfile2.flush()
             
             out_temp = out_file
+            actual_values = new_dict["actual_values"]
         
             for tensor in tensor_list:
+                final_constraints = actual_values[tensor]
+                best_schedules = baskets.filter_with_final_constraints(final_constraints, ALLOWED_ELEMENT_SIZE)[2]
+                config_list = best_schedules[2]
+                print(best_schedules)
+                
                 out_file = tensor + "_" + out_temp
                 tensor_file = tensor_file_path + tensor
                 os.environ["TENSOR_FILE"] = tensor_file

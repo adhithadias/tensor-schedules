@@ -126,19 +126,7 @@ def get_time_memory_z3_complexity(time_complexity : list, memory_complexity : li
         
     mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in memory_complexity], 0)
     
-    return (tc, mc)
-
-def get_simplified_complexity(time_complexity : list, memory_complexity : list, values : dict) -> tuple:
-    if (type(time_complexity) == dict):
-        tc0 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['r']], 0)
-        tc1 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['a']], 0)
-        tc = tc0 + tc1    
-    else:
-        tc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity], 0)
-      
-    mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in memory_complexity if len(setc) > 0], 0)
-    
-    return (tc, mc)  
+    return (tc, mc) 
 
 def get_z3_complexity(config : Config, z3_variables : dict) -> tuple:
     if (config.z3_time_complexity is not None): return (config.z3_time_complexity, config.z3_memory_complexity)
