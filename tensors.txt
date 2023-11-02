@@ -1,0 +1,17 @@
+https://math.nist.gov/pub/MatrixMarket2/Harwell-Boeing/bcsstruc2/bcsstk17.mtx.gz
+https://suitesparse-collection-website.herokuapp.com/MM/HB/bcsstk17.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/pdb1HYS.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Bova/rma10.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/cant.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/consph.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/cop20k_A.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/DNVS/shipsec1.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Hamm/scircuit.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/mac_econ_fwd500.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/SNAP/com-Amazon.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/webbase-1M.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Freescale/circuit5M.tar.gz
+https://s3.us-east-2.amazonaws.com/frostt/frostt_data/flickr/flickr-3d.tns.gz
+https://s3.us-east-2.amazonaws.com/frostt/frostt_data/nell/nell-2.tns.gz
+https://s3.us-east-2.amazonaws.com/frostt/frostt_data/nell/nell-1.tns.gz
+https://s3.us-east-2.amazonaws.com/frostt/frostt_data/vast-2015-mc1/vast-2015-mc1-3d.tns.gz

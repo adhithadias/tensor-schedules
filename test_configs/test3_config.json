@@ -1,0 +1,91 @@
+{
+  "accesses": {
+    "A": ["i", "l"],
+    "B": ["i", "j"],
+    "C": ["i", "k"],
+    "D": ["j", "k"],
+    "E": ["j", "l"]
+  },
+  "tensor_idx_order_constraints": {
+    "B": [
+      ["j", "i"]
+    ]
+  },
+  "output_tensor": "A",
+  "test_json_file": "test3.json",
+  "test_name": "sddmm_spmm_real",
+  "z3_constraints": [
+    "i >= 5000", "i <= 15000",
+    "j >= 5000", "j <= 15000",
+    "k >= 8", "k <= 256",
+    "l >= 8", "l <= 256",
+    "jpos >= 0",
+    "100 * i * jpos < i * j",
+    "i * j < 1000 * i * jpos"
+  ],
+  "output_csv_file": "test3.csv",
+  "eval_files": ["bcsstk17.mtx", "cant.mtx", "circuit5M.mtx", "consph.mtx", "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx", "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx"],
+  "dimensions": {
+    "bcsstk17.mtx": {
+      "i": 10974,
+      "j": 10974,
+      "nnz": 428650
+    },
+    "cant.mtx": {
+      "i": 62451,
+      "j": 62451,
+      "nnz": 4007383
+    },
+    "circuit5M.mtx": {
+      "i": 5558326,
+      "j": 5558326,
+      "nnz": 59524291
+    },
+    "consph.mtx": {
+      "i": 83334,
+      "j": 83334,
+      "nnz": 6010480
+    },
+    "cop20k_A.mtx": {
+      "i": 121192,
+      "j": 121192,
+      "nnz": 2624331
+    },
+    "mac_econ_fwd500.mtx": {
+      "i": 206500,
+      "j": 206500,
+      "nnz": 1273389
+    },
+    "pdb1HYS.mtx": {
+      "i": 36417,
+      "j": 36417,
+      "nnz": 4344765
+    },
+    "rma10.mtx": {
+      "i": 46835,
+      "j": 46835,
+      "nnz": 2329092
+    },
+    "scircuit.mtx": {
+      "i": 170998,
+      "j": 170998,
+      "nnz": 958936
+    },
+    "shipsec1.mtx": {
+      "i": 140874,
+      "j": 140874,
+      "nnz": 3568176
+    },
+    "webbase-1M.mtx": {
+      "i": 1000005,
+      "j": 1000005,
+      "nnz": 3105536
+    },
+    "other": {
+      "k": 100,
+      "l": 150
+    }
+  },
+  "num_tests": 10,
+  "real": true
+}

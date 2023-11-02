@@ -1,3 +1,4 @@
+from z3 import *
 # Config class definition
 # This is a representation of schedule
 # fused = 0: unfused, 1: fused, 2: partially fused
@@ -13,12 +14,12 @@ class Config:
         self.original_idx_perm = None
         self.prod = None  # Config schedule for producer
         self.cons = None  # Config schedule for consumer
-
         self.time_complexity = {}
         self.memory_complexity = {}
         
         self.z3_time_complexity = None
         self.z3_memory_complexity = None
+        self.group = None
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"

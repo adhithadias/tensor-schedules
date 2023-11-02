@@ -2,13 +2,14 @@ from z3 import Int
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3, prune_using_memory_depth
+from src.file_storing import store_json, read_json, lists_to_tuples
 
 schedules = []
 # 2 A(l,m,n) = B(i,j,k) * C(i,l) * D(j,m) * E(k,n) - tensor contraction
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 5
+test = 4
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -181,6 +182,7 @@ if (test == 2):
 elif (test == 3 or test == 4):
     z3_constraints = [i >= 5000, i <= 15000, j >= 5000, j <= 15000, 
                     k >= 8, k <= 256, l >= 8, l <= 256, jpos >= 0,
+                    m >= 8, m <=256,
                     100 * i * jpos < i * j,   # i*jpos < 0.01 * i*j
                     i * j < 1000 * i * jpos]  # 0.001 * i*j < i*jpos
     # can pass additional constraints here like limit additional memory
@@ -202,6 +204,33 @@ print('/************************************************************************
 for schedule in z3_pruned_schedules:
     schedule.accept(printer)
     print('-----------', flush = True)
+    
+    
+store_json(accesses, z3_pruned_schedules, "test.json")
+read_configs = read_json("test.json")
+
+
+assert len(read_configs) == len(z3_pruned_schedules)
+# print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+
+# total_count = len(z3_pruned_schedules)
+# count_wrong = 0
+for i in range(len(z3_pruned_schedules)):
+    if type(z3_pruned_schedules[i].output_idx_order) == list: z3_pruned_schedules[i].output_idx_order = lists_to_tuples(z3_pruned_schedules[i].output_idx_order)
+    if type(z3_pruned_schedules[i].input_idx_order) == list: z3_pruned_schedules[i].input_idx_order = lists_to_tuples(z3_pruned_schedules[i].input_idx_order)
+    if type(z3_pruned_schedules[i].expr) == list: z3_pruned_schedules[i].expr = lists_to_tuples(z3_pruned_schedules[i].expr)
+    
+    assert z3_pruned_schedules[i] == read_configs[i]
+    # if(z3_pruned_schedules[i] != read_configs[i]):
+    #     count_wrong = count_wrong + 1
+    #     z3_pruned_schedules[i].accept(printer)
+    #     read_configs[i].accept(printer)
+        
+# print(f'total count: {total_count}')
+# print(f'wrong count: {count_wrong}')
+
+
+
 
 #     # all the schedules with fused:True must be given to SparseLNR
 #     # all the schedules with fused:False must be given to TACO
