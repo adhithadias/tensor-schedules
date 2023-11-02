@@ -257,6 +257,8 @@ python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optio
 # example
 python3 -m src.main_run_test_prev -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
+python3 -m src.main_run_test_prev -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
 python3 -m src.main_run_test_prev -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
 # Running tests

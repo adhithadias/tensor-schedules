@@ -10,10 +10,10 @@ def store_json(tensor_accesses:dict, config_list:list, filename:str):
     
     printer = PrintDictVisitor(tensor_accesses)
     
-    for i, group in enumerate(config_list):
-        for config in group:
-            config.group = i
-            config.accept(printer)
+    for i, config in enumerate(config_list):
+        # for config in group:
+        #     config.group = i
+        config.accept(printer)
 
         
     printer.output_to_file(filename)
@@ -51,7 +51,7 @@ def get_config(schedule: dict) -> Config:
     new_config.time_complexity = schedule["time_complexity"]
     new_config.memory_complexity = [tuple(lst) for lst in schedule["memory_complexity"]]
     new_config.original_idx_perm = schedule["original_idx_perm"]
-    new_config.group = schedule["group"]
+    # new_config.group = schedule["group"]
     
     if schedule["producer"]: new_config.prod = get_config(schedule["producer"])
     if schedule["consumer"]: new_config.cons = get_config(schedule["consumer"])

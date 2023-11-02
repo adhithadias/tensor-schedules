@@ -81,9 +81,9 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     no_z3_pruned_schedules = functools.reduce(lambda a, b: a+b, [len(schedules) for _, _, schedules in pruned_baskets])
     
     # locality_pruning_start_time = time()
-    print_message(f'Pruning schedules with same complexity using Z3')
-    pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
+    # print_message(f'Pruning schedules with same complexity using Z3')
+    # pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
+    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
     
     # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
     # print(pruned_schedules[0], file=sys.stdout)
