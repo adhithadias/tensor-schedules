@@ -55,3 +55,6 @@ class Config:
 
     def accept(self, visitor):
         visitor.visit(self)
+        
+    def acceptn(self, visitor, basket):
+        visitor.visit(self, basket)

@@ -2,6 +2,7 @@ from bitarray import bitarray
 from functools import reduce
 from z3 import Solver, And, Or, Not, sat, unsat
 from src.config import Config
+from src.util import Baskets
 
 
 def get_loop_depth(schedule : Config) -> int :
@@ -101,6 +102,21 @@ def prune_using_memory_depth(schedules : set, memory_depth_thresh : int) -> list
     print('pruned', n - len(results), 'schedules', flush = True)
     return results
 
+def prune_using_loop_depth(schedules : set, loop_depth_thresh : int) -> list:
+    n = len(schedules)
+    print('pruninng', n, 'schedules using loop depth', loop_depth_thresh, flush = True)
+    results = []
+    
+    for i, s1 in enumerate(schedules):
+        s1_memory_depth = get_loop_depth(s1)
+        
+        if (s1_memory_depth > loop_depth_thresh):
+            continue
+        
+        results.append(s1)
+        
+    print('pruned', n - len(results), 'schedules', flush = True)
+    return results
             
 def get_time_memory_z3_complexity(time_complexity : list, memory_complexity : list, z3_variables : dict) -> tuple:
     
@@ -112,6 +128,18 @@ def get_time_memory_z3_complexity(time_complexity : list, memory_complexity : li
     
     return (tc, mc)
 
+def get_simplified_complexity(time_complexity : list, memory_complexity : list, values : dict) -> tuple:
+    if (type(time_complexity) == dict):
+        tc0 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['r']], 0)
+        tc1 = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity['a']], 0)
+        tc = tc0 + tc1    
+    else:
+        tc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in time_complexity], 0)
+      
+    mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in memory_complexity if len(setc) > 0], 0)
+    
+    return (tc, mc)  
+
 def get_z3_complexity(config : Config, z3_variables : dict) -> tuple:
     if (config.z3_time_complexity is not None): return (config.z3_time_complexity, config.z3_memory_complexity)
     
@@ -120,6 +148,77 @@ def get_z3_complexity(config : Config, z3_variables : dict) -> tuple:
     config.z3_memory_complexity = m
     return (t,m)
     
+    
+def prune_baskets_using_z3(baskets: Baskets, z3_variables : dict, z3_constraints : list):
+    s = Solver()
+    
+    for constraint in z3_constraints:
+        s.add(constraint)
+        
+    n = len(baskets)
+        
+    results = []
+    pruned_array = bitarray(n)
+    pruned_array.setall(0)
+    
+    for i, s1 in enumerate(baskets):
+        if (pruned_array[i]):
+            continue
+        
+        # s1 = schedules[i]
+        s1_time_complexity = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in s1[0]], 0)
+        s1_memory_complexity = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in s1[1]], 0)
+        
+        for j, s2 in enumerate(baskets):
+            
+            # if ((i * n + j) % 1000 == 0): print(i, j, s1, s2, flush = True)
+            
+            if (pruned_array[j]):
+                continue
+    
+            # s2 = schedules[i]
+            s2_time_complexity = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx + 'pos'*setc[idx]] for idx in setc.keys()], 1) for setc in s2[0]], 0)
+            s2_memory_complexity = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [z3_variables[idx] for idx in setc], 1) for setc in s2[1]], 0)
+            
+            c1 = s1_time_complexity >= s2_time_complexity
+            c2 = s1_memory_complexity > s2_memory_complexity
+            c3 = s1_time_complexity > s2_time_complexity
+            c4 = s1_memory_complexity >= s2_memory_complexity
+            
+            s.push()
+            s.add(Or(And(c1, c2), And(c3, c4)))
+            condition = s.check() # this should be sat to remove s1
+            # if this is sat, it means that s1 is worse than s2, we can possibly remove s1
+            # there is a indices values set such that s2 is better than s1
+            s.pop()
+            
+            s.push()
+            s.add(Or(And(Not(c1), Not(c2)), And(Not(c3), Not(c4))))
+            # is there a set of values for indices such that s2 is worse that s1?
+            # if this returns unsat, it means that for all values of indices, s2 is better than s1
+            # then we can remove s1 for sure
+            inverse_condition = s.check() # this should be unsat to remove s1
+            s.pop()
+            
+            # if conditon is sat and inverse_condition is sat, we cannot remove s1, because there is a set of values for indices such that s1 is better than s2
+            # and another set of values for indices such that s2 is better than s1
+            
+            # if condition is unsat and inverse_condition is unsat, it means both of them are equal (equally good)
+            
+            # if condition is sat and inverse_condition is unsat, it means that s1 is worse than s2, we can remove s1
+            if (condition == sat and inverse_condition == unsat):
+                pruned_array[i] = True
+                break
+            
+            # if condition is unsat and inverse_condition is sat, it means that s2 is worse than s1, we can remove s2
+            if (condition == unsat and inverse_condition == sat):
+                pruned_array[j] = True
+                continue
+
+        if (not pruned_array[i]):
+            results.append(s1)
+            
+    return results
 
 def prune_using_z3(schedules : list, z3_variables : dict, z3_constraints : list) -> list:
     s = Solver()

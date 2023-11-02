@@ -160,15 +160,15 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     pruned_schedules = solver.prune_using_depth(pruned_schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', depth_start_time, True)
     
-    z3_start_time = time()
-    print_message(f'Pruning schedules using Z3')
-    pruned_schedules = solver.prune_schedules(pruned_schedules)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', z3_start_time, True)
+    # z3_start_time = time()
+    # print_message(f'Pruning schedules using Z3')
+    # pruned_schedules = solver.prune_schedules(pruned_schedules)
+    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', z3_start_time, True)
     
-    locality_pruning_start_time = time()
-    print_message(f'Pruning schedules with same complexity using Z3')
-    pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
+    # locality_pruning_start_time = time()
+    # print_message(f'Pruning schedules with same complexity using Z3')
+    # pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
+    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
     
     
     
@@ -176,7 +176,7 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     # print(pruned_schedules[0], file=sys.stdout)
     
     store_json(accesses, pruned_schedules, test_json_file)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file}', z3_start_time, True)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file}', depth_start_time, True)
     print_time_message(f'TEST {testnum} finished', test_start_time)
     
 def main(argv: Optional[Sequence[str]] = None):
@@ -185,7 +185,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-o', '--function_type', default='get_schedules_unfused', help='optional argument to change function for generating schedules (default: %(default)s)', choices=['get_schedules_unfused', 'get_schedules', 'sched_enum'])
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
     
-    TEST_JSON_FILE_LOCATION = "tensors_stored/"
+    TEST_JSON_FILE_LOCATION = "test_schedules/"
     CONFIG_FILE_LOCATION = "test_configs/"
     
     args = vars(parser.parse_args(argv))

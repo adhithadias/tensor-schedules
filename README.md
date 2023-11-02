@@ -237,13 +237,30 @@ Config files must be in JSON format with the following key-value pairs
 python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]
 
 # example
-python3 -m src.main_store_json -f test2_config.json
+# first generate the schedules and run the depth based first 2 pruning stages, the pruned schedules are saved to the file under "test_json_file" in the config.json
+python3 -m src.main_store_json -f test2_config.json -r
+python3 -m src.main_store_json -f test3_config.json -r
+python3 -m src.main_store_json -f test4_config.json -r
+python3 -m src.main_store_json -f test5_config.json -r
+
+# main_store_json_z3 reads the schedules in "test_json_file" in config.json file and prunes it using the z3 configs. Divides them into 
+python3 -m src.main_store_json_z3 -f test2_config.json -r
+python3 -m src.main_store_json_z3 -f test3_config.json -r
+python3 -m src.main_store_json_z3 -f test4_config.json -r
+python3 -m src.main_store_json_z3 -f test5_config.json -r
+
+python3 -m src.run_from_z3_prune -t 2
 
 # run tests and stores runtimes in csv test file(s)
 python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]
 
 # example
-python3 -m src.main_run_test -f test2_config.json -p ~/SparseLNR -m -x
+python3 -m src.main_run_test_prev -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
+python3 -m src.main_run_test_prev -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
+# Running tests
+pytest test/test_baskets.py
 
 * add -m to display messages about runtime of the python script and -x to display tensor information and taco output
 * add -t [path] to change path to testing tensors to be something other than downloads in the current directory

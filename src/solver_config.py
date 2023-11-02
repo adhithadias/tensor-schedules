@@ -1,5 +1,6 @@
 from src.config import Config
 from src.autosched import sched_enum
+from src.util import Baskets
 from random import randint
 from z3 import *
 from src.visitor import PrintConfigVisitor
@@ -191,6 +192,39 @@ class Solver_Config:
             elif add_expr == None: add_expr = mult_expr
             else: add_expr = add_expr + mult_expr
         return add_expr
+    
+    def compare_complexities(self, tc1: list, tc2: list, mc1: list, mc2: list):
+        time_complexity_1 = self.__get_z3_sum_of_mult([list(x.keys()) for x in tc1])
+        time_complexity_2 = self.__get_z3_sum_of_mult([list(x.keys()) for x in tc2])
+        
+        memory_complexity1 = self.__get_z3_sum_of_mult(mc1)
+        memory_complexity2 = self.__get_z3_sum_of_mult(mc2)
+        
+        c1 = time_complexity_1 >= time_complexity_2
+        c2 = memory_complexity1 > memory_complexity2
+        c3 = time_complexity_1 > time_complexity_2
+        c4 = memory_complexity1 >= memory_complexity2
+
+        self.solver.add(Or(And(c1, c2), And(c3, c4)))
+        condition = self.solver.check()
+        self.solver.pop()
+        self.solver.push()
+        
+        # self.solver.push()
+        self.solver.add(Or(And(Not(c1), Not(c2)), And(Not(c3), Not(c4))))
+        inverse_condition = self.solver.check()  # this should be unsat to remove s1
+        self.solver.pop()
+        self.solver.push()
+
+        # if condition is sat and inverse_condition is unsat, it means that s1 is worse than s2, we can remove s1
+        if condition == sat and inverse_condition == unsat:
+            return 1
+        # if condition is unsat and inverse_condition is sat, it means that s2 is worse than s1, we can remove s2
+        elif condition == unsat and inverse_condition == sat:
+            return -1
+        else:
+            return 0
+        
 
     def compare_schedules(self, config_1: Config, config_2: Config) -> int:
         # get complexities if not already gotten for given config
@@ -377,6 +411,7 @@ class Solver_Config:
         pruned_array = bitarray(len(schedule_list))
         pruned_array.setall(0)
         for i, s1 in enumerate(schedule_list):
+            # print(i)
             if pruned_array[i]:
                 continue
             for j, s2 in enumerate(schedule_list):  #TODO check if can change schedules to schedules[i:]
@@ -394,6 +429,32 @@ class Solver_Config:
             if not pruned_array[i]:
                 result_array.append(s1)
         return result_array
+    
+    def prune_baskets(self, baskets: Baskets):
+        result_baskets = []
+        pruned_array = bitarray(len(baskets))
+        pruned_array.setall(0)
+        for i, b1 in enumerate(baskets.get_baskets()):
+            print(i)
+            if pruned_array[i]:
+                continue
+            for j, b2, in enumerate(baskets.get_baskets()):
+                print(j)
+                if (i==j): continue
+                if (pruned_array[j]):
+                    continue
+                
+                compare = self.compare_complexities(b1[0], b2[0], b1[1], b2[1])
+                if compare == 1:
+                    pruned_array[i] = True
+                    break
+                elif compare == -1:
+                    pruned_array[j] = True
+                    continue
+            if not pruned_array[i]:
+                result_baskets.append(b1)
+                
+        return result_baskets
     
     def __is_leaf_node_schedule(self, config: Config) -> bool:
         """Checks if given config is a leaf node"""

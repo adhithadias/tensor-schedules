@@ -1,4 +1,5 @@
 from z3 import Int
+from argparse import ArgumentParser, RawTextHelpFormatter
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.visitor import PrintConfigVisitor
 from src.prune import prune_using_depth, prune_using_z3, prune_using_memory_depth
@@ -9,7 +10,12 @@ schedules = []
 # 3 A(i,l) = B(i,j) * C(i,k) * D(j,k) * E(j,l) - <SDDMM, SpMM>
 # 4 A(i,m) = B(i,j) * C(i,k) * D(j,k) * E(j,l) * F(l,m) - <SDDMM, SpMM, GEMM>
 # 5 A(i,l,m) = B(i,j,k) * C(j,l) * D(k,m) - <SpTTM, TTM>
-test = 4
+
+parser = ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]", formatter_class=RawTextHelpFormatter)
+parser.add_argument('-t', '--test', help='test number', required=False, default=2, type=int)
+
+args = vars(parser.parse_args())
+test = args["test"]
 
 if test == 0:
     # X(i,m) = A(i,j) * B(j,k) * C(k,l) * D(l,m)
@@ -122,26 +128,30 @@ elif test == 5:
         # 'E': [],
         # 'A': []
     }
-    sched_enum('A', ['B','C','D'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
+    tensor_expression = ('B','C','D')
+    cache = {}
+
+    schedules = get_schedules_unfused('A', accesses['A'], ('B','C','D'), accesses, ('i','j','k','l','m'), tensor_idx_order_constraints, 1, cache)
+    # sched_enum('A', ['B','C','D'], accesses['A'], accesses, tensor_idx_order_constraints, schedules)
 
 printer = PrintConfigVisitor(accesses)
 
 print('\n\n\n\n\n\n\n', flush = True)
 print('schedule generation completed\n', len(schedules), flush = True)
 
-for i, schedule in enumerate(schedules):
-    if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
-        schedule.accept(printer)
-        found1 = True
-        print('-----------')
-    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
-        schedule.accept(printer)
-        found2 = True
-        print('-----------')
-    elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
-        schedule.accept(printer)
-        found3 = True
-        print('-----------')
+# for i, schedule in enumerate(schedules):
+#     if ('i' in schedule.input_idx_order and 'j' in schedule.input_idx_order and ('k',) in schedule.input_idx_order and ('l','m') in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found1 = True
+#         print('-----------')
+#     elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and ('l',('j',),('m',)) in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found2 = True
+#         print('-----------')
+#     elif ('i' in schedule.input_idx_order and ('j','k') in schedule.input_idx_order and (('j','l'),('l','m')) in schedule.input_idx_order):
+#         schedule.accept(printer)
+#         found3 = True
+#         print('-----------')
 
 print('\n\n\n\n\n\n\n')
 
@@ -156,9 +166,12 @@ print('\n\n/********************************************************************
 print('/********************** PRINTING DEPTH PRUNED SCHEDULES ********************************/', flush = True)
 print('/**************************************************************************/', flush = True)
 
-for schedule in depth_pruned_schedules:
-    schedule.accept(printer)
-    print('-----------')
+# for schedule in depth_pruned_schedules:
+#     schedule.accept(printer)
+#     print('-----------')
+
+store_json(accesses, depth_pruned_schedules, f'test{test}_without_z3_pruning.json')
+depth_pruned_schedules = read_json(f'test{test}_without_z3_pruning.json')
 
 i = Int('i')
 j = Int('j')
@@ -205,8 +218,8 @@ for schedule in z3_pruned_schedules:
     print('-----------', flush = True)
     
     
-store_json(accesses, z3_pruned_schedules, "test.json")
-read_configs = read_json("test.json")
+store_json(accesses, z3_pruned_schedules, f'test{test}_with_z3_pruning.json')
+read_configs = read_json(f'test{test}_with_z3_pruning.json')
 
 
 assert len(read_configs) == len(z3_pruned_schedules)

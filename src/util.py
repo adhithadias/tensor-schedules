@@ -204,3 +204,59 @@ def get_time_complexity(idx_perm: set, input_tensors: list, tensor_idx_order_con
             if added: break
         if ((not added) and (idx not in result)): result[idx] = 0
     return result
+    
+def complexities_equal(tc1, tc2, mc1, mc2):
+    if (len(tc1) != len(tc2)) or len(mc1) != len(mc2): return False    
+    found_indices = set()
+    for i, comp1 in enumerate(tc1):
+        same_loop_structure_found = False
+        for j, comp2 in enumerate(tc2):
+            # print("comp1 comp2", comp1, comp2)
+            if (j not in found_indices) and (comp1 == comp2):
+                found_indices.add(j)
+                same_loop_structure_found = True
+                break
+        if not same_loop_structure_found: return False 
+    
+    equal_time = len(found_indices) == len(tc1)
+    equal_memory = mc1 == mc2
+    
+    return equal_time and equal_memory
+    
+class Baskets:
+    baskets = []
+    
+    def __init__(self, schedules):
+        if (len(schedules) == 0): return
+        
+        if (type(schedules[0]) == tuple):
+            self.baskets = schedules
+            return
+        
+        for schedule in schedules:
+            # print(schedule)
+            added = False
+            tc = schedule.time_complexity["r"] + schedule.time_complexity["a"]
+            mc = schedule.memory_complexity
+            # print("tc mc", tc, mc)
+            for btc, mbc, list in self.baskets:
+                if (complexities_equal(tc, btc, mc, mbc)):
+                    added = True
+                    list.append(schedule)
+                    break
+
+            if not added:  
+                self.baskets.append((tc, mc, [schedule]))
+
+        print(f"{len(self.baskets)} baskets created")
+        for i, (tc, mc, list) in enumerate(self.baskets):
+            print(f'basket {i}: {tc} {mc} {len(list)}')
+            
+    def __getitem__(self, index):
+        return self.baskets[index]
+        
+    def __len__(self):
+        return len(self.baskets)
+        
+    def get_baskets(self):
+        return self.baskets

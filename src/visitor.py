@@ -1,6 +1,7 @@
 from src.config import Config
 import json
 from copy import deepcopy
+from src.util import Baskets
 
 class Visitor:
     def __str__(self):
@@ -81,6 +82,50 @@ class PrintDictVisitor(Visitor):
         fileptr.write(json.dumps(self.dict, indent=2, separators=(',', ': '), sort_keys=False))
         fileptr.close()
 
+
+class WriteBasketsVisitor(Visitor):
+    def __init__(self, tensor_accesses: dict, baskets: Baskets):
+        # self.tensor_accesses = tensor_accesses
+        # temp_constraints = deepcopy(idx_order_constraints)
+        
+        # for key, value in temp_constraints.items():
+        #     temp_constraints[key] = [list(tup) for tup in value]
+        
+        self.dict = {
+            "baskets": [{"tc": tc, "mc": [list(tup) for tup in mc], "schedules": []} for tc, mc, _ in baskets],
+            "accesses": tensor_accesses,
+            # "idx_order_constraints": temp_constraints
+        }
+
+    def get_dict(self, config:Config) -> dict:
+        if config.prod == None: prod = None
+        else: prod = self.get_dict(config.prod)
+        if config.cons == None: cons = None
+        else: cons = self.get_dict(config.cons)
+        
+        new_config_dict = {
+            "output_tensor": config.output,
+            "input_tensors": config.expr,
+            "prod_on_left" : config.prod_on_left,
+            "fused": config.fused,
+            "input_idx_order": config.input_idx_order,
+            "output_idx_order": config.output_idx_order,
+            "producer": prod,
+            "consumer": cons,
+            "time_complexity": config.time_complexity,
+            "memory_complexity": [list(tup) for tup in config.memory_complexity],
+            "original_idx_perm": config.original_idx_perm
+        }
+        return new_config_dict
+        
+    def visit(self, config: Config, basket: int):
+        new_config_dict = self.get_dict(config)
+        self.dict["baskets"][basket]["schedules"].append(new_config_dict)
+    
+    def output_to_file(self, filename:str):
+        fileptr = open(filename, "w")
+        fileptr.write(json.dumps(self.dict, indent=2, separators=(',', ': '), sort_keys=False))
+        fileptr.close()
 
 # class GetComplexityVisitor(Visitor):
 #     def __init__(self, tensor_accesses: dict) -> None:

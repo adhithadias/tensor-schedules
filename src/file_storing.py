@@ -1,7 +1,8 @@
 from src.config import Config
-from src.visitor import PrintDictVisitor, PrintConfigVisitor
+from src.visitor import PrintDictVisitor, WriteBasketsVisitor
 import sys
 import json
+from src.util import Baskets
 
 def store_json(tensor_accesses:dict, config_list:list, filename:str):
     assert len(config_list) > 0
@@ -11,6 +12,19 @@ def store_json(tensor_accesses:dict, config_list:list, filename:str):
     
     for config in config_list:
         config.accept(printer)
+        
+    printer.output_to_file(filename)
+    
+def store_baskets_to_json(tensor_accesses:dict, baskets:Baskets, filename:str):
+    assert len(baskets) > 0
+    assert type(baskets) == Baskets
+    assert type(baskets[0][2][0]) == Config
+    
+    printer = WriteBasketsVisitor(tensor_accesses, baskets)
+    
+    for i, basket in enumerate(baskets.get_baskets()):
+        for config in basket[2]:
+            config.acceptn(printer, i)
         
     printer.output_to_file(filename)
     
@@ -63,3 +77,31 @@ def read_json(filename:str) -> list:
     #     config.accept(printer)
     
     return config_list
+
+
+def read_baskets_from_json(filename:str) -> list:
+    try:
+        fileptr = open(filename, "r")
+    except OSError:
+        print("Invalid JSON file for reading", file=sys.stderr)
+        return []
+
+    new_dict = json.load(fileptr)
+    fileptr.close()
+    
+    # for key, value in new_dict["idx_order_constraints"].items():
+    #     new_dict["idx_order_constraints"][key] = [tuple(lst) for lst in value]
+    
+    baskets = []
+    
+    for i, basket in enumerate(new_dict["baskets"]):
+        config_list = []
+        for schedule in basket["schedules"]:
+            config_list.append(get_config(schedule))
+        baskets.append((basket["tc"], basket["mc"], config_list))
+    
+    # printer = PrintConfigVisitor(new_dict["accesses"])    
+    # for config in config_list:
+    #     config.accept(printer)
+    
+    return Baskets(baskets)

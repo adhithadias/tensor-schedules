@@ -1,0 +1,38 @@
+{
+  "accesses": {
+    "A": ["l", "m", "n"],
+    "B": ["i", "j", "k"],
+    "C": ["i", "l"],
+    "D": ["j", "m"],
+    "E": ["k", "n"]
+  },
+  "tensor_idx_order_constraints": {
+    "B": [["j", "i"], ["k", "j"], ["k", "i"]]
+  },
+  "output_tensor": "A",
+  "test_json_file": "test2_without_z3_pruning.json",
+  "test_json_file_after_z3": "test2_with_z3_pruning.json",
+  "test_best_schedule_file": "test2_best_schedule.json",
+  "test_name": "loopcontractfuse_real",
+  "z3_constraints": [
+    "i >= 5000", "i <= 15000",
+    "j >= 5000", "j <= 15000",
+    "k >= 5000", "k <= 15000",
+    "l >= 8", "l <= 256",
+    "m >= 8", "m <= 256",
+    "n >= 8", "n <= 256",
+    "jpos >= 0", "kpos >= 0",
+    "100 * i * jpos * kpos < i * j * k",
+    "i * j * k < 1000 * i * jpos * kpos"
+  ],
+  "output_csv_file": "test2.csv",
+  "eval_files": ["3_2048_1022_007.tns", "nell-1.tns", "nell-2.tns", "flickr-3d.tns", "vast-2015-mc1-3d.tns"],
+  "num_tests": 3,
+  "actual_values": {
+    "3_2048_1022_007.tns": {"i": 165000, "j": 11000, "k": 2, "l": 64, "m": 64, "n": 64, "jpos": 12, "kpos": 13},
+    "nell-1.tns": {"i": 10000, "j": 10000, "k": 10000, "l": 64, "m": 64, "n": 64, "jpos": 12, "kpos": 13},
+    "nell-2.tns": {"i": 10000, "j": 10000, "k": 10000, "l": 64, "m": 64, "n": 64, "jpos": 12, "kpos": 13},
+    "flickr-3d.tns": {"i": 10000, "j": 10000, "k": 10000, "l": 64, "m": 64, "n": 64, "jpos": 12, "kpos": 13},
+    "vast-2015-mc1-3d.tns": {"i": 10000, "j": 10000, "k": 10000, "l": 64, "m": 64, "n": 64, "jpos": 12, "kpos": 13} 
+  }
+}
