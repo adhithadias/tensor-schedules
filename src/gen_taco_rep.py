@@ -20,9 +20,13 @@ class Gen_Test_Code:
         self.extra_paths = []
         self.extra_reorders = []
         self.no_fusion = False
+        self.partial_fusion = False
         
-        if config.prod == None or config.fused == 0:
+        if config.prod == None:
             self.no_fusion = True
+            
+        if config.fused == 0:
+            self.partial_fusion = True
         
         # retrieves all paths for fusion
         self.get_paths([], config)
@@ -34,7 +38,9 @@ class Gen_Test_Code:
         for path in self.paths:
             # get all indices
             given_config = self.retrieve_path(path, config)
-            if given_config.fused == 0: continue
+            if given_config.fused == 0: 
+                self.reorders.append(())              
+                continue
             # self.indices = set()
             # self.get_indices(given_config.input_idx_order)
             # reordering = self.get_reordering(given_config.input_idx_order)
@@ -53,6 +59,11 @@ class Gen_Test_Code:
                 if(str(reordering) != str(old_ordering)):
                     new_reorderings = []
                     i = 0
+                    
+                    parent_config = self.retrieve_path(extra_path[1:], config)
+                    if parent_config.fused == 0:
+                        self.extra_reorders.append(reordering)
+                        continue
                     while i < len(old_ordering):
                         if reordering[i] == old_ordering[i]: i += 1
                         else:
@@ -67,7 +78,7 @@ class Gen_Test_Code:
                     self.reorders.append(new_reorderings)
                 else: self.reorders.append([])                    
         
-        # get paths for leaf node schedules
+        # get reorderings for leaf node schedules
         for extra_path in self.extra_paths:
             given_config = self.retrieve_path(extra_path, config)
             reordering = given_config.original_idx_perm
@@ -79,6 +90,10 @@ class Gen_Test_Code:
                 for end_point in range(len(extra_path)):  
                     index = [str(el) for el in self.paths].index(str(extra_path[:-(end_point + 1)]))
                     old_ordering = [i for i in self.reorders[index] if i in reordering]
+                    
+                    # if parent_config.fused == 0:
+                    #     old_ordering = parent_config.input_idx_order
+                    
                     if len(old_ordering) > 0: break
                 # print()
                 # print(reordering)
@@ -88,9 +103,14 @@ class Gen_Test_Code:
                 # print(extra_path)
                 # print()
                 
-                if(str(reordering) != str(old_ordering)):
+                if str(reordering) != str(old_ordering):
                     new_reorderings = []
                     i = 0
+                    parent_config = self.retrieve_path(extra_path[1:], config)
+                    if parent_config.fused == 0:
+                        self.extra_reorders.append(reordering)
+                        continue
+                    
                     while i < len(old_ordering):
                         if reordering[i] == old_ordering[i]: i += 1
                         else:
@@ -199,10 +219,10 @@ class Gen_Test_Code:
         else:
             self.paths.append(path)
             
-            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple:
+            if (len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple) or config.fused == 0:
                 self.get_paths(path + [0], config.prod)
-            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple:
-                self.get_paths(path + [1], config.cons, False)
+            if (len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple) or config.fused == 0:
+                self.get_paths(path + [1], config.cons)
             
             # if config.prod_on_left:
             #     self.get_paths(path + [0], config.prod)
@@ -252,6 +272,7 @@ class Gen_Test_Code:
 
         
     def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int):
+        if prod_on_left == None: prod_on_left = True
         self.print_data("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
@@ -525,7 +546,7 @@ if __name__ == "__main__":
     
     test_sched = Config('X', ('A', 'B', 'C', 'D'), ('i', 'j', 'k', 'l', 'm'), ('i', 'j', 'l', 'k', 'm'), 2)
     test_sched.original_idx_perm = ('i', 'j', 'l', 'k', 'm')
-    # Write_Test_Code(test_sched, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
+    Write_Test_Code(test_sched, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
     
     # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
     # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
