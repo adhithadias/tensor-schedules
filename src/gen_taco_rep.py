@@ -60,7 +60,7 @@ class Gen_Test_Code:
                     new_reorderings = []
                     i = 0
                     
-                    parent_config = self.retrieve_path(extra_path[1:], config)
+                    parent_config = self.retrieve_path(path[1:], config)
                     if parent_config.fused == 0:
                         self.extra_reorders.append(reordering)
                         continue
@@ -546,14 +546,14 @@ if __name__ == "__main__":
     
     test_sched = Config('X', ('A', 'B', 'C', 'D'), ('i', 'j', 'k', 'l', 'm'), ('i', 'j', 'l', 'k', 'm'), 2)
     test_sched.original_idx_perm = ('i', 'j', 'l', 'k', 'm')
-    Write_Test_Code(test_sched, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
+    # Write_Test_Code(test_sched, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
     
     # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
     # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
     # exit()
     for schedule in schedules:
         # if count_fusions(schedule) == 2 and schedule.fused:
-            if type(schedule.input_idx_order[-1]) != tuple:
+            if type(schedule.input_idx_order[-1]) == tuple:
                 Write_Test_Code(schedule, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
                 break
               
