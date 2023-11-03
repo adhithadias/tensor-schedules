@@ -19,6 +19,11 @@ from src.visitor import PrintConfigVisitor
 from src.testing import tests
 
 ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
+CONFIG_JSON_FILE_FOLDER = 'test_configs/'
+TEST_SCHEDULES = "test_schedules/"
+CSV_RESULTS = "csv_results/"
+TEMP_RESULT_FOLDER = "temp/"
+
 # incomplete argument
 run_arg = "workspaces._"
 
@@ -96,8 +101,6 @@ def main(argv: Optional[Sequence[str]] = None):
     global extra_messages
     extra_messages = args['extra_messages']
     
-    CONFIG_JSON_FILE_FOLDER = 'test_configs/'
-    TEST_SCHEDULES = "test_schedules/"
     config_files = [CONFIG_JSON_FILE_FOLDER + config_file for config_file in config_files]
     
     print_extra_message(test_file)
@@ -199,7 +202,7 @@ def main(argv: Optional[Sequence[str]] = None):
                 min_config = None
             
                 
-                with open("temp/" + out_file, 'w', newline='') as csvfile:
+                with open(TEMP_RESULT_FOLDER + out_file, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter=',')
                     list_times = ["Time " + str(num + 1) for num in range(num_tests)]
                     # print(len(list_times))
