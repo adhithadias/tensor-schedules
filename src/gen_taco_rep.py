@@ -22,6 +22,7 @@ class Gen_Test_Code:
         
         # retrieves all paths for fusion
         self.get_paths([], config)
+        
         self.get_extra_paths()
         # print(self.paths, file=sys.stdout)
         
@@ -174,7 +175,7 @@ class Gen_Test_Code:
                 next_config = config.cons
             return self.retrieve_path(ordering[1:], next_config)
     
-    def get_paths(self, path:tuple, config:Config) -> None:
+    def get_paths(self, path:tuple, config:Config, is_root=True) -> None:
         """This retrieves all possible paths of fusion
 
         Args:
@@ -182,14 +183,15 @@ class Gen_Test_Code:
             config (Config): Config class
         """
         if type(config.input_idx_order[-1]) != tuple:
+            if is_root == True: self.paths.append(path)
             return
         else:
             self.paths.append(path)
             
             if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple:
-                self.get_paths(path + [0], config.prod)
+                self.get_paths(path + [0], config.prod, False)
             if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple:
-                self.get_paths(path + [1], config.cons)
+                self.get_paths(path + [1], config.cons, False)
             
             # if config.prod_on_left:
             #     self.get_paths(path + [0], config.prod)
