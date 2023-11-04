@@ -62,7 +62,7 @@ class Gen_Test_Code:
                     
                     parent_config = self.retrieve_path(path[1:], config)
                     if parent_config.fused == 0:
-                        self.extra_reorders.append(reordering)
+                        self.reorders.append(reordering)
                         continue
                     while i < len(old_ordering):
                         if reordering[i] == old_ordering[i]: i += 1
