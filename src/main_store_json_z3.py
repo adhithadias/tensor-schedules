@@ -67,6 +67,8 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     print_message(f'Reading config {read_json_file}')
     pruned_schedules = read_json(read_json_file)
     
+    solver.set_cache(pruned_schedules)
+    
     test_start_time = time()
     print_message(f'Creating baskets for {len(pruned_schedules)} schedules')
     baskets = Baskets(pruned_schedules)
@@ -87,6 +89,8 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     
     # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
     # print(pruned_schedules[0], file=sys.stdout)
+    
+    # print(pruned_baskets.get_baskets())
     
     store_baskets_to_json(accesses, pruned_baskets, write_json_file)
     print_time_message(f'{no_z3_pruned_schedules} schedule(s) stored to {write_json_file}', z3_start_time, True)

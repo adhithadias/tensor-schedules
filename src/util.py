@@ -223,7 +223,55 @@ def complexities_equal(tc1, tc2, mc1, mc2):
     equal_memory = mc1 == mc2
     
     return equal_time and equal_memory
+
+
+# def __is_leaf_node_schedule(config) -> bool:
+#     """Checks if given config is a leaf node"""
+#     if config.prod == None or config.cons == None: return True
+#     else: return False
     
+# def __get_leaf_configs(config, index_order: list, depth=0) -> list:
+#     """Gets leaf configs and returns list of tuples in the form:\n
+#     (leaf config class, index order)"""
+#     assert isinstance(index_order, list)
+#     # assert isinstance(config, Config)
+#     total_leaves = []
+    
+#     index_order = copy.copy(index_order)
+#     if config.fused != 0:
+#         index_order.extend([index for index in config.input_idx_order if type(index) == str])
+#     else:
+#         total_leaves.extend((config, config.input_idx_order))
+    
+#     # return if leaf node reached
+#     if __is_leaf_node_schedule(config): 
+#         return [(config, index_order)]
+    
+#     # recursively traverse tree to get leaves
+#     prod_leaves = __get_leaf_configs(config.prod, index_order, depth + 1)
+#     cons_leaves = __get_leaf_configs(config.cons, index_order, depth + 1)
+    
+#     total_leaves.extend(prod_leaves)
+#     total_leaves.extend(cons_leaves)
+    
+#     return total_leaves
+
+# def get_cache_calc(sched, tc, mc): 
+    
+#     __get_leaf_configs
+  
+  
+def prune_with_cache(schedules:list, values):
+    
+    costs = []
+    for schedule in schedules:
+        cache_cost = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in schedule.cache_expr if len(setc) > 0], 0)
+        costs.append(cache_cost)
+    
+    min_cost = min(costs)
+    is_unpruned = [schedule for i,schedule in enumerate(schedules) if costs[i] == min_cost]
+    return is_unpruned
+
 class Baskets:
     baskets = []
     
@@ -236,6 +284,7 @@ class Baskets:
         
         for schedule in schedules:
             # print(schedule)
+            
             added = False
             tc = schedule.time_complexity["r"] + schedule.time_complexity["a"]
             mc = schedule.memory_complexity
