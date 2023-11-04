@@ -107,9 +107,27 @@ class Solver_Config:
         # saves solver backtracking point
         self.solver.push()
         
+    def __get_indices(self, config:Config):
+        """Retrieves the indices accessed by a given expression
+
+        Args:
+            config (Config): schedule given
+        """
+        
+        if config.original_idx_perm == None:
+            return self.__get_indices(config.prod) + self.__get_indices(config.cons)
+        return config.original_idx_perm
+    
     def __add_extra_accesses(self, config:Config):  
         if config.prod == None:
-            self.extra_accesses[config.output] = config.input_idx_order
+            return
+        if config.prod != None and config.prod.prod == None:
+            shared_indices = list(set(self.__get_indices(config.prod)).intersection(set(self.__get_indices(config.cons))))
+            root_indices = self.__get_indices(config)
+            shared_index_locations = [root_indices.index(shared_index) for shared_index in shared_indices]
+            index_order = [index for _, index in sorted(zip(shared_index_locations, shared_indices))]
+            
+            self.extra_accesses[config.prod.output] = index_order
         else:
             self.__add_accesses(config.prod)
             self.__add_accesses(config.cons)
@@ -435,11 +453,11 @@ class Solver_Config:
         pruned_array = bitarray(len(baskets))
         pruned_array.setall(0)
         for i, b1 in enumerate(baskets.get_baskets()):
-            print(i)
+            # print(i)
             if pruned_array[i]:
                 continue
             for j, b2, in enumerate(baskets.get_baskets()):
-                print(j)
+                # print(j)
                 if (i==j): continue
                 if (pruned_array[j]):
                     continue
@@ -461,31 +479,40 @@ class Solver_Config:
         if config.prod == None or config.cons == None: return True
         else: return False
     
-    def __get_leaf_configs(self, config: Config, index_order: list, depth=0) -> list:
-        """Gets leaf configs and returns list of tuples in the form:\n
-        (leaf config class, index order, z3)"""
+    def get_leaf_configs(self, config: Config, index_order: list, depth=0) -> None:
+        """Gets leaf configs and sets the cache for leaf tensor expressions"""
         assert isinstance(index_order, list)
         # assert isinstance(config, Config)
-        total_leaves = []
+        # total_leaves = []
+        additional_indices = [index for index in config.input_idx_order if type(index) == str]
         
         index_order = copy.copy(index_order)
         if config.fused != 0:
             index_order.extend([index for index in config.input_idx_order if type(index) == str])
-        else:
-            total_leaves.extend((config, config.input_idx_order, self.__compute_z3_same_loop_nest(config, index_order)))
+        # else:
+        #     config.cache_expr = self.__get_cache_subexpression
+        #     total_leaves.extend((config, config.input_idx_order, self.__get_cache_subexpression(config, index_order)))
         
         # return if leaf node reached
         if self.__is_leaf_node_schedule(config): 
-            return [(config, index_order, self.__compute_z3_same_loop_nest(config, index_order))]
+            config.cache_expr = self.__get_cache_subexpression(config, index_order)
+            return [additional_indices + cache_expr for cache_expr in config.cache_expr]
+            # return additional_indices + config.cache_expr
+            # return [(config, index_order, self.__get_cache_subexpression(config, index_order))]
         
         # recursively traverse tree to get leaves
-        prod_leaves = self.__get_leaf_configs(config.prod, index_order, depth + 1)
-        cons_leaves = self.__get_leaf_configs(config.cons, index_order, depth + 1)
+        producer_cache = self.get_leaf_configs(config.prod, index_order, depth + 1)
+        consumer_cache = self.get_leaf_configs(config.cons, index_order, depth + 1)
         
-        total_leaves.extend(prod_leaves)
-        total_leaves.extend(cons_leaves)
+        # total_leaves.extend(prod_leaves)
+        # total_leaves.extend(cons_leaves)
         
-        return total_leaves
+        # return total_leaves
+        config.cache_expr = [additional_indices + producer_cache_expr for producer_cache_expr in producer_cache]
+        config.cache_expr.extend([additional_indices + consumer_cache_expr for consumer_cache_expr in consumer_cache])
+        return config.cache_expr
+    
+    # TODO temporary
     
     def __get_z3_sum_of_mult(self, expressions=list):
         add_expr = 0
@@ -504,7 +531,33 @@ class Solver_Config:
             add_expr += mult_expr
         
         return add_expr
+    
+    def __get_cache_subexpression(self, config:Config, loop_order:list):
+        # subexpr = copy.copy(loop_order)
+        
+        indices = []
+        # self.__add_extra_accesses(config)
+        for tensor in config.expr:
+            if tensor in self.accesses and loop_order[-1] in self.accesses[tensor]:
+                idx = self.accesses[tensor].index(loop_order[-1])
+                # if len(self.accesses[tensor]) <= idx:
+                #     continue
+                if self.accesses[tensor][-1] == loop_order[-1]: continue
                 
+                cost = list(self.accesses[tensor][idx + 1:])
+                if len(cost) > 0: indices.append(cost)
+            
+            elif tensor in self.extra_accesses and loop_order[-1] in self.extra_accesses[tensor]:
+                idx = self.extra_accesses[tensor].index(loop_order[-1])
+                cost = list(self.extra_accesses[tensor][idx + 1:])
+                if len(cost) > 0: indices.append(cost)
+        # self.__remove_extra_accesses()
+        
+        # subexpr = [subexpr + list(index) for index in indices]
+        
+        return indices
+        
+    
     def __compute_z3_same_loop_nest(self, config: Config, loop_order: list):
         """Given a config and loop order and returns z3 expression representing cache value"""
         # compute cost based on number of times accessing given expression
@@ -754,6 +807,13 @@ class Solver_Config:
             grouped_array[i] = 1
         
         return config_groups
+
+    def set_cache(self, schedule_list):
+        for schedule in schedule_list:
+            self.__add_extra_accesses(schedule)
+            schedule.cache_expr = self.get_leaf_configs(schedule, [])
+            self.__remove_extra_accesses()
+
 
 if __name__ == "__main__":
     schedules = []
