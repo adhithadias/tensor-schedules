@@ -479,33 +479,18 @@ class Solver_Config:
         if config.prod == None or config.cons == None: return True
         else: return False
     
-    def get_leaf_configs(self, config: Config, index_order: list, depth=0) -> None:
+    def get_leaf_configs(self, config: Config) -> list:
         """Gets leaf configs and sets the cache for leaf tensor expressions"""
-        assert isinstance(index_order, list)
-        # assert isinstance(config, Config)
-        # total_leaves = []
         additional_indices = [index for index in config.input_idx_order if type(index) == str]
-        
-        index_order = copy.copy(index_order)
-        if config.fused != 0:
-            index_order.extend([index for index in config.input_idx_order if type(index) == str])
-        # else:
-        #     config.cache_expr = self.__get_cache_subexpression
-        #     total_leaves.extend((config, config.input_idx_order, self.__get_cache_subexpression(config, index_order)))
         
         # return if leaf node reached
         if self.__is_leaf_node_schedule(config): 
-            config.cache_expr = self.__get_cache_subexpression(config, index_order)
+            config.cache_expr = self.__get_cache_subexpression(config, additional_indices[-1])
             return [additional_indices + cache_expr for cache_expr in config.cache_expr]
-            # return additional_indices + config.cache_expr
-            # return [(config, index_order, self.__get_cache_subexpression(config, index_order))]
         
         # recursively traverse tree to get leaves
-        producer_cache = self.get_leaf_configs(config.prod, index_order, depth + 1)
-        consumer_cache = self.get_leaf_configs(config.cons, index_order, depth + 1)
-        
-        # total_leaves.extend(prod_leaves)
-        # total_leaves.extend(cons_leaves)
+        producer_cache = self.get_leaf_configs(config.prod)
+        consumer_cache = self.get_leaf_configs(config.cons)
         
         # return total_leaves
         config.cache_expr = [additional_indices + producer_cache_expr for producer_cache_expr in producer_cache]
@@ -532,28 +517,20 @@ class Solver_Config:
         
         return add_expr
     
-    def __get_cache_subexpression(self, config:Config, loop_order:list):
-        # subexpr = copy.copy(loop_order)
-        
+    def __get_cache_subexpression(self, config:Config, last_index):
         indices = []
-        # self.__add_extra_accesses(config)
         for tensor in config.expr:
-            if tensor in self.accesses and loop_order[-1] in self.accesses[tensor]:
-                idx = self.accesses[tensor].index(loop_order[-1])
-                # if len(self.accesses[tensor]) <= idx:
-                #     continue
-                if self.accesses[tensor][-1] == loop_order[-1]: continue
+            if tensor in self.accesses and last_index in self.accesses[tensor]:
+                idx = self.accesses[tensor].index(last_index)
+                if self.accesses[tensor][-1] == last_index: continue
                 
                 cost = list(self.accesses[tensor][idx + 1:])
                 if len(cost) > 0: indices.append(cost)
             
-            elif tensor in self.extra_accesses and loop_order[-1] in self.extra_accesses[tensor]:
-                idx = self.extra_accesses[tensor].index(loop_order[-1])
+            elif tensor in self.extra_accesses and last_index in self.extra_accesses[tensor]:
+                idx = self.extra_accesses[tensor].index(last_index)
                 cost = list(self.extra_accesses[tensor][idx + 1:])
                 if len(cost) > 0: indices.append(cost)
-        # self.__remove_extra_accesses()
-        
-        # subexpr = [subexpr + list(index) for index in indices]
         
         return indices
         
@@ -811,7 +788,7 @@ class Solver_Config:
     def set_cache(self, schedule_list):
         for schedule in schedule_list:
             self.__add_extra_accesses(schedule)
-            schedule.cache_expr = self.get_leaf_configs(schedule, [])
+            schedule.cache_expr = self.get_leaf_configs(schedule)
             self.__remove_extra_accesses()
 
 
