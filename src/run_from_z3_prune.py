@@ -1,7 +1,8 @@
 from argparse import ArgumentParser, RawTextHelpFormatter
 from z3 import Int
 from src.visitor import PrintConfigVisitor
-from src.util import Baskets, get_simplified_complexity
+from src.basket import Baskets
+from src.util import get_simplified_complexity
 from src.config import Config
 from src.prune import prune_using_z3, prune_using_loop_depth, prune_baskets_using_z3
 from src.file_storing import store_json, store_baskets_to_json, read_json, read_baskets_from_json, lists_to_tuples

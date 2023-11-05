@@ -1,24 +1,18 @@
-from src.file_storing import store_json, store_baskets_to_json, read_json
-from src.testing import tests
-from src.autosched import sched_enum, get_schedules_unfused, get_schedules
-from src.config import Config
-from src.solver_config import Solver_Config
-from src.visitor import PrintConfigVisitor
-from src.util import *
-from src.print_help import Main_Store_JSON, Print_Help_Visitor
-# from src.gen_taco_rep import Write_Test_Code
-import itertools
 import functools
 import sys
 from copy import deepcopy
-import re
 from time import time
 import argparse
 from typing import Optional, Sequence
 import json
 from math import floor
 
-# enumerate_all_order = True
+from src.file_storing import store_json, store_baskets_to_json, read_json
+from src.config import Config
+from src.solver_config import Solver_Config
+from src.visitor import PrintConfigVisitor
+from src.basket import Baskets
+from src.cache import add_cache_locality
 
 
 def print_message(text):
@@ -87,6 +81,8 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     
     # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
     # print(pruned_schedules[0], file=sys.stdout)
+    
+    add_cache_locality(accesses, pruned_baskets)
     
     store_baskets_to_json(accesses, pruned_baskets, write_json_file)
     print_time_message(f'{no_z3_pruned_schedules} schedule(s) stored to {write_json_file}', z3_start_time, True)

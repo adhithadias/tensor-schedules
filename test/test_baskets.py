@@ -1,6 +1,6 @@
 import pytest
 from src.file_storing import read_json
-from src.util import Baskets
+from src.basket import Baskets
 
 def test_baskets():
     json_file = "test_schedules/test2_without_z3_pruning.json"

@@ -2,7 +2,7 @@ from src.config import Config
 from src.visitor import PrintDictVisitor, WriteBasketsVisitor
 import sys
 import json
-from src.util import Baskets
+from src.basket import Baskets
 
 def store_json(tensor_accesses:dict, config_list:list, filename:str):
     assert len(config_list) > 0
@@ -108,4 +108,4 @@ def read_baskets_from_json(filename:str) -> list:
     # for config in config_list:
     #     config.accept(printer)
     
-    return Baskets(baskets)
+    return Baskets(baskets), new_dict["accesses"]

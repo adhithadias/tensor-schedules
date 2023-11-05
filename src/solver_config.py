@@ -1,6 +1,6 @@
 from src.config import Config
 from src.autosched import sched_enum
-from src.util import Baskets
+from src.basket import Baskets
 from random import randint
 from z3 import *
 from src.visitor import PrintConfigVisitor

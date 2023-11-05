@@ -1,7 +1,7 @@
 from src.config import Config
 import json
 from copy import deepcopy
-from src.util import Baskets
+from src.basket import Baskets
 
 class Visitor:
     def __str__(self):
@@ -70,6 +70,7 @@ class PrintDictVisitor(Visitor):
             "time_complexity": config.time_complexity,
             "memory_complexity": [list(tup) for tup in config.memory_complexity],
             "original_idx_perm": config.original_idx_perm,
+            "temporary": config.temporary
             # "group": config.group
         }
         return new_config_dict

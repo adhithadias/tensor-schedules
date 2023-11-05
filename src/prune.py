@@ -2,7 +2,7 @@ from bitarray import bitarray
 from functools import reduce
 from z3 import Solver, And, Or, Not, sat, unsat
 from src.config import Config
-from src.util import Baskets
+from src.basket import Baskets
 from copy import copy
 
 
