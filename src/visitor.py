@@ -29,7 +29,7 @@ class PrintConfigVisitor(Visitor):
         print('\t'*self.tabs, '|', 
             output, '=',
             tensor_contraction, 
-            ', fsd: ' + str(config.fused) + ", pol: " + str(config.prod_on_left),
+            ', fsd: ' + str(config.fused) + ", pol: " + str(config.prod_on_left) + ", oip: " + str(config.original_idx_perm) + ", temp: " + str(config.temporary),
             '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity, flush = True)
         self.tabs += 1
         if (config.prod != None):
@@ -116,7 +116,8 @@ class WriteBasketsVisitor(Visitor):
             "consumer": cons,
             "time_complexity": config.time_complexity,
             "memory_complexity": [list(tup) for tup in config.memory_complexity],
-            "original_idx_perm": config.original_idx_perm
+            "original_idx_perm": config.original_idx_perm,
+            "temporary": config.temporary
         }
         return new_config_dict
         

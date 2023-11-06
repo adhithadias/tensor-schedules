@@ -33,7 +33,7 @@ class Config:
             if (i != len(self.expr)-1):
                 tensor_contraction += "*"
 
-        return output + "=" + tensor_contraction + ', fused: ' + str(self.fused) + ", pol: " + str(self.prod_on_left) + ' | loop_order:' + str(self.input_idx_order) + ' | time: ' + str(self.time_complexity) + ' | memory: ' + str(self.memory_complexity) + '|'
+        return output + "=" + tensor_contraction + ', fused: ' + str(self.fused) + ", pol: " + str(self.prod_on_left) + ", oip: " + str(self.original_idx_perm) + ", temp: " + str(self.temporary) + ' | loop_order:' + str(self.input_idx_order) + ' | time: ' + str(self.time_complexity) + ' | memory: ' + str(self.memory_complexity) + '|'
 
     def __eq__(self, other):
         if (other == None):
