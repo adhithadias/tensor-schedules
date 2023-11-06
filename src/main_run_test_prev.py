@@ -147,7 +147,7 @@ def main(argv: Optional[Sequence[str]] = None):
         # make sure file types are correct
         if not is_valid_file_type(out_file, "csv"): continue
         if not is_valid_file_type(json_file, "json"): continue
-        baskets = read_baskets_from_json(json_file)
+        baskets, _ = read_baskets_from_json(json_file)
         
         print_message(f'{len(baskets)} baskets found for the given evaluation')
         
@@ -178,7 +178,7 @@ def main(argv: Optional[Sequence[str]] = None):
         
             for tensor in tensor_list:
                 final_constraints = actual_values[tensor]
-                best_schedules = baskets.filter_with_final_constraints(final_constraints, ALLOWED_ELEMENT_SIZE)[2]
+                _, _, best_schedules = baskets.filter_with_final_constraints(final_constraints, ALLOWED_ELEMENT_SIZE)
                 config_list = best_schedules[2]
                 print(best_schedules)
                 

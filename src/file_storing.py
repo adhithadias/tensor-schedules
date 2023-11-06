@@ -52,10 +52,17 @@ def get_config(schedule: dict) -> Config:
     new_config.memory_complexity = [tuple(lst) for lst in schedule["memory_complexity"]]
     new_config.original_idx_perm = schedule["original_idx_perm"]
     new_config.temporary = schedule["temporary"]
+    new_config.cache_complexity = schedule["cache_complexity"]
     # new_config.group = schedule["group"]
     
-    if schedule["producer"]: new_config.prod = get_config(schedule["producer"])
-    if schedule["consumer"]: new_config.cons = get_config(schedule["consumer"])
+    if schedule["producer"]: 
+        new_config.prod = get_config(schedule["producer"])
+    else:
+        new_config.prod = None
+    if schedule["consumer"]: 
+        new_config.cons = get_config(schedule["consumer"])
+    else:
+        new_config.cons = None
     
     return new_config
 

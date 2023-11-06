@@ -21,7 +21,7 @@ class Config:
         self.z3_memory_complexity = None
         
         self.temporary = {} # {"tensor_name : str": (indices)}
-        self.cache_locality = [0]
+        self.cache_complexity = []
 
     def __str__(self):
         output = self.output + "(" + ','.join(self.output_idx_order) + ")"

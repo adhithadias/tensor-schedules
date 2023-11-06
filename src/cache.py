@@ -77,11 +77,14 @@ def add_cache_locality(accesses, baskets):
             cacheVisitor = CacheComplexityVisitor(accesses, config.original_idx_perm)
             config.accept(cacheVisitor)
             
-            # printer = PrintConfigVisitor(accesses)
-            # config.accept(printer)
+            # if (i == 1):
+            #     printer = PrintConfigVisitor(accesses)
+            #     config.accept(printer)
             
             config.cache_complexity = cacheVisitor.cache_complexity
-            # print(accesses)
-            # print(config)
-            # print(config.cache_complexity)
-            # print('----------')
+            
+            # if (i == 1):
+            #     print(accesses)
+            #     # print(config)
+            #     print(config.cache_complexity)
+            #     print('----------')

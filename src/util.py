@@ -237,3 +237,12 @@ def get_simplified_complexity(time_complexity : list, memory_complexity : list, 
     mc = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in memory_complexity if len(setc) > 0], 0)
     
     return (tc, mc) 
+
+
+def get_simplified_cache(cache_complexity : list, values : dict) -> int:
+    
+    assert type(cache_complexity) == list
+    assert type(values) == dict
+    
+    cache = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in cache_complexity if len(setc) > 0], 0)
+    return cache
