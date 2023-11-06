@@ -129,8 +129,8 @@ class Solver_Config:
             
             self.extra_accesses[config.prod.output] = index_order
         else:
-            self.__add_accesses(config.prod)
-            self.__add_accesses(config.cons)
+            self.__add_extra_accesses(config.prod)
+            self.__add_extra_accesses(config.cons)
             
     def __remove_extra_accesses(self):
         self.extra_accesses = {}
