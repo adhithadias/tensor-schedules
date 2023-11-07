@@ -52,7 +52,7 @@ def get_config(schedule: dict) -> Config:
     new_config.memory_complexity = [tuple(lst) for lst in schedule["memory_complexity"]]
     new_config.original_idx_perm = schedule["original_idx_perm"]
     new_config.temporary = schedule["temporary"]
-    new_config.cache_complexity = schedule["cache_complexity"]
+    new_config.cache_complexity = schedule["cache_complexity"] if "cache_complexity" in schedule else []
     # new_config.group = schedule["group"]
     
     if schedule["producer"]: 
