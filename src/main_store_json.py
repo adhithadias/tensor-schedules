@@ -1,3 +1,13 @@
+import itertools
+import sys
+from copy import deepcopy
+from time import time
+import argparse
+from typing import Optional, Sequence
+import json
+from math import floor
+
+from src.util import remove_duplicates
 from src.file_storing import store_json
 from src.testing import tests
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
@@ -6,16 +16,6 @@ from src.solver_config import Solver_Config
 from src.visitor import PrintConfigVisitor
 from src.util import *
 from src.print_help import Main_Store_JSON, Print_Help_Visitor
-# from src.gen_taco_rep import Write_Test_Code
-import itertools
-import sys
-from copy import deepcopy
-import re
-from time import time
-import argparse
-from typing import Optional, Sequence
-import json
-from math import floor
 
 # enumerate_all_order = True
 
@@ -137,6 +137,12 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     
     print_message(f'Enumerating schedules with loop order {" ".join(indices)}')
     
+    input_permutations = []
+    for p in itertools.permutations(expr):
+        if p <= p[::-1] and expr != p:
+            input_permutations.append(p)
+    print('Input permutations: ', len(input_permutations))    
+    
     # mostly irrelevant (as only get_schedules_unfused is needed) but generates necessary schedules
     if get_schedule_func == "get_schedules_unfused":
         schedules = get_schedules_unfused(output_tensor, accesses[output_tensor], expr, accesses, tuple(indices), tensor_idx_order_constraints, 1, cache)
@@ -149,16 +155,34 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
         print("No scheduling function input", file=sys.stderr)
         exit()
     print_time_message(f'{len(schedules)} schedule(s) enumerated', test_start_time, True)
-    
+        
+    schedules = list(schedules)
+    for i, expr in enumerate(input_permutations):
+        t = time()
+        cache = {}
+        s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
+            indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+        
+        print_time_message(f'{i} : adding to the schedules: {len(s)}, expr: {expr}', t, True)
+        schedules.extend(s)
+        print_time_message(f'-----------------', t, True)
+        
     memory_depth_start_time = time()
     print_message(f'Pruning schedules using memory depth')
     pruned_schedules = solver.prune_using_memory_depth(schedules, 2)
     print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', memory_depth_start_time, True)
     
+    remove_duplicates_start_time = time()
+    print_message(f'Removing duplicates')
+    pruned_schedules = remove_duplicates(pruned_schedules)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) left after removing duplicates', remove_duplicates_start_time, True)
+        
     depth_start_time = time()
     print_message(f'Pruning schedules using depth')
     pruned_schedules = solver.prune_using_depth(pruned_schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', depth_start_time, True)
+    
+    print('-----------------')
     
     # z3_start_time = time()
     # print_message(f'Pruning schedules using Z3')

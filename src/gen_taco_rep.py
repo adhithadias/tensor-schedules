@@ -12,7 +12,7 @@ test_rep_for_loop = r'(\s*for\s*\(\s*int \s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*0\s*;
 # path = "~/SparseLNR_Most_Recent"
 
 class Gen_Test_Code:
-    def __init__(self, config:Config, test_name:str, file):
+    def __init__(self, config:Config, test_name:str, file, tensor_accesses:dict = None):
         self.test_name = test_name
         self.file = file
         self.paths = []
@@ -21,6 +21,8 @@ class Gen_Test_Code:
         self.extra_reorders = []
         self.no_fusion = False
         self.partial_fusion = False
+        self.config = config
+        self.tensor_accesses = tensor_accesses
         
         if config.prod == None:
             self.no_fusion = True
@@ -138,6 +140,7 @@ class Gen_Test_Code:
         self.extra_paths = temp_path
         
         self.add_header()
+        self.add_expression()
         
         for i, path in enumerate(self.paths + self.extra_paths):
             # add paths
@@ -240,6 +243,20 @@ class Gen_Test_Code:
     
     def add_header(self):
         self.print_data("/* BEGIN " + self.test_name + " TEST */")
+        
+    def add_expression(self):
+        result = self.config.output + "(" + ", ".join([idx for idx in self.config.output_idx_order]) + ") = "
+        
+        for i, tensor in enumerate(self.config.expr):
+            result += tensor + "(" + ", ".join([idx for idx in self.tensor_accesses[tensor]]) + ")"
+            if i != len(self.config.expr) - 1:
+                result += " * "
+                
+        self.print_data(result + ";")
+        self.print_data("")
+        self.print_data("IndexStmt stmt = " + self.config.output + ".getAssignment().concretize();")
+        self.print_data("std::cout << stmt << endl;")
+        self.print_data("")
     
     def add_end(self):
         self.print_data("/* END " + self.test_name + " TEST */")
@@ -419,7 +436,7 @@ def count_fusions(config:Config):
         return 1 + count_fusions(config.prod) + count_fusions(config.cons)
     
 class Write_Test_Code(Gen_Test_Code):
-    def __init__(self, config: Config, test_name: str, filename: str, num_tests=None):
+    def __init__(self, config: Config, test_name: str, filename: str, num_tests=None, tensor_accesses = None):
         # text to hold lines indicating schedule
         self.schedule_text = []
         
@@ -437,7 +454,7 @@ class Write_Test_Code(Gen_Test_Code):
             return
         
         # initialize parent class
-        super().__init__(config, test_name, r_file_ptr)
+        super().__init__(config, test_name, r_file_ptr, tensor_accesses)
         
         # initialize list of all lines in file
         new_text = []

@@ -16,13 +16,16 @@ if test  == 4:
     ax1_ylim = (1e0, 1e5)
     ax2_ylim = (40,160)
 elif test == 2:
-    ax1_ylim = (1e4, 1e6)
-    ax2_ylim = (0, 7)
+    ax1_ylim = (1e3, 1e6)
+    ax2_ylim = (0, 100)
 elif test == 3:
     ax1_ylim = (1, 1e5)
-    ax2_ylim = (5, 10)
+    ax2_ylim = (4, 9)
+elif test == 5:
+    ax1_ylim = (1e3, 1e6)
+    ax2_ylim = (0, 5)
     
-known_plot = test == 2 or test == 3 or test == 4
+known_plot = test == 2 or test == 3 or test == 4 or test == 5
 
 data_file = CSV_RESULTS + f'test{test}.csv'
 output_file = PLOTS_DIR + f'plot{test}.png'
@@ -56,8 +59,8 @@ def format_e(n):
     a = '%1.1E' % n
     return a.split('E')[0].rstrip('0').rstrip('.') + 'E' + a.split('E')[1]
 
-for p in ax.patches:
-    ax.annotate(format_e(Decimal(p.get_height())), (p.get_x() * 1.000, p.get_height() * 1.05 if p.get_height() < 5e4 else 5e4))
+# for p in ax.patches:
+#     ax.annotate(format_e(Decimal(p.get_height())), (p.get_x() * 1.000, p.get_height() * 1.05 if p.get_height() < 5e4 else 5e4))
 
 # plt.ylabel("Execution Time (ms)")
 # plt.yscale("log")

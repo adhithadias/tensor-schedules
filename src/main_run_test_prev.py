@@ -147,7 +147,7 @@ def main(argv: Optional[Sequence[str]] = None):
         # make sure file types are correct
         if not is_valid_file_type(out_file, "csv"): continue
         if not is_valid_file_type(json_file, "json"): continue
-        baskets, _ = read_baskets_from_json(json_file)
+        baskets, tensor_accesses = read_baskets_from_json(json_file)
         
         print_message(f'{len(baskets)} baskets found for the given evaluation')
         
@@ -220,7 +220,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         os.environ["ITERATION"] = str(iter)
                         
                         # write testing code into testing file
-                        test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1)
+                        test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1, tensor_accesses)
                         print_extra_message(f'{iter}: tensor: {tensor}, config: {config}, test_code: {test_code}')
                         # compiles with changed config
                         print(f'cd {path_makefile} && {command}')

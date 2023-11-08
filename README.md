@@ -88,6 +88,7 @@ python3 plot_graph.py -t 2
 # Running tests
 pytest test/test_baskets.py
 pytest test/test_cache.py -s
+pytest test/test_cache.py::test_remove_duplicates -s
 
 * add -m to display messages about runtime of the python script and -x to display tensor information and taco output
 * add -t [path] to change path to testing tensors to be something other than downloads in the current directory

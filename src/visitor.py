@@ -65,12 +65,12 @@ class PrintDictVisitor(Visitor):
             "fused": config.fused,
             "input_idx_order": config.input_idx_order,
             "output_idx_order": config.output_idx_order,
-            "producer": prod,
-            "consumer": cons,
             "time_complexity": config.time_complexity,
             "memory_complexity": [list(tup) for tup in config.memory_complexity],
             "original_idx_perm": config.original_idx_perm,
-            "temporary": config.temporary
+            "temporary": config.temporary,
+            "producer": prod,
+            "consumer": cons
             # "group": config.group
         }
         return new_config_dict
@@ -112,13 +112,13 @@ class WriteBasketsVisitor(Visitor):
             "fused": config.fused,
             "input_idx_order": config.input_idx_order,
             "output_idx_order": config.output_idx_order,
-            "producer": prod,
-            "consumer": cons,
             "time_complexity": config.time_complexity,
             "memory_complexity": [list(tup) for tup in config.memory_complexity],
             "original_idx_perm": config.original_idx_perm,
             "temporary": config.temporary,
-            "cache_complexity": config.cache_complexity
+            "cache_complexity": config.cache_complexity,
+            "producer": prod,
+            "consumer": cons
         }
         return new_config_dict
         
