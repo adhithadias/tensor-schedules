@@ -196,8 +196,7 @@ def get_time_complexity(idx_perm: set, input_tensors: list, tensor_idx_order_con
     result = {}
     for idx in idx_perm:
         added = False
-        for tensor in input_tensors:
-            if tensor not in tensor_idx_order_constraints: break
+        for tensor in [x for x in input_tensors if x in tensor_idx_order_constraints]:
             for constraints in tensor_idx_order_constraints[tensor]:
                 if (constraints[0] == idx):
                     result[idx] = 1
@@ -246,3 +245,15 @@ def get_simplified_cache(cache_complexity : list, values : dict) -> int:
     
     cache = reduce(lambda x,y: x + y, [reduce(lambda x,y: x * y, [values[idx] for idx in setc], 1) for setc in cache_complexity if len(setc) > 0], 0)
     return cache
+
+def remove_duplicates(schedules):
+    
+    seen_index_orders = set()
+    pruned_schedules = []
+    
+    for schedule in schedules:
+        if (schedule.input_idx_order not in seen_index_orders):
+            seen_index_orders.add(schedule.input_idx_order)
+            pruned_schedules.append(schedule)
+            
+    return pruned_schedules
