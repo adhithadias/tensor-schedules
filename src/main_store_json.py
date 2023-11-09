@@ -5,8 +5,10 @@ from time import time
 import argparse
 from typing import Optional, Sequence
 import json
-from math import floor
+from math import floor, ceil
+from multiprocessing import Process, Lock
 
+from src.prune import prune_using_memory_depth
 from src.util import remove_duplicates
 from src.file_storing import store_json
 from src.testing import tests
@@ -16,6 +18,7 @@ from src.solver_config import Solver_Config
 from src.visitor import PrintConfigVisitor
 from src.util import *
 from src.print_help import Main_Store_JSON, Print_Help_Visitor
+from copy import deepcopy
 
 # enumerate_all_order = True
 
@@ -31,86 +34,44 @@ def convert_sec_min_sec(seconds) -> list:
     """
     return [floor(seconds / 60), round(seconds - (floor(seconds / 60) * 60), 3)]
   
-def print_time_message(message:str, start_time, newline=False):
+def print_time_message(message:str, start_time, newline=False, process_num = 0):
     total_time = convert_sec_min_sec(get_time(start_time))
     if newline:
-        print_message(f'{message} in {total_time[0]} minutes and {total_time[1]} seconds\n')
+        print_message(f'{process_num}: {message} in {total_time[0]} minutes and {total_time[1]} seconds\n')
     else:
-        print_message(f'{message} in {total_time[0]} minutes and {total_time[1]} seconds')
+        print_message(f'{process_num}: {message} in {total_time[0]} minutes and {total_time[1]} seconds')
 
 def get_time(start_time):
   return round(time() - start_time, 4)
-
-# def print_to_json(test_to_run, testnum, filename):
-#     assert type(filename) == str
-#     assert type(test_to_run) == dict
-#     # for test_num in tests_to_run:
-#     # file_ptr = open(filename, 'w')
-#     print("---------------------------------------------------")
-#     test_start_time = time()
-#     print(f'Running TEST {testnum}\n')
-#     schedules = []
-#     output = test_to_run["output_tens"]
-#     expr = list(test_to_run["accesses"].keys())
-#     expr.remove(output)
-#     expr = tuple(expr)
-    
-#     # indices = set()
-#     # for val in test_to_run["accesses"].values(): indices = indices.union(val)
-#     indices = []
-#     tensors = deepcopy(test_to_run["accesses"])
-#     del tensors[test_to_run["output_tens"]]
-    
-#     for val in tensors.values():
-#         for index in val:
-#             if index not in indices: indices.append(index)
-    
-#     cache = {}
-    
-#     # initialize Z3 solver
-#     solver = Solver_Config(
-#         test_to_run["accesses"], test_to_run["tensor_idx_order_constraints"], "test2_config.json")
-#     print(f'Enumerating schedules with loop order {" ".join(indices)}')
-    
-#     if get_schedule_func == "get_schedules_unfused":
-#         schedules = get_schedules_unfused(output, test_to_run["accesses"][output], expr, test_to_run["accesses"], tuple(indices), test_to_run["tensor_idx_order_constraints"], 1, cache)
-#     elif get_schedule_func == "get_schedules":
-#         schedules = get_schedules(output, test_to_run["accesses"][output], expr, test_to_run["accesses"], tuple(
-#             indices), test_to_run["tensor_idx_order_constraints"], 0, len(expr), 1, cache)
-#     elif get_schedule_func == "sched_enum":
-#         sched_enum(output, expr, test_to_run["accesses"][output], test_to_run
-#                   ["accesses"], test_to_run["tensor_idx_order_constraints"], schedules)
-#     else:
-#         print("No scheduling function input", file=sys.stderr)
-#         exit()
-    
-#     total_time = convert_sec_min_sec(get_time(test_start_time))
-#     print(f'{len(schedules)} schedule(s) enumerated in {total_time[0]} minutes and {total_time[1]} seconds\n')
-    
-#     memory_depth_start_time = time()
-#     print(f'Pruning schedules using memory depth')
-#     pruned_schedules = solver.prune_using_memory_depth(schedules, 2)
-#     print(f'{len(pruned_schedules)} schedule(s) unpruned ({get_time(memory_depth_start_time)} seconds)\n')
-    
-#     depth_start_time = time()
-#     print(f'Pruning schedules using depth')
-#     pruned_schedules = solver.prune_using_depth(pruned_schedules)
-#     print(f'{len(pruned_schedules)} schedule(s) unpruned ({get_time(depth_start_time)} seconds)\n')
-    
-#     z3_start_time = time()
-#     print(f'Pruning schedules using Z3')
-#     pruned_schedules = solver.prune_schedules(pruned_schedules)
-    
-#     store_json(test_to_run["accesses"], pruned_schedules, filename)
-#     print(f'{len(pruned_schedules)} schedule(s) stored to {filename} ({get_time(z3_start_time)} seconds)\n')
-#     print(f'TEST {testnum} finished in {get_time(test_start_time)} seconds')
-    
-#     for i, config1 in enumerate(pruned_schedules):
-#         for j, config2 in enumerate(pruned_schedules):
-#             if i == j: continue
-#             if config1 == config2:
-#                 print(config1)
         
+def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, schedules, l, i):
+    output_tensor = deepcopy(output_tensor)
+    accesses = deepcopy(accesses)
+    expr = deepcopy(expr)
+    indices = deepcopy(indices)
+    tensor_idx_order_constraints = deepcopy(tensor_idx_order_constraints)
+    
+    t = time()
+    cache = {}
+    s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
+        indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    
+    del cache
+    
+    print_time_message(f'{i} : adding to the schedules: {len(s)}, expr: {expr}', t, True)
+    
+    memory_depth_start_time = time()
+    print_message(f'{i}: Pruning {len(s)} schedules using memory depth')
+    s = prune_using_memory_depth(s, 2)
+    print_time_message(f'{i}: {len(s)} schedule(s) unpruned', memory_depth_start_time, True)
+    
+    l.acquire()
+    try:
+        schedules.extend(s)
+        print_time_message(f'{i}: -----------------', t, True)
+    finally:
+        l.release()
+
     
 def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tensor:str, test_json_file:str, testnum:int, get_schedule_func:str, z3_constraints=None):
     print_message("---------------------------------------------------")
@@ -155,26 +116,56 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
         print("No scheduling function input", file=sys.stderr)
         exit()
     print_time_message(f'{len(schedules)} schedule(s) enumerated', test_start_time, True)
-        
-    schedules = list(schedules)
-    for i, expr in enumerate(input_permutations):
-        t = time()
-        cache = {}
-        s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
-            indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
-        
-        print_time_message(f'{i} : adding to the schedules: {len(s)}, expr: {expr}', t, True)
-        schedules.extend(s)
-        print_time_message(f'-----------------', t, True)
-        
+    
+    del cache
+    
     memory_depth_start_time = time()
     print_message(f'Pruning schedules using memory depth')
-    pruned_schedules = solver.prune_using_memory_depth(schedules, 2)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', memory_depth_start_time, True)
+    schedules = solver.prune_using_memory_depth(schedules, 2)
+    print_time_message(f'{len(schedules)} schedule(s) unpruned', memory_depth_start_time, True)
+
+    schedules = list(schedules)
+    
+    processes = [i for i in range(len(input_permutations))]
+    number_of_processes = 15
+    
+    lock = Lock()
+    
+    for j in range(ceil(len(input_permutations) / number_of_processes)):
+        
+        start = j * number_of_processes
+        end = min((j + 1) * number_of_processes, len(input_permutations))
+        
+        for n in range(start, end):
+            p = Process(target=f, args=(output_tensor, accesses, input_permutations[n], tuple(indices), tensor_idx_order_constraints, schedules, lock, n))
+            processes[n] = p
+            processes[n].start()
+            
+        for n in range(start, end):
+            processes[n].join()
+            print(f'{n}: Process {n} joined')
+    
+    # for i, expr in enumerate(input_permutations):
+    #     t = time()
+    #     cache = {}
+    #     s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
+    #         indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+        
+    #     del cache
+        
+    #     print_time_message(f'{i} : adding to the schedules: {len(s)}, expr: {expr}', t, True)
+        
+    #     memory_depth_start_time = time()
+    #     print_message(f'Pruning schedules using memory depth')
+    #     s = solver.prune_using_memory_depth(s, 2)
+    #     print_time_message(f'{len(s)} schedule(s) unpruned', memory_depth_start_time, True)
+        
+    #     schedules.extend(s)
+    #     print_time_message(f'-----------------', t, True)
     
     remove_duplicates_start_time = time()
     print_message(f'Removing duplicates')
-    pruned_schedules = remove_duplicates(pruned_schedules)
+    pruned_schedules = remove_duplicates(schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) left after removing duplicates', remove_duplicates_start_time, True)
         
     depth_start_time = time()
