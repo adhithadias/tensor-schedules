@@ -26,8 +26,11 @@ elif test == 3:
 elif test == 5:
     ax1_ylim = (1e3, 1e5)
     ax2_ylim = (0, 3.5)
+elif test == 6:
+    ax1_ylim = (1, 1e5)
+    ax2_ylim = (0, 7)
     
-known_plot = test == 2 or test == 3 or test == 4 or test == 5
+known_plot = test == 2 or test == 3 or test == 4 or test == 5 or test == 6
 
 data_file = CSV_RESULTS + f'test{test}.csv'
 output_file = PLOTS_DIR + f'plot{test}.png'
@@ -36,6 +39,7 @@ df = pd.read_csv(data_file, header=0, names=['Tensor', 'sparseShed', 'Runtime St
 print(df)
 
 df['Tensor'] = df['Tensor'].str.split('.').str[0]
+df['Tensor'] = df['Tensor'].str.slice(0,12)
 df['Matrix/Tensor'] = df['Tensor']
 df['TACO'] = df['default']
 df.set_index('Matrix/Tensor', inplace=True)
