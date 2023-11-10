@@ -25,10 +25,10 @@ elif test == 3:
     ax2_ylim = (4, 9)
 elif test == 5:
     ax1_ylim = (1e3, 1e5)
-    ax2_ylim = (0, 3.5)
+    ax2_ylim = (0, 7)
 elif test == 6:
     ax1_ylim = (1, 1e5)
-    ax2_ylim = (0, 7)
+    ax2_ylim = (0, 13)
     
 known_plot = test == 2 or test == 3 or test == 4 or test == 5 or test == 6
 

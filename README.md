@@ -87,6 +87,12 @@ python3 -m src.main_run_test_prev -f test5_config.json -t /home/min/a/kadhitha/w
 
 python3 -m src.main_run_test_prev -f test6_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
+python3 -m src.main_run_test_modified -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
+python3 -m src.main_run_test_modified -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
+python3 -m src.main_run_test_modified -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
 python3 plot_graph.py -t 2
 
 # Running tests
