@@ -48,7 +48,7 @@ class Modify_Lines:
     def given_line(self):
         return self.lines[self.replace_point]
     
-    def replace_between_headers(self, header_matched, footer_matched, replacement_text, move_replacement_point=False):
+    def replace_between_headers(self, header, footer, replacement_text, move_replacement_point=False, include_headers=False):
         """Replace lines in between a header and footer
 
         Args:
@@ -65,8 +65,7 @@ class Modify_Lines:
             // FOOTER TEXT
         """
         
-        
-        assert type(header_matched) == str or type(header_matched) == re.Pattern
+        # assert type(header_matched) == str or type(header_matched) == re.Pattern
         assert type(replacement_text) == str or type(replacement_text) == list
         if type(replacement_text) == str: replacement_text = [replacement_text]
         
@@ -76,18 +75,23 @@ class Modify_Lines:
         header_matched = False
         footer_matched = False
         for line, location in zip(self.lines_subset, self.index_subset):
-            if re.search(header_matched, line):
+            if re.search(header, line) and not header_matched:
                 start_index = location
                 header_matched = True
-            elif header_matched == False:
-                continue
-            elif re.search(footer_matched, line):
+            
+            elif re.search(footer, line) and header_matched:
                 end_index = location
                 footer_matched = True
                 break
         
         if header_matched == False or footer_matched == False: return False
-        if move_replacement_point: self.move_replace_point(end_index - self.replace_point)
+        if include_headers == True:
+            start_index -= 1
+            end_index += 1
+            
+        if move_replacement_point: self.move_replace_point(-self.replace_point + len(replacement_text) + start_index + 1)
+        
+            
         
         self.lines = self.lines[:start_index + 1] + replacement_text + self.lines[end_index:]
         return True
@@ -100,7 +104,7 @@ class Modify_Lines:
             replace_point_pat (str|re.Pattern): pattern that matches desired line
             from_beginning (bool): match replace point from beginning of lines array or from current replace point
         """
-        assert type(replace_point_pat) == str or type(replace_point_pat) == re.Pattern
+        # assert type(replace_point_pat) == str or type(replace_point_pat) == re.Pattern
         if from_beginning: 
             lines = self.lines
             indices = list(range(self.num_lines))
@@ -109,15 +113,17 @@ class Modify_Lines:
             indices = self.index_subset
         
         for i, line in zip(indices, lines):
-            if re.search(replace_point_pat, line):
+            if replace_point_pat.search(line):
+            # re.search(replace_point_pat, line):
                 self.replace_point = i
                 return True
         return False
     
-    def modify_line(self, line_pattern, replacement):
+    def modify_line(self, line_pattern, replacement, move_replacement_point=False):
         for i, line in zip(self.index_subset, self.lines_subset):
             if re.search(line_pattern, line):
                 self.lines[i] = re.sub(line_pattern, replacement, line)
+                if move_replacement_point and self.num_lines != self.replace_point + 1: self.move_replace_point(1)
                 return True
         
         return False
@@ -168,7 +174,7 @@ class Modify_Lines:
     def remove_line(self, match=None):
         """Removes line at specified replacement point if match is found (or regardless if match is None)
         """
-        assert match == None or type(match) == str or type(match) == re.Pattern
+        # assert match == None or type(match) == str or type(match) == re.Pattern
         if match != None and not re.search(match, self.given_line):
             return False
         

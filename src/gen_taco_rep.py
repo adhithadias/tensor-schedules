@@ -65,7 +65,7 @@ class Gen_Test_Code:
                     
                     parent_config = self.retrieve_path(path[1:], config)
                     if parent_config.fused == 0:
-                        self.extra_reorders.append(reordering)
+                        self.reorders.append(reordering)
                         continue
                     while i < len(old_ordering):
                         if reordering[i] == old_ordering[i]: i += 1
@@ -109,7 +109,7 @@ class Gen_Test_Code:
                 if str(reordering) != str(old_ordering):
                     new_reorderings = []
                     i = 0
-                    parent_config = self.retrieve_path(extra_path[1:], config)
+                    parent_config = self.retrieve_path(extra_path[:-1], config)
                     if parent_config.fused == 0:
                         self.extra_reorders.append(reordering)
                         continue
@@ -460,77 +460,75 @@ class Write_Test_Code(Gen_Test_Code):
         # initialize list of all lines in file
         new_text = []
         
-        # read lines until test line is read, fill test line, fill remaining lines
-        test_read = False
-        header_read = False
-        footer_read = False
-        
         file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
         file_writer.match_replacement_point(self.test_regex)
-        file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True)
+        
+        
+        file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True, True)
         file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>')
-        
-        for line in r_file_ptr:
-            if test_read: 
-                new_text.append(line)
-                continue
-            text = re.search(self.test_regex, line)
-            if text: 
-                # change to true so less computations
-                test_read = True
-                try:
-                    # read and store lines until header is reached
-                    new_text.append(line)
-                    
-                    for line2 in r_file_ptr:
-                        # next_line = r_file_ptr.readline()
-                        if re.search(header_to_read, line2): 
-                            header_read = True
-                            break
-                        new_text.append(line2)
-                        
-                    # add schedule text in
-                    new_text.extend(self.schedule_text)
-                    
-                    # read only until footer is reached
-                    for line2 in r_file_ptr:
-                        # next_line = r_file_ptr.readline()
-                        if re.search(footer_to_read, line2): 
-                            footer_read = True
-                            break
-                          
-                    # read until for loop reached
-                    if num_tests != None:
-                        for line2 in r_file_ptr:
-                            if re.search(test_rep_for_loop, line2):
-                                new_text.append(re.sub(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>', line2))
-                                break
-                            else: new_text.append(line2)
-                        
-                    
-                except EOFError:
-                    print("Invalid header or footer", file=sys.stderr)
-                    r_file_ptr.close()
-                    return
-            else: new_text.append(line)
-        
-        r_file_ptr.close()
-        
-        # check if valid 
-        if not test_read: 
-            print("Invalid test name", file=sys.stderr)
-            return
-        if not header_read:
-            print("No header present", file=sys.stderr)
-            return
-        if not footer_read:
-            print("No footer present", file=sys.stderr)
-            return
         
         # write new compiled info back to file
         w_file_ptr = open(filename, "w")
         w_file_ptr.writelines(new_text)
         w_file_ptr.close()
+        
+        
+        # for line in r_file_ptr:
+        #     if test_read: 
+        #         new_text.append(line)
+        #         continue
+        #     text = re.search(self.test_regex, line)
+        #     if text: 
+        #         # change to true so less computations
+        #         test_read = True
+        #         try:
+        #             # read and store lines until header is reached
+        #             new_text.append(line)
+                    
+        #             for line2 in r_file_ptr:
+        #                 # next_line = r_file_ptr.readline()
+        #                 if re.search(header_to_read, line2): 
+        #                     header_read = True
+        #                     break
+        #                 new_text.append(line2)
+                        
+        #             # add schedule text in
+        #             new_text.extend(self.schedule_text)
+                    
+        #             # read only until footer is reached
+        #             for line2 in r_file_ptr:
+        #                 # next_line = r_file_ptr.readline()
+        #                 if re.search(footer_to_read, line2): 
+        #                     footer_read = True
+        #                     break
+                          
+        #             # read until for loop reached
+        #             if num_tests != None:
+        #                 for line2 in r_file_ptr:
+        #                     if re.search(test_rep_for_loop, line2):
+        #                         new_text.append(re.sub(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>', line2))
+        #                         break
+        #                     else: new_text.append(line2)
+                        
+                    
+        #         except EOFError:
+        #             print("Invalid header or footer", file=sys.stderr)
+        #             r_file_ptr.close()
+        #             return
+        #     else: new_text.append(line)
+        
+        # r_file_ptr.close()
+        
+        # # check if valid 
+        # if not test_read: 
+        #     print("Invalid test name", file=sys.stderr)
+        #     return
+        # if not header_read:
+        #     print("No header present", file=sys.stderr)
+        #     return
+        # if not footer_read:
+        #     print("No footer present", file=sys.stderr)
+        #     return
 
     def print_data(self, data: str, num_tabs=1) -> None:
         """Override print_data to write all info into list
@@ -577,7 +575,7 @@ if __name__ == "__main__":
     for schedule in schedules:
         # if count_fusions(schedule) == 2 and schedule.fused:
             if type(schedule.input_idx_order[-1]) == tuple:
-                Write_Test_Code(schedule, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
+                Write_Test_Code(schedule, "sddmm_spmm_fake", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp", 10, accesses)
                 break
               
             counter = (counter % counter_printing) + 1
