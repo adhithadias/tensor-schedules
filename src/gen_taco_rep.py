@@ -461,7 +461,20 @@ class Write_Test_Code(Gen_Test_Code):
         new_text = []
         
         file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
+        
+        # set replacement point at start of test case
         file_writer.match_replacement_point(self.test_regex)
+        
+        # set replacement point to last tensor declared
+        file_writer.match_replacement_point(r'Tensor<double> ' + config.expr[-1] + r'.;')
+        
+        temps_explicit = self.get_temporaries(config)
+        temp_decl_list = []
+        if len(temps_explicit) != 0:
+            for i, temp_expl in enumerate(temps_explicit):
+                temp_name = "T" + (i + 1)
+                temp_decl_list.append(self.get_temp_declaration(temp_name, temp_expl["index_order"]))
+                
         
         
         file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True, True)
@@ -540,6 +553,65 @@ class Write_Test_Code(Gen_Test_Code):
     
     def get_test_regex(self, test_name: str):
         return re.compile(f"TEST\(workspaces, {test_name}\)")
+    
+    def __find_tensor_with_index(self, given_index):
+        """Gets tensor with same accesses as the given index
+
+        Args:
+            given_index (str): index given to find tensor
+
+        Returns:
+            tuple: holds (tensor, index) 
+        """
+        for tensor, tens_indices in self.tensor_accesses.items():
+            for index, tens_index in enumerate(tens_indices):
+                if given_index == tens_index: return (tensor, index)
+                
+    def __find_tensors_with_indices(self, given_indices):
+        all_accesses = []        
+        for given_index in given_indices:
+            all_accesses.append(self.__find_tensor_with_index(given_index))
+    
+    def get_temp_declaration(self, temp, index_order):
+        temp_accesses = self.__find_tensors_with_indices(index_order)
+        accesses_str = ""
+        for i, temp_access in enumerate(temp_accesses):
+            accesses_str += f'{temp_access[0]}.getDimension({temp_access[1]})'
+            if i != len(temp_accesses) - 1: accesses_str += f','
+        
+        format = ",".join(["Dense" for _ in range(len(temp_accesses))])
+        declar = f'Tensor<double> {temp}(\"{temp}\", {{{accesses_str}}}, Format{{{format}}});'
+        
+        return declar
+    
+    def __get_indices(self, config:Config):
+        """Retrieves the indices accessed by a given expression
+
+        Args:
+            config (Config): schedule given
+        """
+        
+        if config.original_idx_perm == None:
+            return self.__get_indices(config.prod) + self.__get_indices(config.cons)
+        return config.original_idx_perm  
+    
+    def get_temporaries(self, sched:Config):
+        if sched.prod == None: return []
+        
+        temps = []
+        if sched.fused == 0: 
+            shared_indices = list(set(self.__get_indices(sched.prod)).intersection(set(self.__get_indices(sched.cons))))
+            root_indices = self.__get_indices(sched)
+            shared_index_locations = [root_indices.index(shared_index) for shared_index in shared_indices]
+            index_order = [index for _, index in sorted(zip(shared_index_locations, shared_indices))]
+            
+            temps.append({"index_order": index_order, "config": sched})
+        
+        temps.extend(self.get_temporaries(sched.prod))
+        temps.extend(self.get_temporaries(sched.cons))
+        
+        return temps
+
     
     
 if __name__ == "__main__":

@@ -49,20 +49,17 @@ class Modify_Lines:
         return self.lines[self.replace_point]
     
     def replace_between_headers(self, header, footer, replacement_text, move_replacement_point=False, include_headers=False):
-        """Replace lines in between a header and footer
+        """Replaces text in between a header and a footer line
 
         Args:
-            header_matched (_type_): _description_
-            footer_matched (_type_): _description_
-            replacement_text (_type_): _description_
+            header (str): header to match
+            footer (str): footer to match
+            replacement_text (str|list): text to replace in between headers
+            move_replacement_point (bool, optional): whether to move replacement location after. Defaults to False.
+            include_headers (bool, optional): whether to include headers when replacing. Defaults to False.
 
         Returns:
-            bool: whether replacement occurs
-        
-        Example:
-            // HEADER TEXT\n
-            ...\n
-            // FOOTER TEXT
+            bool: returns if replacement is successful
         """
         
         # assert type(header_matched) == str or type(header_matched) == re.Pattern
@@ -105,6 +102,7 @@ class Modify_Lines:
             from_beginning (bool): match replace point from beginning of lines array or from current replace point
         """
         # assert type(replace_point_pat) == str or type(replace_point_pat) == re.Pattern
+        if type(replace_point_pat): replace_point_pat = re.compile(replace_point_pat)
         if from_beginning: 
             lines = self.lines
             indices = list(range(self.num_lines))
