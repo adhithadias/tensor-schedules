@@ -4,11 +4,12 @@ import sys
 from copy import deepcopy
 from random import randint
 import regex as re
+from src.file_storing import Modify_Lines
 
 header_to_read = r'/\*.*\*/'
 footer_to_read = r'/\*.*\*/'
 test_rep_for_loop = r'(\s*for\s*\(\s*int \s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*0\s*;\s*\2<\s*)(\d+)(\s*;\s*\2\+\+\s*\)\s*{\s*)'
-
+MAX_LINES = 100000
 # path = "~/SparseLNR_Most_Recent"
 
 class Gen_Test_Code:
@@ -463,6 +464,11 @@ class Write_Test_Code(Gen_Test_Code):
         test_read = False
         header_read = False
         footer_read = False
+        
+        file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
+        file_writer.match_replacement_point(self.test_regex)
+        file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True)
+        file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>')
         
         for line in r_file_ptr:
             if test_read: 
