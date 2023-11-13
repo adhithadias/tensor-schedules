@@ -63,6 +63,10 @@ python3 -m src.main_store_json -f test3_config.json -r
 python3 -m src.main_store_json -f test4_config.json -r
 python3 -m src.main_store_json -f test5_config.json -r
 python3 -m src.main_store_json -f test6_config.json -r
+python3 -m src.main_store_json -f test7_config.json -r
+python3 -m src.main_store_json -f test8_config.json -r
+nohup python3 -m src.main_store_json -f test9_config.json -r &> test9_schedule_generation.txt &
+
 
 # main_store_json_z3 reads the schedules in "test_json_file" in config.json file and prunes it using the z3 configs. Divides them into 
 python3 -m src.main_store_json_z3 -f test2_config.json -r
@@ -70,6 +74,9 @@ python3 -m src.main_store_json_z3 -f test3_config.json -r
 python3 -m src.main_store_json_z3 -f test4_config.json -r
 python3 -m src.main_store_json_z3 -f test5_config.json -r
 python3 -m src.main_store_json_z3 -f test6_config.json -r
+python3 -m src.main_store_json_z3 -f test7_config.json -r
+python3 -m src.main_store_json_z3 -f test8_config.json -r
+nohup python3 -m src.main_store_json_z3 -f test9_config.json -r &> test9_z3_pruning.txt &
 
 python3 -m src.run_from_z3_prune -t 2
 
@@ -92,6 +99,12 @@ python3 -m src.main_run_test_modified -f test2_config.json -t /home/min/a/kadhit
 python3 -m src.main_run_test_modified -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
 python3 -m src.main_run_test_modified -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
+
+nohup python3 -m src.main_run_test_modified -f test7_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test7_execution.txt &
+
+nohup python3 -m src.main_run_test_modified -f test8_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test8_execution.txt &
+
+nohup python3 -m src.main_run_test_modified -f test9_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test9_execution.txt &
 
 python3 plot_graph.py -t 2
 

@@ -10,7 +10,7 @@
       ["j", "i"], ["k", "j"], ["k", "i"]
     ],
     "A": [
-      ["j", "i"]
+      ["j", "i"], ["m", "j"], ["k", "j"], ["l", "j"]
     ]
   },
   "output_tensor": "A",
@@ -24,10 +24,10 @@
     "k >= 2", "k <= 25500000",
     "l >= 8", "l <= 256",
     "m >= 8", "m <= 256",
-    "jpos >= 0",
-    "kpos >= 0",
-    "100 * i * jpos * kpos < i * j * k",
-    "i * j * k < 1000 * i * jpos * kpos"
+    "jpos >= 0", "kpos >= 0",
+    "jpos <= j", "kpos <= k",
+    "100000 * i * jpos * kpos < i * j * k",
+    "i * j * k < 10000000000 * i * jpos * kpos"
   ],
   "output_csv_file": "test6.csv",
   "eval_files": ["vast-2015-mc1-3d.tns", "flickr-3d.tns", "nell-2.tns", "darpa1998.tns"],

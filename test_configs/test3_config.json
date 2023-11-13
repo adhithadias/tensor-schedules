@@ -17,13 +17,13 @@
   "test_best_schedule_file": "test3_best_schedule.json",
   "test_name": "sddmm_spmm_real",
   "z3_constraints": [
-    "i >= 5000", "i <= 15000",
-    "j >= 5000", "j <= 15000",
+    "i >= 11000", "i <= 1000000",
+    "j >= 11000", "j <= 1000000",
     "k >= 8", "k <= 256",
     "l >= 8", "l <= 256",
-    "jpos >= 0",
-    "100 * i * jpos < i * j",
-    "i * j < 1000 * i * jpos"
+    "jpos >= 0", "jpos <= j",
+    "1000 * i * jpos < i * j",
+    "i * j < 1000000 * i * jpos"
   ],
   "output_csv_file": "test3.csv",
   "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx", "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"],

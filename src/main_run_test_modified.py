@@ -267,11 +267,13 @@ def main(argv: Optional[Sequence[str]] = None):
                     
                     compile_taco_test(path_makefile, command, 0, "default execution", config_list)
                     print(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
-                    test_output = subprocess.Popen(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                    # test_output = subprocess.Popen(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                    expected_times = [0,0,0]
+                    schedule_stmt = ""
+                    # expected_times, schedule_stmt = get_execution_times(test_output, None, "", debug, NUMBER_OF_ITERATIONS)
                     
-                    expected_times, schedule_stmt = get_execution_times(test_output, None, "", debug, NUMBER_OF_ITERATIONS)
                     # wait for output to generate
-                    test_output.wait()
+                    # test_output.wait()
                     new_row = ["Default", ""]
                     new_row.extend(expected_times)
                     float_times = [float(expected_time) for expected_time in expected_times]

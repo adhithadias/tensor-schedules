@@ -16,15 +16,15 @@
   "test_best_schedule_file": "test5_best_schedule.json",
   "test_name": "spttm_ttm_real",
   "z3_constraints": [
-    "i >= 5000", "i <= 15000",
-    "j >= 5000", "j <= 15000",
-    "k >= 8", "k <= 256",
+    "i >= 3", "i <= 2900000",
+    "j >= 2048", "j <= 2140000",
+    "k >= 2", "k <= 25500000",
     "l >= 8", "l <= 256",
     "m >= 8", "m <= 256",
-    "jpos >= 0",
-    "kpos >= 0",
-    "100 * i * jpos * kpos < i * j * k",
-    "i * j * k < 1000 * i * jpos * kpos"
+    "jpos >= 0", "kpos >= 0",
+    "jpos <= j", "kpos <= k",
+    "100000 * i * jpos * kpos < i * j * k",
+    "i * j * k < 10000000000 * i * jpos * kpos"
   ],
   "output_csv_file": "test5.csv",
   "eval_files": ["vast-2015-mc1-3d.tns", "flickr-3d.tns", "nell-2.tns", "darpa1998.tns"],
