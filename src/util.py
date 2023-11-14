@@ -257,3 +257,28 @@ def remove_duplicates(schedules):
             pruned_schedules.append(schedule)
             
     return pruned_schedules
+
+def remove_duplicates_(schedules):
+    
+    print('removing duplicates from schedules: ', len(schedules))
+    seen_index_orders = {}
+    pruned_schedules = []
+    
+    for i, schedule in enumerate(schedules):
+        if i % 100 == 0: print('schedule: ', i, ' out of ', len(schedules), flush = True)
+        tc1 = schedule.time_complexity["r"] + schedule.time_complexity["a"]
+        mc1 = schedule.memory_complexity
+        if (schedule.input_idx_order not in seen_index_orders):
+            seen_index_orders[schedule.input_idx_order] = [(tc1, mc1)]
+            pruned_schedules.append(schedule)
+        else:
+            already_added = False
+            for (tc, mc) in seen_index_orders[schedule.input_idx_order]:
+                if (complexities_equal(tc, mc, tc1, mc1)):
+                    already_added = True
+                    break
+            if not already_added:
+                seen_index_orders[schedule.input_idx_order].append((tc1, mc1))
+                pruned_schedules.append(schedule)
+            
+    return pruned_schedules

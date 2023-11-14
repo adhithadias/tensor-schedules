@@ -100,6 +100,8 @@ python3 -m src.main_run_test_modified -f test3_config.json -t /home/min/a/kadhit
 
 python3 -m src.main_run_test_modified -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
 
+nohup python3 -m src.main_run_test_modified -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> logs/test2_execution.txt &
+
 nohup python3 -m src.main_run_test_modified -f test7_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test7_execution.txt &
 
 nohup python3 -m src.main_run_test_modified -f test8_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test8_execution.txt &

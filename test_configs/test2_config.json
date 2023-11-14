@@ -11,6 +11,7 @@
   },
   "output_tensor": "A",
   "test_json_file": "test2_without_z3_pruning.json",
+  "test_json_file_without_depth": "test2_without_depth_pruning.json",
   "test_json_file_after_z3": "test2_with_z3_pruning.json",
   "test_best_schedule_file": "test2_best_schedule.json",
   "test_name": "loopcontractfuse_real",

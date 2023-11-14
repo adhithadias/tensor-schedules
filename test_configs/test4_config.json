@@ -14,6 +14,7 @@
   },
   "output_tensor": "A",
   "test_json_file": "test4_without_z3_pruning.json",
+  "test_json_file_without_depth": "test4_without_depth_pruning.json",
   "test_json_file_after_z3": "test4_with_z3_pruning.json",
   "test_best_schedule_file": "test4_best_schedule.json",
   "test_name": "sddmm_spmm_gemm_real",

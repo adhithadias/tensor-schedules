@@ -6,11 +6,11 @@ import argparse
 from typing import Optional, Sequence
 import json
 from math import floor, ceil
-from multiprocessing import Process, Lock
+from multiprocessing import Process, Lock, Queue
 
 from src.prune import prune_using_memory_depth
 from src.util import remove_duplicates
-from src.file_storing import store_json
+from src.file_storing import store_json, read_json
 from src.testing import tests
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.config import Config
@@ -22,6 +22,10 @@ from copy import deepcopy
 
 # enumerate_all_order = True
 
+TEST_JSON_FILE_LOCATION = "test_schedules/"
+CONFIG_FILE_LOCATION = "test_configs/"
+TEMPORARY_JSON_FILE_LOCATION = "temporary_json/"
+NUMBER_OF_PROCESSES = 15
 
 def print_message(text):
     if messages: print(text, flush=True)
@@ -44,7 +48,7 @@ def print_time_message(message:str, start_time, newline=False, process_num = 0):
 def get_time(start_time):
   return round(time() - start_time, 4)
         
-def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, schedules, l, i):
+def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, i, test_name):
     output_tensor = deepcopy(output_tensor)
     accesses = deepcopy(accesses)
     expr = deepcopy(expr)
@@ -63,17 +67,15 @@ def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, sche
     memory_depth_start_time = time()
     print_message(f'{i}: Pruning {len(s)} schedules using memory depth')
     s = prune_using_memory_depth(s, 2)
+    s = list(s)
     print_time_message(f'{i}: {len(s)} schedule(s) unpruned', memory_depth_start_time, True)
     
-    l.acquire()
-    try:
-        schedules.extend(s)
-        print_time_message(f'{i}: -----------------', t, True)
-    finally:
-        l.release()
+    j_file = TEMPORARY_JSON_FILE_LOCATION + f'{test_name}_process_{i}.json'
+    store_json(accesses, s, j_file)
+    print_time_message(f'{i}: ----------------- stored {len(s)} schedules to the file {j_file}', t, True)
 
     
-def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tensor:str, test_json_file:str, testnum:int, get_schedule_func:str, z3_constraints=None):
+def generate_and_save_schedules(accesses:dict, tensor_idx_order_constraints:dict, output_tensor:str, test_json_file:str, testnum:int, get_schedule_func:str, z3_constraints=None, test_json_file_without_depth=None):
     print_message("---------------------------------------------------")
     test_start_time = time()
     print_message(f'Running TEST {testnum}\n')
@@ -125,19 +127,18 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     print_time_message(f'{len(schedules)} schedule(s) unpruned', memory_depth_start_time, True)
 
     schedules = list(schedules)
+    print('Schedules after first run: ', len(schedules))
     
     processes = [i for i in range(len(input_permutations))]
-    number_of_processes = 15
+    test_name = test_json_file.split('.')[0]
     
-    lock = Lock()
-    
-    for j in range(ceil(len(input_permutations) / number_of_processes)):
+    for j in range(ceil(len(input_permutations) / NUMBER_OF_PROCESSES)):
         
-        start = j * number_of_processes
-        end = min((j + 1) * number_of_processes, len(input_permutations))
+        start = j * NUMBER_OF_PROCESSES
+        end = min((j + 1) * NUMBER_OF_PROCESSES, len(input_permutations))
         
         for n in range(start, end):
-            p = Process(target=f, args=(output_tensor, accesses, input_permutations[n], tuple(indices), tensor_idx_order_constraints, schedules, lock, n))
+            p = Process(target=f, args=(output_tensor, accesses, input_permutations[n], tuple(indices), tensor_idx_order_constraints, n, test_name))
             processes[n] = p
             processes[n].start()
             
@@ -145,51 +146,31 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
             processes[n].join()
             print(f'{n}: Process {n} joined')
     
-    # for i, expr in enumerate(input_permutations):
-    #     t = time()
-    #     cache = {}
-    #     s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
-    #         indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
-        
-    #     del cache
-        
-    #     print_time_message(f'{i} : adding to the schedules: {len(s)}, expr: {expr}', t, True)
-        
-    #     memory_depth_start_time = time()
-    #     print_message(f'Pruning schedules using memory depth')
-    #     s = solver.prune_using_memory_depth(s, 2)
-    #     print_time_message(f'{len(s)} schedule(s) unpruned', memory_depth_start_time, True)
-        
-    #     schedules.extend(s)
-    #     print_time_message(f'-----------------', t, True)
+    for i in range(len(input_permutations)):
+        temp_file = TEMPORARY_JSON_FILE_LOCATION + f'{test_name}_process_{i}.json'
+        s = read_json(temp_file)
+        schedules.extend(s)
     
+    print('Schedules before pruning: ', len(schedules))
     remove_duplicates_start_time = time()
     print_message(f'Removing duplicates')
     pruned_schedules = remove_duplicates(schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) left after removing duplicates', remove_duplicates_start_time, True)
         
+    t = time()
+    test_json_file_without_depth = TEST_JSON_FILE_LOCATION + test_json_file_without_depth
+    print_message(f'Storing mem depth 2 pruned schedules to file {test_json_file_without_depth}', flush=True)
+    store_json(accesses, pruned_schedules, test_json_file_without_depth)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file_without_depth}', t, True)
+        
     depth_start_time = time()
-    print_message(f'Pruning schedules using depth')
+    print_message(f'Pruning schedules using depth', flush=True)
     pruned_schedules = solver.prune_using_depth(pruned_schedules)
-    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', depth_start_time, True)
+    print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned after depth pruning', depth_start_time, True)
     
-    print('-----------------')
+    print('-----------------', flush=True)
     
-    # z3_start_time = time()
-    # print_message(f'Pruning schedules using Z3')
-    # pruned_schedules = solver.prune_schedules(pruned_schedules)
-    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', z3_start_time, True)
-    
-    # locality_pruning_start_time = time()
-    # print_message(f'Pruning schedules with same complexity using Z3')
-    # pruned_schedules = solver.prune_same_loop_nest(pruned_schedules)
-    # print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned', locality_pruning_start_time, True)
-    
-    
-    
-    # print(solver.get_leaf_configs(pruned_schedules[0], []), file=sys.stdout)
-    # print(pruned_schedules[0], file=sys.stdout)
-    
+    test_json_file = TEST_JSON_FILE_LOCATION + test_json_file
     store_json(accesses, pruned_schedules, test_json_file)
     print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file}', depth_start_time, True)
     print_time_message(f'TEST {testnum} finished', test_start_time)
@@ -199,9 +180,6 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\taccesses:\n\t\t\t\t[tensor]: list[indices]\n\t\ttensor_idx_order_constraints:\n\t\t\t\t[tensor]: list[list[indices]]\n\t\toutput_tensor: [tensor]\n\t\ttest_json_file: [json file to store configs into]\n\t\t(optional) z3_constraints: list[constraints]', required=True, nargs="+")
     parser.add_argument('-o', '--function_type', default='get_schedules_unfused', help='optional argument to change function for generating schedules (default: %(default)s)', choices=['get_schedules_unfused', 'get_schedules', 'sched_enum'])
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
-    
-    TEST_JSON_FILE_LOCATION = "test_schedules/"
-    CONFIG_FILE_LOCATION = "test_configs/"
     
     args = vars(parser.parse_args(argv))
     config_files = args["config_files"]
@@ -227,15 +205,13 @@ def main(argv: Optional[Sequence[str]] = None):
             tensor_idx_order_constraints[key] = [tuple(inner_list) for inner_list in value]
         output_tensor = new_dict["output_tensor"]
         test_json_file = new_dict["test_json_file"]
-        test_json_file = TEST_JSON_FILE_LOCATION + test_json_file     # place in tensors_stored folder
         try:
             z3_constraints = new_dict["z3_constraints"]
         except:
             z3_constraints = ""
+        test_json_file_without_depth = new_dict["test_json_file_without_depth"]
         
-        
-        
-        print_to_json2(accesses, tensor_idx_order_constraints, output_tensor, test_json_file, i, function_type, z3_constraints)
+        generate_and_save_schedules(accesses, tensor_idx_order_constraints, output_tensor, test_json_file, i, function_type, z3_constraints, test_json_file_without_depth)
 
 
 if __name__ == "__main__":
