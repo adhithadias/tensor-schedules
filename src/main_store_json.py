@@ -159,12 +159,12 @@ def generate_and_save_schedules(accesses:dict, tensor_idx_order_constraints:dict
         
     t = time()
     test_json_file_without_depth = TEST_JSON_FILE_LOCATION + test_json_file_without_depth
-    print_message(f'Storing mem depth 2 pruned schedules to file {test_json_file_without_depth}', flush=True)
+    print(f'Storing mem depth 2 pruned schedules to file {test_json_file_without_depth}', flush=True)
     store_json(accesses, pruned_schedules, test_json_file_without_depth)
     print_time_message(f'{len(pruned_schedules)} schedule(s) stored to {test_json_file_without_depth}', t, True)
         
     depth_start_time = time()
-    print_message(f'Pruning schedules using depth', flush=True)
+    print(f'Pruning schedules using depth', flush=True)
     pruned_schedules = solver.prune_using_depth(pruned_schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) unpruned after depth pruning', depth_start_time, True)
     
