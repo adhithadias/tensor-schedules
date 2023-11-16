@@ -20,16 +20,38 @@ class Gen_Test_Code:
         self.reorders = []
         self.extra_paths = []
         self.extra_reorders = []
+        self.vector_num = 0
+        
+        self.sep_scheds = []
+        self.temp_rename = []
+        
         self.no_fusion = False
-        self.partial_fusion = False
+        self.unfused = False
         self.config = config
         self.tensor_accesses = tensor_accesses
+        self.temp_accesses = {}
         
         if config.prod == None:
             self.no_fusion = True
-            
-        if config.fused == 0:
-            self.partial_fusion = True
+        
+        # replace tensor names with temporary names if any part of schedule is unfused/ also separates different schedules,
+        # holding in sep_schedules
+        self.get_temps_names(config)
+        
+        if len(self.sep_scheds) == 0: 
+            self.sep_scheds.append(config)
+            self.unfused = True
+        else:
+            for sched in self.sep_scheds:
+                if sched.temporary: 
+                    
+        
+        # holds statement objects with relevant info for each separate schedule
+        self.statements = [self.create_statement_obj() for _ in range(len(self.sep_scheds))]
+        
+        for i, config in enumerate(self.sep_scheds):
+            self.get_lines(config, i)
+        
         
         # retrieves all paths for fusion
         self.get_paths([], config)
@@ -168,17 +190,248 @@ class Gen_Test_Code:
                 continue
             else: 
                 assert SyntaxError
-                # parent_config = self.retrieve_path(self.paths[i][:-1], config)
-                # if (parent_config.prod and self.paths[i][-1] == 0) or not parent_config.prod_on_left:
-                #     self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
-                # else:
-                #     self.add_loopfuse(self.get_pos(config_to_split, False), config_to_split.prod_on_left, i)
-            # else: self.add_loopfuse(self.get_pos(config_to_split, True), config_to_split.prod_on_left, i)
         for i, extra_reorder in enumerate(self.extra_reorders):
             self.add_reorder(extra_reorder, i + len(self.reorders))
         
         if len(self.reorders) != 0 or not self.no_fusion: self.print_data(";", 2)
         self.add_end()
+        
+    def create_statement_obj(self):
+        return {
+          "paths": [],
+          "extra_paths": [],
+          "reorders": [],
+          "extra_reorders": [],
+          "expr": [],
+          "lines": {
+              "tens_decl": "",
+              "expr_decl": "",
+              "stmt_decl": "",
+              "sched_change": []
+          }
+        }
+        
+    def get_tensor_expr(self, tensor):
+        assert tensor in self.tensor_accesses or tensor in self.temp_accesses
+        if tensor in self.tensor_accesses:
+            return f'{tensor}({",".join(self.tensor_accesses[tensor])})'
+        else:
+            return f'{tensor}({",".join(self.temp_accesses[tensor])})'
+        
+    def get_lines(self, config:Config, stmt_num=0):
+        # retrieves all paths for fusion
+        self.get_paths([], config, stmt_num)
+        
+        # add extra paths for reordering inner expressions
+        if config.prod != None: self.get_extra_paths(stmt_num)
+        
+        # sets all of the reorders for loop fusion
+        for path in self.statements[stmt_num]["paths"]:
+            # get all indices
+            given_config = self.retrieve_path(path, config)
+            reordering = given_config.original_idx_perm
+            
+            if len(self.statements[stmt_num]["reorders"]) == 0:
+                if reordering == None: continue
+                self.statements[stmt_num]["reorders"].append(reordering)
+            else:
+                old_ordering = None
+                for end_point in range(len(path)):
+                    index = [str(el) for el in self.statements[stmt_num]["paths"]].index(str(path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.statements[stmt_num]["reorders"][index] if i in reordering]
+                    if len(old_ordering) > 0: break
+                if(str(reordering) != str(old_ordering)):
+                    new_reorderings = []
+                    i = 0
+                    
+                    while i < len(old_ordering):
+                        if reordering[i] == old_ordering[i]: i += 1
+                        else:
+                            list_old = [old_ordering[i]]
+                            list_new = [reordering[i]]
+                            i += 1
+                            while(set(list_old) != set(list_new) and i < len(old_ordering)):
+                                list_old.append(old_ordering[i])
+                                list_new.append(reordering[i])
+                                i += 1
+                            if len(list_new) > 1: new_reorderings.append(list_new)
+                    self.statements[stmt_num]["reorders"].append(new_reorderings)
+                else: self.statements[stmt_num]["reorders"].append([])
+       
+        # sets all of the extra reorders for loop fusion
+        for path in self.statements[stmt_num]["extra_paths"]:
+            # get all indices
+            given_config = self.retrieve_path(path, config)
+            reordering = given_config.original_idx_perm
+            
+            if len(self.statements[stmt_num]["extra_reorders"]) == 0:
+                if reordering == None: continue
+                self.statements[stmt_num]["extra_reorders"].append(reordering)
+            else:
+                old_ordering = None
+                for end_point in range(len(path)):
+                    index = [str(el) for el in self.statements[stmt_num]["extra_paths"]].index(str(path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.statements[stmt_num]["extra_reorders"][index] if i in reordering]
+                    if len(old_ordering) > 0: break
+                if(str(reordering) != str(old_ordering)):
+                    new_reorderings = []
+                    i = 0
+                    
+                    while i < len(old_ordering):
+                        if reordering[i] == old_ordering[i]: i += 1
+                        else:
+                            list_old = [old_ordering[i]]
+                            list_new = [reordering[i]]
+                            i += 1
+                            while(set(list_old) != set(list_new) and i < len(old_ordering)):
+                                list_old.append(old_ordering[i])
+                                list_new.append(reordering[i])
+                                i += 1
+                            if len(list_new) > 1: new_reorderings.append(list_new)
+                    self.statements[stmt_num]["extra_reorders"].append(new_reorderings)
+                else: self.statements[stmt_num]["extra_reorders"].append([])
+                
+        # removing extra paths
+        temp_path = []
+        temp_reorders = []
+        for i, extra_reorder in enumerate(self.statements[stmt_num]["extra_reorders"]):
+            if len(extra_reorder) == 0 or (len(extra_reorder) == 1 and len(extra_reorder[0]) == 0):
+                continue
+            temp_path.append(self.extra_paths[i])
+            temp_reorders.append(extra_reorder)
+                         
+        self.statements[stmt_num]["extra_reorders"] = temp_reorders
+        self.statements[stmt_num]["extra_paths"] = temp_path
+        
+        # add these temporary accesses
+        temporaries = list(config.temporary.values()) 
+        
+        # TODO set this before
+        # self.temp_accesses[config.output] =
+        self.temp_accesses[config.prod.output] = temporaries[0]
+        self.temp_accesses[config.cons.output] = temporaries[1]
+        
+        # get various expressions needed for given computation
+        if config.output == self.config.output: self.add_expression(config, stmt_num, False)
+        else: self.add_expression(config, stmt_num)
+        
+        vec_nums = []
+        for i, path in enumerate(self.statements[stmt_num]["lines"]["paths"] + self.statements[stmt_num]["lines"]["extra_paths"]):
+            # add paths
+            if len(self.statements[stmt_num]["reorders"]) == 0 and config.prod == None: continue
+            if(len(path) > 0):  
+                vec_nums.append(self.add_vector(name="path", init=("{" + ", ".join([str(el) for el in path]) + "}"), stmt_num=stmt_num))
+            else:
+                vec_nums.append(self.add_vector(name="path", stmt_num=stmt_num))
+
+        # print scheduling commands
+        if (len(self.statements[stmt_num]["reorders"]) > 0 or len(self.statements[stmt_num]["extra_reorders"]) > 0):
+            self.statements[stmt_num]["lines"]["sched_change"].append("stmt = stmt")
+            # self.print_data("stmt = stmt")
+        
+        
+        for i, reorder in enumerate(self.statements[stmt_num]["reorders"]):
+            self.add_reorder(reorder, i)
+            config_to_split = self.retrieve_path(self.statements[stmt_num]["paths"][i], config)
+            # if i != 0:
+            if config_to_split.prod and config_to_split.prod_on_left:
+                self.add_loopfuse(len(config_to_split.prod.expr), config_to_split.prod_on_left, vec_nums[i], stmt_num)
+            elif config_to_split.cons and not config_to_split.prod_on_left:
+                self.add_loopfuse(len(config_to_split.cons.expr) - 1, config_to_split.prod_on_left, vec_nums[i], stmt_num)
+            elif config.prod == None:
+                continue
+            else: 
+                assert SyntaxError
+        for i, extra_reorder in enumerate(self.statements[stmt_num]["extra_reorders"]):
+            self.add_reorder(extra_reorder, i + len(self.reorders), stmt_num)
+        
+        if len(self.statements[stmt_num]["reorders"]) != 0 or config.prod != 0: 
+            # self.print_data(";", 2)
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t\t;")
+        # self.add_end()
+        
+        
+        
+        # if config.fused == 0:
+        #     self.get_lines(config.prod, stmt_num + 1)
+        #     self.get_lines(config.cons, stmt_num + 2)
+            
+        #     if stmt_num == 0:
+        #         self.statements[stmt_num].append(config.output)
+        #     else:    
+        #         self.statements[stmt_num].append("t_" + config.output)
+                
+        #     self.statements[stmt_num].append("t_" + config.prod.output)
+        #     self.statements[stmt_num].append("t_" + config.cons.output)
+
+              
+
+    def get_temps_names(self, config:Config):
+        if config.prod == None: return
+        
+        self.get_temps_names(config.prod)
+        self.get_temps_names(config.cons)
+        
+        # only match schedule if unfused
+        if config.fused == 0:
+            for temp_replacement in self.temp_rename:
+                if temp_replacement[1][0] in config.prod.expr:
+                    config.prod.expr = [tens for tens in config.prod.expr if (tens not in temp_replacement[1] or tens == temp_replacement[1][0])]
+                    config.prod.expr[config.prod.expr.index(temp_replacement[1][0])] = temp_replacement[0]
+                if temp_replacement[1][0] in config.cons.expr:
+                    config.cons.expr = [tens for tens in config.cons.expr if (tens not in temp_replacement[1] or tens == temp_replacement[1][0])]
+                    config.cons.expr[config.cons.expr.index(temp_replacement[1][0])] = temp_replacement[0]
+                    
+            self.temp_rename.append(("t_" + config.prod.output, config.prod.expr))
+            self.temp_rename.append(("t_" + config.cons.output, config.cons.expr))
+            
+            for temp_replacement in self.temp_rename:
+                if temp_replacement[1][0] in config.expr:
+                    config.expr = [tens for tens in config.expr if (tens not in temp_replacement[1] or tens == temp_replacement[1][0])]
+                    config.expr[config.expr.index(temp_replacement[1][0])] = temp_replacement[0]
+            
+            # break apart schedule so it's separate
+            if config.prod not in self.sep_scheds: self.sep_scheds.append(config.prod)
+            if config.cons not in self.sep_scheds: self.sep_scheds.append(config.cons)
+            if config not in self.sep_scheds: self.sep_scheds.append(config)
+            config.fused = 1
+            config.prod = None
+            config.cons = None
+            
+    def __find_tensor_with_index(self, given_index):
+        """Gets tensor with same accesses as the given index
+
+        Args:
+            given_index (str): index given to find tensor
+
+        Returns:
+            tuple: holds (tensor, index) 
+        """
+        for tensor, tens_indices in self.tensor_accesses.items():
+            for index, tens_index in enumerate(tens_indices):
+                if given_index == tens_index: return (tensor, index)
+    
+    def __find_tensors_with_indices(self, given_indices):
+        all_accesses = []        
+        for given_index in given_indices:
+            all_accesses.append(self.__find_tensor_with_index(given_index))
+        return all_accesses
+    
+    def get_temp_declaration(self, temp, index_order):
+        temp_accesses = self.__find_tensors_with_indices(index_order)
+        accesses_str = ""
+        for i, temp_access in enumerate(temp_accesses):
+            accesses_str += f'{temp_access[0]}.getDimension({temp_access[1]})'
+            if i != len(temp_accesses) - 1: accesses_str += f','
+        
+        format = ",".join(["Dense" for _ in range(len(temp_accesses))])
+        declar = f'Tensor<double> {temp}(\"{temp}\", {{{accesses_str}}}, Format{{{format}}});'
+        
+        return declar
+    # def replace_tens_with_temp(self, config:Config, temp: str, tens_names:tuple):
+    #     if config == None: return
+    #     if 
+    
     
     def print_data(self, data:str, num_tabs=1) -> None:
       print(data, file=self.file)
@@ -210,7 +463,7 @@ class Gen_Test_Code:
                 next_config = config.cons
             return self.retrieve_path(ordering[1:], next_config)
     
-    def get_paths(self, path:tuple, config:Config) -> None:
+    def get_paths(self, path:tuple, config:Config, stmt_num=0) -> None:
         """This retrieves all possible paths of fusion
 
         Args:
@@ -218,56 +471,61 @@ class Gen_Test_Code:
             config (Config): Config class
         """
         if type(config.input_idx_order[-1]) != tuple and config.prod == None:
-            if self.no_fusion == True: self.paths.append(path)
+            if config.prod == None: self.statements[stmt_num]["paths"].append(path)
             return
         else:
-            self.paths.append(path)
+            self.statements[stmt_num]["paths"].append(path)
             
-            if (len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple) or config.fused == 0:
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-2]) == tuple and len(config.input_idx_order[-2]) > 0 and type(config.input_idx_order[-2][-1]) == tuple:
                 self.get_paths(path + [0], config.prod)
-            if (len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple) or config.fused == 0:
+            if len(config.input_idx_order) > 1 and type(config.input_idx_order[-1]) == tuple and len(config.input_idx_order[-1]) > 0 and type(config.input_idx_order[-1][-1]) == tuple:
                 self.get_paths(path + [1], config.cons)
-            
-            # if config.prod_on_left:
-            #     self.get_paths(path + [0], config.prod)
-            #     self.get_paths(path + [1], config.cons)
-            # else:
-            #     self.get_paths(path + [1], config.prod)
-            #     self.get_paths(path + [0], config.cons)
-        
-    def get_extra_paths(self):
+                
+    def get_extra_paths(self, stmt_num=0):
         for path in self.paths:
             if (path + [0]) not in self.paths:
-                self.extra_paths.append(path + [0])
+                self.statements[stmt_num]["extra_paths"].append(path + [0])
             if (path + [1]) not in self.paths:
-                self.extra_paths.append(path + [1])
+                self.statements[stmt_num]["extra_paths"].append(path + [1])
     
     def add_header(self):
         self.print_data("/* BEGIN " + self.test_name + " TEST */")
         
-    def add_expression(self):
-        result = self.config.output + "(" + ", ".join([idx for idx in self.config.output_idx_order]) + ") = "
+    def add_expression(self, config:Config, stmt_num=0, temporary=True):
+        if temporary: 
+            self.statements[stmt_num]["lines"]["tens_decl"] = self.get_temp_declaration()
+            self.statements[stmt_num]["lines"]["stmt_decl"] = f'IndexStmt stmt{stmt_num} = {config.output}.getAssignment().concretize();'
+        self.statements[stmt_num]["lines"]["expr_decl"] = f'{self.get_tensor_expr(config.output)} = {" * ".join([self.get_tensor_expr(tens) for tens in config.expr])};'
+        # result = config.output + "(" + ", ".join([idx for idx in config.output_idx_order]) + ") = "
         
-        for i, tensor in enumerate(self.config.expr):
-            result += tensor + "(" + ", ".join([idx for idx in self.tensor_accesses[tensor]]) + ")"
-            if i != len(self.config.expr) - 1:
-                result += " * "
-                
-        self.print_data(result + ";")
-        self.print_data("")
-        self.print_data("IndexStmt stmt = " + self.config.output + ".getAssignment().concretize();")
-        self.print_data("std::cout << stmt << endl;")
-        self.print_data("")
+        # for i, tensor in enumerate(config.expr):
+        #     result += tensor + "(" + ", ".join([idx for idx in self.tensor_accesses[tensor]]) + ")"
+        #     if i != len(config.expr) - 1:
+        #         result += " * "
+        
+        
+        
+        # self.print_data(result + ";")
+        # self.print_data("")
+        # self.print_data("IndexStmt stmt = " + config.output + ".getAssignment().concretize();")
+        # self.print_data("std::cout << stmt << endl;")
+        # self.print_data("")
     
     def add_end(self):
         self.print_data("/* END " + self.test_name + " TEST */")
         
-    def add_vector(self, name: str, type="int", init=""):
+    def add_vector(self, name: str, type="int", init="", stmt_num=0):
         if len(init) == 0:
-            self.print_data("vector<" + type + "> " + name + ";")
+            # self.print_data("vector<" + type + "> " + name + ";")
+            self.statements[stmt_num]["lines"]["sched_change"].append(f'vector<{type}> {name}{self.vector_num};')
         else:
-            self.print_data("vector<" + type + "> " + name + " = " + init + ";")
-    def add_reorder(self, inputs:tuple, path=0):
+            # self.print_data("vector<" + type + "> " + name + " = " + init + ";")
+            self.statements[stmt_num]["lines"]["sched_change"].append(f'vector<{type}> {name}{self.vector_num} = {init};')
+
+        self.vector_num += 1      
+        return self.vector_num - 1
+        
+    def add_reorder(self, inputs:tuple, path=0, stmt_num=0):
         if len(inputs) == 0:
             return
         reorderings = "{"
@@ -284,14 +542,16 @@ class Gen_Test_Code:
         elif reorderings[-2:] == ", ":
             reorderings = reorderings[:-2] + "}"
         if path == 0:
-            self.print_data("\t.reorder(" + reorderings + ")")
+            # self.print_data("\t.reorder(" + reorderings + ")")
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t.reorder(" + reorderings + ")")
         else:
-            self.print_data("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
+            # self.print_data("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
 
-        
-    def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int):
+    def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int, stmt_num=0):
         if prod_on_left == None: prod_on_left = True
-        self.print_data("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
+        self.statements[stmt_num]["lines"]["sched_change"].append("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
+        # self.print_data("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
         """Returns all possible orderings of indexes
@@ -390,7 +650,6 @@ class Gen_Test_Code:
 
       return prod_ordering + cons_ordering
     
-    
     def _build_traversal_matrix(self, indexes=list):
       """Builds matrix of 0's where Mat['i']['j'] == 1 means i -> j ordering\n
       Example: (t represents Total)\n
@@ -444,6 +703,11 @@ class Write_Test_Code(Gen_Test_Code):
         # test name line of C++ code to recognize
         self.test_regex = self.get_test_regex(test_name)
         
+        self.temp_accesses = {}
+        self.temp_decls = []
+        self.temp_expressions = []
+        self.stmts = {}
+        
         # open file for reading
         try:
             r_file_ptr = open(filename, "r")
@@ -457,92 +721,76 @@ class Write_Test_Code(Gen_Test_Code):
         # initialize parent class
         super().__init__(config, test_name, r_file_ptr, tensor_accesses)
         
-        # initialize list of all lines in file
-        new_text = []
-        
-        file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
+        # initialize file writer to interact with actual manipulation of lines
+        self.file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
         
         # set replacement point at start of test case
-        file_writer.match_replacement_point(self.test_regex)
+        self.file_writer.match_replacement_point(self.test_regex)
+        
+        # generate actual schedule text
+        # self.generate_schedule_text(config)
         
         # set replacement point to last tensor declared
-        file_writer.match_replacement_point(r'Tensor<double> ' + config.expr[-1] + r'.;')
+        self.file_writer.match_replacement_point(r'Tensor<double> ' + config.expr[-1] + r'.+;', False)
         
         temps_explicit = self.get_temporaries(config)
-        temp_decl_list = []
+        
+        # check if there is at least one unfused loop
         if len(temps_explicit) != 0:
+            temp_decl_list = []
+            temp_expr_list = []
             for i, temp_expl in enumerate(temps_explicit):
-                temp_name = "T" + (i + 1)
-                temp_decl_list.append(self.get_temp_declaration(temp_name, temp_expl["index_order"]))
+                # get and change producer/consumer temporary names to T# where # is an integer
+                temp_prod_name = "T" + str(i * 2 + 1)
+                temp_cons_name = "T" + str(i * 2 + 2)
+                self.change_tensor_name(temp_expl["config"], temp_expl["output_temp_name_prod"], temp_prod_name)
+                self.change_tensor_name(temp_expl["config"], temp_expl["output_temp_name_cons"], temp_cons_name)
                 
+                # add these temporary accesses
+                self.temp_accesses[temp_prod_name] = temp_expl["index_order_prod"]
+                self.temp_accesses[temp_cons_name] = temp_expl["index_order_cons"]
+                
+                # add declaration statement for temporaries
+                temp_decl_list.append(self.get_temp_declaration(temp_prod_name, temp_expl["index_order_prod"]))
+                temp_decl_list.append(self.get_temp_declaration(temp_cons_name, temp_expl["index_order_cons"]))
+                
+                # add assignment statements for temporaries
+                right_hand_assignment_prod = " * ".join([self.get_tensor_expr(tens) for tens in temp_expl["config"].prod.expr])
+                right_hand_assignment_cons = " * ".join([self.get_tensor_expr(tens) for tens in temp_expl["config"].cons.expr])
+                temp_expr_list.append(f'{self.get_tensor_expr(temp_prod_name)} = {right_hand_assignment_prod}')
+                temp_expr_list.append(f'{self.get_tensor_expr(temp_cons_name)} = {right_hand_assignment_cons}')
+                
+            # add temporary declarations
+            self.file_writer.add_lines(['\t' + temp_decl for temp_decl in temp_decl_list])
+            
+            # find where original expression is
+            self.file_writer.match_replacement_point(self.get_tensor_expr(self.config.output))
+            
+            # delete original expression
+            
+            # add temporary expressions
+            self.file_writer.add_lines(['\t' + temp_expr for temp_expr in temp_expr_list])
+            
+            
         
-        
-        file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True, True)
-        file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>')
+        self.file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True, True)
+        self.file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>')
         
         # write new compiled info back to file
-        w_file_ptr = open(filename, "w")
-        w_file_ptr.writelines(new_text)
-        w_file_ptr.close()
+        # w_file_ptr = open(filename, "w")
+        # w_file_ptr.writelines(new_text)
+        # w_file_ptr.close()
         
+    
+    def change_tensor_name(self, config:Config, old_name, new_name):
+        if config == None: return
+        if config.output == old_name:
+            config.output = new_name
+        config.expr = [expr if expr != old_name else new_name for expr in config.expr]
         
-        # for line in r_file_ptr:
-        #     if test_read: 
-        #         new_text.append(line)
-        #         continue
-        #     text = re.search(self.test_regex, line)
-        #     if text: 
-        #         # change to true so less computations
-        #         test_read = True
-        #         try:
-        #             # read and store lines until header is reached
-        #             new_text.append(line)
-                    
-        #             for line2 in r_file_ptr:
-        #                 # next_line = r_file_ptr.readline()
-        #                 if re.search(header_to_read, line2): 
-        #                     header_read = True
-        #                     break
-        #                 new_text.append(line2)
-                        
-        #             # add schedule text in
-        #             new_text.extend(self.schedule_text)
-                    
-        #             # read only until footer is reached
-        #             for line2 in r_file_ptr:
-        #                 # next_line = r_file_ptr.readline()
-        #                 if re.search(footer_to_read, line2): 
-        #                     footer_read = True
-        #                     break
-                          
-        #             # read until for loop reached
-        #             if num_tests != None:
-        #                 for line2 in r_file_ptr:
-        #                     if re.search(test_rep_for_loop, line2):
-        #                         new_text.append(re.sub(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>', line2))
-        #                         break
-        #                     else: new_text.append(line2)
-                        
-                    
-        #         except EOFError:
-        #             print("Invalid header or footer", file=sys.stderr)
-        #             r_file_ptr.close()
-        #             return
-        #     else: new_text.append(line)
-        
-        # r_file_ptr.close()
-        
-        # # check if valid 
-        # if not test_read: 
-        #     print("Invalid test name", file=sys.stderr)
-        #     return
-        # if not header_read:
-        #     print("No header present", file=sys.stderr)
-        #     return
-        # if not footer_read:
-        #     print("No footer present", file=sys.stderr)
-        #     return
-
+        self.change_tensor_name(config.prod, old_name, new_name)
+        self.change_tensor_name(config.cons, old_name, new_name)
+            
     def print_data(self, data: str, num_tabs=1) -> None:
         """Override print_data to write all info into list
 
@@ -553,36 +801,6 @@ class Write_Test_Code(Gen_Test_Code):
     
     def get_test_regex(self, test_name: str):
         return re.compile(f"TEST\(workspaces, {test_name}\)")
-    
-    def __find_tensor_with_index(self, given_index):
-        """Gets tensor with same accesses as the given index
-
-        Args:
-            given_index (str): index given to find tensor
-
-        Returns:
-            tuple: holds (tensor, index) 
-        """
-        for tensor, tens_indices in self.tensor_accesses.items():
-            for index, tens_index in enumerate(tens_indices):
-                if given_index == tens_index: return (tensor, index)
-                
-    def __find_tensors_with_indices(self, given_indices):
-        all_accesses = []        
-        for given_index in given_indices:
-            all_accesses.append(self.__find_tensor_with_index(given_index))
-    
-    def get_temp_declaration(self, temp, index_order):
-        temp_accesses = self.__find_tensors_with_indices(index_order)
-        accesses_str = ""
-        for i, temp_access in enumerate(temp_accesses):
-            accesses_str += f'{temp_access[0]}.getDimension({temp_access[1]})'
-            if i != len(temp_accesses) - 1: accesses_str += f','
-        
-        format = ",".join(["Dense" for _ in range(len(temp_accesses))])
-        declar = f'Tensor<double> {temp}(\"{temp}\", {{{accesses_str}}}, Format{{{format}}});'
-        
-        return declar
     
     def __get_indices(self, config:Config):
         """Retrieves the indices accessed by a given expression
@@ -600,53 +818,57 @@ class Write_Test_Code(Gen_Test_Code):
         
         temps = []
         if sched.fused == 0: 
-            shared_indices = list(set(self.__get_indices(sched.prod)).intersection(set(self.__get_indices(sched.cons))))
-            root_indices = self.__get_indices(sched)
-            shared_index_locations = [root_indices.index(shared_index) for shared_index in shared_indices]
-            index_order = [index for _, index in sorted(zip(shared_index_locations, shared_indices))]
+            # shared_indices = list(set(self.__get_indices(sched.prod)).intersection(set(self.__get_indices(sched.cons))))
+            # root_indices = self.__get_indices(sched)
+            # shared_index_locations = [root_indices.index(shared_index) for shared_index in shared_indices]
+            # index_order = [index for _, index in sorted(zip(shared_index_locations, shared_indices))]
+            temporaries = list(sched.temporary.values())
+            index_order_prod = temporaries[0]
+            # [idx for idx in self.config.original_idx_perm if idx in sched.prod.input_idx_order]
             
-            temps.append({"index_order": index_order, "config": sched})
+            index_order_cons = temporaries[1]
+            # [idx for idx in self.config.original_idx_perm if idx in sched.cons.input_idx_order]
+            
+            temps.append({"index_order_prod": index_order_prod, 
+                          "index_order_cons": index_order_cons, 
+                          "output_temp_name_prod": sched.prod.output,
+                          "output_temp_name_cons": sched.cons.output,
+                          "config": sched})
         
         temps.extend(self.get_temporaries(sched.prod))
         temps.extend(self.get_temporaries(sched.cons))
         
         return temps
-
     
     
 if __name__ == "__main__":
     schedules = []
     accesses = {
-        'X': ('i', 'm'),
-        'A': ('i', 'j'),
-        'B': ('j', 'k'),
-        'C': ('k', 'l'),
-        'D': ('l', 'm')
+        'A': ('i', 'l'),
+        'B': ('i', 'j'),
+        'C': ('i', 'k'),
+        'D': ('j', 'k'),
+        'E': ('j', 'l')
     }
     tensor_idx_order_constraints = {
-        'A': [('j', 'i')],
+        'B': [('j', 'i')],
         # 'B': [],
         # 'C': [],
         # 'D': [],
     }
     # sched_enum('X', ['A','B','C','D'], accesses['X'], accesses, tensor_idx_order_constraints, schedules)
     cache = {}
-    schedules = list(get_schedules_unfused('X', accesses['X'], ('A','B','C','D'), accesses, ('i', 'j', 'k', 'l', 'm'), tensor_idx_order_constraints, 1, cache))
+    schedules = list(get_schedules_unfused('A', accesses['A'], ('B','C','D', 'E'), accesses, ('i', 'j', 'k', 'l'), tensor_idx_order_constraints, 1, cache))
     print("\n")
     counter_printing = 15
     counter = 1
     test_num = 1
     
-    test_sched = Config('X', ('A', 'B', 'C', 'D'), ('i', 'j', 'k', 'l', 'm'), ('i', 'j', 'l', 'k', 'm'), 2)
-    test_sched.original_idx_perm = ('i', 'j', 'l', 'k', 'm')
-    # Write_Test_Code(test_sched, "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
-    
-    # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
-    # Write_Test_Code(schedules[0], "loopfuse", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp")
-    # exit()
+    # test_sched = Config('X', ('A', 'B', 'C', 'D'), ('i', 'j', 'k', 'l', 'm'), ('i', 'j', 'l', 'k', 'm'), 2)
+    # test_sched.original_idx_perm = ('i', 'j', 'l', 'k', 'm')
     for schedule in schedules:
         # if count_fusions(schedule) == 2 and schedule.fused:
-            if type(schedule.input_idx_order[-1]) == tuple:
+            if schedule.fused == 0 and schedule.cons != None and schedule.cons.fused == 0:
                 Write_Test_Code(schedule, "sddmm_spmm_fake", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp", 10, accesses)
                 break
               

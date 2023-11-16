@@ -5,6 +5,7 @@ import json
 from src.basket import Baskets
 import re
 import numpy as np
+from copy import copy
 
 MAX_LINES = 100000
 
@@ -20,9 +21,10 @@ class Modify_Lines:
     #     fileptr.close()
     
     def __init__(self, lines):
+        self.orig_lines = copy(lines)
         self.lines = lines
         self.replace_point = 0    # represents location in lines array to begin searching for replacement
-    
+
     @property
     def num_lines(self):
         return len(self.lines)
@@ -102,7 +104,7 @@ class Modify_Lines:
             from_beginning (bool): match replace point from beginning of lines array or from current replace point
         """
         # assert type(replace_point_pat) == str or type(replace_point_pat) == re.Pattern
-        if type(replace_point_pat): replace_point_pat = re.compile(replace_point_pat)
+        if type(replace_point_pat) == str: replace_point_pat = re.compile(replace_point_pat)
         if from_beginning: 
             lines = self.lines
             indices = list(range(self.num_lines))
