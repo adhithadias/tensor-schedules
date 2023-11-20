@@ -16,10 +16,6 @@ class Gen_Test_Code:
     def __init__(self, config:Config, test_name:str, file, tensor_accesses:dict = None):
         self.test_name = test_name
         self.file = file
-        self.paths = []
-        self.reorders = []
-        self.extra_paths = []
-        self.extra_reorders = []
         self.vector_num = 0
         
         self.sep_scheds = []
@@ -27,7 +23,8 @@ class Gen_Test_Code:
         
         self.no_fusion = False
         self.unfused = False
-        self.config = config
+        self.orig_config = config
+        self.config = deepcopy(config)
         self.tensor_accesses = tensor_accesses
         self.temp_accesses = {}
         
@@ -44,16 +41,17 @@ class Gen_Test_Code:
         else:
             for sched in self.sep_scheds:
                 if sched.temporary: 
-                    
+                    keys = list(sched.temporary.keys())
+                    self.temp_accesses[keys[0]] = sched.temporary[keys[0]]
+                    self.temp_accesses[keys[1]] = sched.temporary[keys[1]]
         
         # holds statement objects with relevant info for each separate schedule
-        self.statements = [self.create_statement_obj() for _ in range(len(self.sep_scheds))]
+        self.statements = [self.statement_obj for _ in range(len(self.sep_scheds))]
         
         for i, config in enumerate(self.sep_scheds):
-            self.get_lines(config, i)
+            self.get_lines(config, i)     
         
-        
-        # retrieves all paths for fusion
+        """# retrieves all paths for fusion
         self.get_paths([], config)
         
         if not self.no_fusion: self.get_extra_paths()
@@ -194,9 +192,11 @@ class Gen_Test_Code:
             self.add_reorder(extra_reorder, i + len(self.reorders))
         
         if len(self.reorders) != 0 or not self.no_fusion: self.print_data(";", 2)
-        self.add_end()
-        
-    def create_statement_obj(self):
+        self.add_end()"""
+    
+    
+    @property
+    def statement_obj(self):
         return {
           "paths": [],
           "extra_paths": [],
@@ -207,8 +207,12 @@ class Gen_Test_Code:
               "tens_decl": "",
               "expr_decl": "",
               "stmt_decl": "",
+              "concretize": "",
+              "compile": "",
+              "assemble": "",
               "sched_change": []
-          }
+          },
+          "root_sched": False
         }
         
     def get_tensor_expr(self, tensor):
@@ -216,7 +220,7 @@ class Gen_Test_Code:
         if tensor in self.tensor_accesses:
             return f'{tensor}({",".join(self.tensor_accesses[tensor])})'
         else:
-            return f'{tensor}({",".join(self.temp_accesses[tensor])})'
+            return f't_{tensor}({",".join(self.temp_accesses[tensor])})'
         
     def get_lines(self, config:Config, stmt_num=0):
         # retrieves all paths for fusion
@@ -226,7 +230,9 @@ class Gen_Test_Code:
         if config.prod != None: self.get_extra_paths(stmt_num)
         
         # sets all of the reorders for loop fusion
-        for path in self.statements[stmt_num]["paths"]:
+        self.set_reorders(config, stmt_num=stmt_num)
+        self.set_reorders(config, path_name="extra_paths", reorder_name="extra_reorders", stmt_num=stmt_num)
+        """for path in self.statements[stmt_num]["paths"]:
             # get all indices
             given_config = self.retrieve_path(path, config)
             reordering = given_config.original_idx_perm
@@ -256,10 +262,10 @@ class Gen_Test_Code:
                                 i += 1
                             if len(list_new) > 1: new_reorderings.append(list_new)
                     self.statements[stmt_num]["reorders"].append(new_reorderings)
-                else: self.statements[stmt_num]["reorders"].append([])
+                else: self.statements[stmt_num]["reorders"].append([])"""
        
         # sets all of the extra reorders for loop fusion
-        for path in self.statements[stmt_num]["extra_paths"]:
+        """for path in self.statements[stmt_num]["extra_paths"]:
             # get all indices
             given_config = self.retrieve_path(path, config)
             reordering = given_config.original_idx_perm
@@ -289,7 +295,7 @@ class Gen_Test_Code:
                                 i += 1
                             if len(list_new) > 1: new_reorderings.append(list_new)
                     self.statements[stmt_num]["extra_reorders"].append(new_reorderings)
-                else: self.statements[stmt_num]["extra_reorders"].append([])
+                else: self.statements[stmt_num]["extra_reorders"].append([])"""
                 
         # removing extra paths
         temp_path = []
@@ -297,26 +303,18 @@ class Gen_Test_Code:
         for i, extra_reorder in enumerate(self.statements[stmt_num]["extra_reorders"]):
             if len(extra_reorder) == 0 or (len(extra_reorder) == 1 and len(extra_reorder[0]) == 0):
                 continue
-            temp_path.append(self.extra_paths[i])
+            temp_path.append(self.statements[stmt_num]["extra_paths"][i])
             temp_reorders.append(extra_reorder)
                          
         self.statements[stmt_num]["extra_reorders"] = temp_reorders
         self.statements[stmt_num]["extra_paths"] = temp_path
-        
-        # add these temporary accesses
-        temporaries = list(config.temporary.values()) 
-        
-        # TODO set this before
-        # self.temp_accesses[config.output] =
-        self.temp_accesses[config.prod.output] = temporaries[0]
-        self.temp_accesses[config.cons.output] = temporaries[1]
         
         # get various expressions needed for given computation
         if config.output == self.config.output: self.add_expression(config, stmt_num, False)
         else: self.add_expression(config, stmt_num)
         
         vec_nums = []
-        for i, path in enumerate(self.statements[stmt_num]["lines"]["paths"] + self.statements[stmt_num]["lines"]["extra_paths"]):
+        for i, path in enumerate(self.statements[stmt_num]["paths"] + self.statements[stmt_num]["extra_paths"]):
             # add paths
             if len(self.statements[stmt_num]["reorders"]) == 0 and config.prod == None: continue
             if(len(path) > 0):  
@@ -331,7 +329,7 @@ class Gen_Test_Code:
         
         
         for i, reorder in enumerate(self.statements[stmt_num]["reorders"]):
-            self.add_reorder(reorder, i)
+            self.add_reorder(reorder, stmt_num=stmt_num)
             config_to_split = self.retrieve_path(self.statements[stmt_num]["paths"][i], config)
             # if i != 0:
             if config_to_split.prod and config_to_split.prod_on_left:
@@ -343,9 +341,9 @@ class Gen_Test_Code:
             else: 
                 assert SyntaxError
         for i, extra_reorder in enumerate(self.statements[stmt_num]["extra_reorders"]):
-            self.add_reorder(extra_reorder, i + len(self.reorders), stmt_num)
+            self.add_reorder(extra_reorder, i + len(self.statements[stmt_num]["reorders"]), stmt_num)
         
-        if len(self.statements[stmt_num]["reorders"]) != 0 or config.prod != 0: 
+        if len(self.statements[stmt_num]["reorders"]) != 0 or config.prod != None: 
             # self.print_data(";", 2)
             self.statements[stmt_num]["lines"]["sched_change"].append("\t\t;")
         # self.add_end()
@@ -364,7 +362,38 @@ class Gen_Test_Code:
         #     self.statements[stmt_num].append("t_" + config.prod.output)
         #     self.statements[stmt_num].append("t_" + config.cons.output)
 
-              
+    def set_reorders(self, root_config:Config, path_name="paths", reorder_name="reorders", stmt_num=0):
+        for path in self.statements[stmt_num][path_name]:
+            # get all indices
+            given_config = self.retrieve_path(path, root_config)
+            reordering = given_config.original_idx_perm
+            
+            if len(self.statements[stmt_num][reorder_name]) == 0:
+                if reordering == None: continue
+                self.statements[stmt_num][reorder_name].append(reordering)
+            else:
+                old_ordering = None
+                for end_point in range(len(path)):
+                    index = [str(el) for el in self.statements[stmt_num][path_name]].index(str(path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.statements[stmt_num][reorder_name][index] if i in reordering]
+                    if len(old_ordering) > 0: break
+                if(str(reordering) != str(old_ordering)):
+                    new_reorderings = []
+                    i = 0
+                    
+                    while i < len(old_ordering):
+                        if reordering[i] == old_ordering[i]: i += 1
+                        else:
+                            list_old = [old_ordering[i]]
+                            list_new = [reordering[i]]
+                            i += 1
+                            while(set(list_old) != set(list_new) and i < len(old_ordering)):
+                                list_old.append(old_ordering[i])
+                                list_new.append(reordering[i])
+                                i += 1
+                            if len(list_new) > 1: new_reorderings.append(list_new)
+                    self.statements[stmt_num][reorder_name].append(new_reorderings)
+                else: self.statements[stmt_num][reorder_name].append([])
 
     def get_temps_names(self, config:Config):
         if config.prod == None: return
@@ -382,8 +411,8 @@ class Gen_Test_Code:
                     config.cons.expr = [tens for tens in config.cons.expr if (tens not in temp_replacement[1] or tens == temp_replacement[1][0])]
                     config.cons.expr[config.cons.expr.index(temp_replacement[1][0])] = temp_replacement[0]
                     
-            self.temp_rename.append(("t_" + config.prod.output, config.prod.expr))
-            self.temp_rename.append(("t_" + config.cons.output, config.cons.expr))
+            self.temp_rename.append((config.prod.output, config.prod.expr))
+            self.temp_rename.append((config.cons.output, config.cons.expr))
             
             for temp_replacement in self.temp_rename:
                 if temp_replacement[1][0] in config.expr:
@@ -417,7 +446,10 @@ class Gen_Test_Code:
             all_accesses.append(self.__find_tensor_with_index(given_index))
         return all_accesses
     
-    def get_temp_declaration(self, temp, index_order):
+    def get_temp_declaration(self, temp):
+        assert temp in self.temp_accesses
+        
+        index_order = self.temp_accesses[temp]
         temp_accesses = self.__find_tensors_with_indices(index_order)
         accesses_str = ""
         for i, temp_access in enumerate(temp_accesses):
@@ -425,7 +457,7 @@ class Gen_Test_Code:
             if i != len(temp_accesses) - 1: accesses_str += f','
         
         format = ",".join(["Dense" for _ in range(len(temp_accesses))])
-        declar = f'Tensor<double> {temp}(\"{temp}\", {{{accesses_str}}}, Format{{{format}}});'
+        declar = f'Tensor<double> t_{temp}(\"t_{temp}\", {{{accesses_str}}}, Format{{{format}}});'
         
         return declar
     # def replace_tens_with_temp(self, config:Config, temp: str, tens_names:tuple):
@@ -482,10 +514,10 @@ class Gen_Test_Code:
                 self.get_paths(path + [1], config.cons)
                 
     def get_extra_paths(self, stmt_num=0):
-        for path in self.paths:
-            if (path + [0]) not in self.paths:
+        for path in self.statements[stmt_num]["paths"]:
+            if (path + [0]) not in self.statements[stmt_num]["paths"]:
                 self.statements[stmt_num]["extra_paths"].append(path + [0])
-            if (path + [1]) not in self.paths:
+            if (path + [1]) not in self.statements[stmt_num]["paths"]:
                 self.statements[stmt_num]["extra_paths"].append(path + [1])
     
     def add_header(self):
@@ -493,8 +525,12 @@ class Gen_Test_Code:
         
     def add_expression(self, config:Config, stmt_num=0, temporary=True):
         if temporary: 
-            self.statements[stmt_num]["lines"]["tens_decl"] = self.get_temp_declaration()
-            self.statements[stmt_num]["lines"]["stmt_decl"] = f'IndexStmt stmt{stmt_num} = {config.output}.getAssignment().concretize();'
+            self.statements[stmt_num]["lines"]["tens_decl"] = self.get_temp_declaration(config.output)
+            self.statements[stmt_num]["lines"]["stmt_decl"] = f'IndexStmt stmt{stmt_num} = t_{config.output}.getAssignment().concretize();'
+            self.statements[stmt_num]["lines"]["concretize"] = f'stmt{stmt_num} = stmt{stmt_num}.concretize();'
+            self.statements[stmt_num]["lines"]["compile"] = f't_{config.output}.compile(stmt{stmt_num});'
+            self.statements[stmt_num]["lines"]["assemble"] = f't_{config.output}.assemble();'
+        else: self.statements[stmt_num]["root_sched"] = True
         self.statements[stmt_num]["lines"]["expr_decl"] = f'{self.get_tensor_expr(config.output)} = {" * ".join([self.get_tensor_expr(tens) for tens in config.expr])};'
         # result = config.output + "(" + ", ".join([idx for idx in config.output_idx_order]) + ") = "
         
@@ -698,11 +734,7 @@ def count_fusions(config:Config):
 class Write_Test_Code(Gen_Test_Code):
     def __init__(self, config: Config, test_name: str, filename: str, num_tests=None, tensor_accesses = None):
         # text to hold lines indicating schedule
-        self.schedule_text = []
-        
-        # test name line of C++ code to recognize
-        self.test_regex = self.get_test_regex(test_name)
-        
+        self.schedule_text = [] 
         self.temp_accesses = {}
         self.temp_decls = []
         self.temp_expressions = []
@@ -725,13 +757,56 @@ class Write_Test_Code(Gen_Test_Code):
         self.file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
         
         # set replacement point at start of test case
-        self.file_writer.match_replacement_point(self.test_regex)
+        self.match_test_case()
         
-        # generate actual schedule text
-        # self.generate_schedule_text(config)
+        # if schedule has some unfused component, add additional lines
+        if self.unfused == False:
+            # set replacement point to declaration of last tensor (Tensor<double> ...)
+            self.match_decls()
+            
+            # add all declarations
+            self.add_declarations()
         
-        # set replacement point to last tensor declared
-        self.file_writer.match_replacement_point(r'Tensor<double> ' + config.expr[-1] + r'.+;', False)
+            # match original expression statement (A(i,l) = ...)
+            self.match_expr_stmt()
+            
+            # remove this
+            self.file_writer.remove_line()
+            
+            # add in new expression statements
+            self.add_expr_statements()
+            
+            # match statmement declaration (IndexStmt stmt = ...)
+            self.match_stmt_decl()
+            
+            # add all new statement declarations
+            self.add_stmt_decls()
+            
+            # replace scheduling directive text in between headers with new schedule
+            self.replace_schedule()
+            
+            # match stmt concretize statement (stmt = stmt.concretize();)
+            self.match_stmt_concr()
+            
+            # add stmt concretize statements
+            self.add_stmt_concr()
+            
+            # match compile statement (A.compile(stmt);)
+            self.match_compile()
+            
+            # add compilation statements
+            self.add_compile_stmts()
+            
+            # match assemble statement (A.assemble())
+            self.match_assemble()
+            
+            # add assemble statements
+            self.add_assemble()
+            
+            
+
+
+        
         
         temps_explicit = self.get_temporaries(config)
         
@@ -781,7 +856,88 @@ class Write_Test_Code(Gen_Test_Code):
         # w_file_ptr.writelines(new_text)
         # w_file_ptr.close()
         
+    def match_test_case(self):
+        """Sets replacement/addition point to the actual test case
+        """
+        self.file_writer.match_replacement_point(f"TEST\(workspaces, {self.test_name}\)")
     
+    def match_decls(self):
+        """Sets replacement/addition point to the last tensor in the given computation
+        """
+        self.file_writer.match_replacement_point(r'Tensor<double> ' + self.orig_config.expr[-1] + r'.+;')
+    
+    def match_expr_stmt(self):
+        """Sets replacement/addition point to the base expression statement
+        """
+        orig_output = self.orig_config.output
+        self.file_writer.match_replacement_point(f'{orig_output}({",".join(self.tensor_accesses[orig_output])}).+;')
+        
+    def match_stmt_decl(self):
+        """Sets replacement/addition point to the base IndexStmt stmt
+        """
+        orig_output = self.orig_config.output
+        self.file_writer.match_replacement_point(f'IndexStmt stmt = {orig_output}\.getAssignment()\.concretize();')
+        
+    def match_stmt_concr(self):
+        """Sets replacement/addition point to the concretization statement
+        """
+        self.file_writer.match_replacement_point("stmt = stmt\.concretize();")
+        
+    def match_compile(self):
+        """Sets replacement/addition point to the compile statement
+        """
+        orig_output = self.orig_config.output
+        self.file_writer.match_replacement_point(f'{orig_output}\.compile(stmt);')
+    
+    def match_assemble(self):
+        """Sets replacement/addition point to the assemble statement
+        """
+        orig_output = self.orig_config.output
+        self.file_writer.match_replacement_point(f'{orig_output}\.assemble();')
+    
+    def replace_schedule(self):
+        """Replaces given schedule using stmt's
+        """
+        lines = [statement["lines"]["sched_change"] for statement in self.statements if len(statement["lines"]["sched_change"]) != 0]
+        lines = [decl for line in lines for decl in line]
+        self.file_writer.replace_between_headers(header_to_read, footer_to_read, lines)
+        
+    def add_declarations(self):
+        """Adds given tensor declarations at replacement/addition point
+        """
+        decls = [statement["lines"]["tens_decl"] for statement in self.statements if len(statement["lines"]["tens_decl"]) != 0]
+        self.file_writer.add_lines(decls)
+        
+    def add_expr_statements(self):
+        """Adds expression statements at replacement/addition point
+        """
+        exprs = [statement["lines"]["expr_stmt"] for statement in self.statements if len(statement["lines"]["expr_stmt"]) != 0]
+        self.file_writer.add_lines(exprs)
+        
+    def add_stmt_decls(self):
+        """Adds statement declarations at replacement/addition point
+        """
+        stmts = [statement["lines"]["stmt_decl"] for statement in self.statements if len(statement["lines"]["stmt_decl"]) != 0]
+        self.file_writer.add_lines(stmts)
+        
+    def add_stmt_concr(self):
+        """Adds concretization statements at replacement/addition point
+        """
+        stmts = [statement["lines"]["concretization"] for statement in self.statements if len(statement["lines"]["concretization"]) != 0]
+        self.file_writer.add_lines(stmts)
+        
+    def add_compile_stmts(self):
+        """Adds compile statements at replacement/addition point
+        """
+        stmts = [statement["lines"]["compile"] for statement in self.statements if len(statement["lines"]["compile"]) != 0]
+        self.file_writer.add_lines(stmts)
+        
+    def add_assemble(self):
+        """Adds assemble statements at replacement/addition point
+        """
+        stmts = [statement["lines"]["assemble"] for statement in self.statements if len(statement["lines"]["assemble"]) != 0]
+        self.file_writer.add_lines(stmts)
+        
     def change_tensor_name(self, config:Config, old_name, new_name):
         if config == None: return
         if config.output == old_name:
@@ -798,9 +954,6 @@ class Write_Test_Code(Gen_Test_Code):
             data (str): data to append to list
         """
         self.schedule_text.append("\t" * num_tabs + data + "\n")
-    
-    def get_test_regex(self, test_name: str):
-        return re.compile(f"TEST\(workspaces, {test_name}\)")
     
     def __get_indices(self, config:Config):
         """Retrieves the indices accessed by a given expression
