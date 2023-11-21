@@ -29,3 +29,8 @@
     then
         mkdir $DIR/logs
     fi
+    
+    if [ ! -e $DIR/temporary_json/ ]
+    then
+        mkdir $DIR/temporary_json
+    fi
