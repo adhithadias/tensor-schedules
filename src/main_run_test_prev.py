@@ -17,6 +17,7 @@ from src.file_storing import read_json, read_baskets_from_json
 from src.print_help import Main_Run_Test, Print_Help_Visitor, is_valid_file_type
 from src.visitor import PrintConfigVisitor
 from src.testing import tests
+from src.util import prune_with_cache
 
 ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 CONFIG_JSON_FILE_FOLDER = 'test_configs/'
@@ -182,6 +183,9 @@ def main(argv: Optional[Sequence[str]] = None):
                 config_list = best_schedules[2]
                 print(best_schedules)
                 
+                config_list = prune_with_cache(config_list, final_constraints)
+                print(config_list)
+                
                 out_file = tensor + "_" + out_temp
                 tensor_file = tensor_file_path + tensor
                 os.environ["TENSOR_FILE"] = tensor_file
@@ -230,6 +234,8 @@ def main(argv: Optional[Sequence[str]] = None):
                         make_output.wait()
                         stdout_lines = make_output.stdout.readlines()
                         stderr_lines = make_output.stderr.readlines()
+                        
+                        test_code.revert_file()
                         
                         if (stdout_lines):
                             stdout_lines_str = "".join(stdout_lines)

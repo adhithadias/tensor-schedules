@@ -38,16 +38,19 @@ class Gen_Test_Code:
             self.unfused = True
         else:
             for sched in self.sep_scheds:
-                if sched.temporary: 
-                    keys = list(sched.temporary.keys())
-                    self.temp_accesses[keys[0]] = sched.temporary[keys[0]]
-                    self.temp_accesses[keys[1]] = sched.temporary[keys[1]]
+                self.recursively_set_temps(sched)
+                # if sched.temporary: 
+                    # keys = list(sched.temporary.keys())
+                    # if len(keys) == 0: 
+                    #     self.temp_accesses[keys[0]] = sched.temporary[keys[0]]
+                    #     self.temp_accesses[keys[1]] = sched.temporary[keys[1]]
+                    # else: 
         
         # holds statement objects with relevant info for each separate schedule
         self.statements = [self.statement_obj for _ in range(len(self.sep_scheds))]
         
         for i, config in enumerate(self.sep_scheds):
-            self.get_lines(config, i)     
+            self.get_lines(config, i)
         
         """# retrieves all paths for fusion
         self.get_paths([], config)
@@ -214,6 +217,13 @@ class Gen_Test_Code:
           "root_sched": False
         }
         
+    def recursively_set_temps(self, tensor:Config):
+        if tensor == None: return
+        if tensor.temporary:
+            self.temp_accesses.update(tensor.temporary)
+        self.recursively_set_temps(tensor.prod)
+        self.recursively_set_temps(tensor.cons)
+        
     def get_tensor_expr(self, tensor):
         assert tensor in self.tensor_accesses or tensor in self.temp_accesses
         if tensor in self.tensor_accesses:
@@ -319,16 +329,22 @@ class Gen_Test_Code:
             if(len(path) > 0):  
                 vec_nums.append(self.add_vector(name="path", init=("{" + ", ".join([str(el) for el in path]) + "}"), stmt_num=stmt_num))
             else:
-                vec_nums.append(self.add_vector(name="path", stmt_num=stmt_num))
+                if config.prod == None: vec_nums.append(0)
+                else: vec_nums.append(self.add_vector(name="path", stmt_num=stmt_num))
 
         # print scheduling commands
         if (len(self.statements[stmt_num]["reorders"]) > 0 or len(self.statements[stmt_num]["extra_reorders"]) > 0):
-            self.statements[stmt_num]["lines"]["sched_change"].append("stmt = stmt")
+            if self.statements[stmt_num]["root_sched"]:
+                self.statements[stmt_num]["lines"]["sched_change"].append("\tstmt = stmt\n")
+            else:
+                self.statements[stmt_num]["lines"]["sched_change"].append(f"\tstmt{stmt_num} = stmt{stmt_num}\n")
+
             # self.print_data("stmt = stmt")
         
         
         for i, reorder in enumerate(self.statements[stmt_num]["reorders"]):
-            self.add_reorder(reorder, stmt_num=stmt_num)
+            if i == 0: self.add_reorder(reorder, stmt_num=stmt_num)
+            else: self.add_reorder(reorder, vec_nums[i], stmt_num=stmt_num)
             config_to_split = self.retrieve_path(self.statements[stmt_num]["paths"][i], config)
             # if i != 0:
             if config_to_split.prod and config_to_split.prod_on_left:
@@ -339,12 +355,14 @@ class Gen_Test_Code:
                 continue
             else: 
                 assert SyntaxError
+                
+        start_index = len(self.statements[stmt_num]["reorders"])
         for i, extra_reorder in enumerate(self.statements[stmt_num]["extra_reorders"]):
-            self.add_reorder(extra_reorder, i + len(self.statements[stmt_num]["reorders"]), stmt_num)
+            self.add_reorder(extra_reorder, vec_nums[i + start_index], stmt_num)
         
         if len(self.statements[stmt_num]["reorders"]) != 0 or config.prod != None: 
             # self.print_data(";", 2)
-            self.statements[stmt_num]["lines"]["sched_change"].append("\t\t;")
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t\t;\n\n")
         # self.add_end()
         
         
@@ -367,14 +385,14 @@ class Gen_Test_Code:
             given_config = self.retrieve_path(path, root_config)
             reordering = given_config.original_idx_perm
             
-            if len(self.statements[stmt_num][reorder_name]) == 0:
+            if len(self.statements[stmt_num]["reorders"]) == 0:
                 if reordering == None: continue
                 self.statements[stmt_num][reorder_name].append(reordering)
             else:
                 old_ordering = None
                 for end_point in range(len(path)):
-                    index = [str(el) for el in self.statements[stmt_num][path_name]].index(str(path[:-(end_point + 1)]))
-                    old_ordering = [i for i in self.statements[stmt_num][reorder_name][index] if i in reordering]
+                    index = [str(el) for el in self.statements[stmt_num]["paths"]].index(str(path[:-(end_point + 1)]))
+                    old_ordering = [i for i in self.statements[stmt_num]["reorders"][index] if i in reordering]
                     if len(old_ordering) > 0: break
                 if(str(reordering) != str(old_ordering)):
                     new_reorderings = []
@@ -525,14 +543,14 @@ class Gen_Test_Code:
         
     def add_expression(self, config:Config, stmt_num=0, temporary=True):
         if temporary: 
-            self.statements[stmt_num]["lines"]["tens_decl"] = self.get_temp_declaration(config.output)
-            self.statements[stmt_num]["lines"]["stmt_decl"] = f'IndexStmt stmt{stmt_num} = t_{config.output}.getAssignment().concretize();'
-            self.statements[stmt_num]["lines"]["concretize"] = f'stmt{stmt_num} = stmt{stmt_num}.concretize();'
-            self.statements[stmt_num]["lines"]["compile"] = f't_{config.output}.compile(stmt{stmt_num});'
-            self.statements[stmt_num]["lines"]["assemble"] = f't_{config.output}.assemble();'
-            self.statements[stmt_num]["lines"]["compute"] = f't_{config.output}.compute(stmt{stmt_num});'
+            self.statements[stmt_num]["lines"]["tens_decl"] = "\t" + self.get_temp_declaration(config.output) + "\n"
+            self.statements[stmt_num]["lines"]["stmt_decl"] = f'\tIndexStmt stmt{stmt_num} = t_{config.output}.getAssignment().concretize();\n'
+            self.statements[stmt_num]["lines"]["concretize"] = f'\tstmt{stmt_num} = stmt{stmt_num}.concretize();\n'
+            self.statements[stmt_num]["lines"]["compile"] = f'\tt_{config.output}.compile(stmt{stmt_num});\n'
+            self.statements[stmt_num]["lines"]["assemble"] = f'\tt_{config.output}.assemble();\n'
+            self.statements[stmt_num]["lines"]["compute"] = f'\t\tt_{config.output}.compute(stmt{stmt_num});\n'
         else: self.statements[stmt_num]["root_sched"] = True
-        self.statements[stmt_num]["lines"]["expr_decl"] = f'{self.get_tensor_expr(config.output)} = {" * ".join([self.get_tensor_expr(tens) for tens in config.expr])};'
+        self.statements[stmt_num]["lines"]["expr_decl"] = f'\t{self.get_tensor_expr(config.output)} = {" * ".join([self.get_tensor_expr(tens) for tens in config.expr])};\n'
         # result = config.output + "(" + ", ".join([idx for idx in config.output_idx_order]) + ") = "
         
         # for i, tensor in enumerate(config.expr):
@@ -554,10 +572,10 @@ class Gen_Test_Code:
     def add_vector(self, name: str, type="int", init="", stmt_num=0):
         if len(init) == 0:
             # self.print_data("vector<" + type + "> " + name + ";")
-            self.statements[stmt_num]["lines"]["sched_change"].append(f'vector<{type}> {name}{self.vector_num};')
+            self.statements[stmt_num]["lines"]["sched_change"].append(f'\tvector<{type}> {name}{self.vector_num};\n')
         else:
             # self.print_data("vector<" + type + "> " + name + " = " + init + ";")
-            self.statements[stmt_num]["lines"]["sched_change"].append(f'vector<{type}> {name}{self.vector_num} = {init};')
+            self.statements[stmt_num]["lines"]["sched_change"].append(f'\tvector<{type}> {name}{self.vector_num} = {init};\n')
 
         self.vector_num += 1      
         return self.vector_num - 1
@@ -580,14 +598,14 @@ class Gen_Test_Code:
             reorderings = reorderings[:-2] + "}"
         if path == 0:
             # self.print_data("\t.reorder(" + reorderings + ")")
-            self.statements[stmt_num]["lines"]["sched_change"].append("\t.reorder(" + reorderings + ")")
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t\t.reorder(" + reorderings + ")\n")
         else:
             # self.print_data("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
-            self.statements[stmt_num]["lines"]["sched_change"].append("\t.reorder(" + "path" + str(path) + ", " + reorderings + ")")
+            self.statements[stmt_num]["lines"]["sched_change"].append("\t\t.reorder(" + "path" + str(path) + ", " + reorderings + ")\n")
 
     def add_loopfuse(self, pos:int, prod_on_left:bool, path_num:int, stmt_num=0):
         if prod_on_left == None: prod_on_left = True
-        self.statements[stmt_num]["lines"]["sched_change"].append("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
+        self.statements[stmt_num]["lines"]["sched_change"].append("\t\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")\n")
         # self.print_data("\t.loopfuse(" + str(pos) + ", " + str(prod_on_left).lower() + ", path" + str(path_num) + ")")
 
     def get_index_orders(self, trav_mat, orderings=[[]]):
@@ -830,12 +848,15 @@ class Write_Test_Code(Gen_Test_Code):
             self.modify_for_loop()
         
         
-        
-        print("hi")
+        self.file_writer.write_to_file()
+        # print("hi")
         # write new compiled info back to file
         # w_file_ptr = open(filename, "w")
         # w_file_ptr.writelines(new_text)
         # w_file_ptr.close()
+        
+    def __del__(self):
+        self.revert_file()
         
     def revert_file(self):
         self.file_writer.revert_file()
@@ -1017,9 +1038,9 @@ if __name__ == "__main__":
     # test_sched.original_idx_perm = ('i', 'j', 'l', 'k', 'm')
     for schedule in schedules:
         # if count_fusions(schedule) == 2 and schedule.fused:
-            if schedule.fused == 0 and schedule.cons != None and schedule.cons.fused == 0:
-                Write_Test_Code(schedule, "sddmm_spmm_fake", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp", 10, accesses)
-                break
+            if schedule.fused == 0 and schedule.cons != None and schedule.cons.fused != 0 and (schedule.cons.prod != None or schedule.prod.prod != None):
+                test_code = Write_Test_Code(schedule, "sddmm_spmm_fake", "/home/shay/a/anderslt/tensor-schedules/src/tests-workspaces.cpp", 10, accesses)
+                test_code.revert_file()
               
             counter = (counter % counter_printing) + 1
             # if counter == counter_printing:

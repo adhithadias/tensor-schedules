@@ -256,6 +256,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         make_output.wait()
                         stdout_lines = make_output.stdout.readlines()
                         stderr_lines = make_output.stderr.readlines()
+                        test_code.revert_file()
                         
                         if (stderr_lines):
                             stdout_lines_str = "".join(stdout_lines)
