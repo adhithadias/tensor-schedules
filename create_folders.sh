@@ -24,3 +24,8 @@
     then
         mkdir $DIR/tensors_stored
     fi
+
+    if [ ! -e $DIR/logs/ ]
+    then
+        mkdir $DIR/logs
+    fi
