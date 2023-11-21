@@ -70,4 +70,4 @@ class Baskets:
                 
         print('selected schedules #: ', len(schedules))
         
-        return best_time, best_memory, (best_schedules[0], best_schedules[1], [schedules[0]])
+        return best_time, best_memory, (best_schedules[0], best_schedules[1], schedules)
