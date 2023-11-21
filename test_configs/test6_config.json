@@ -1,21 +1,24 @@
 {
   "accesses": {
-    "A": ["i", "l", "m"],
+    "A": ["i", "j", "m"],
     "B": ["i", "j", "k"],
-    "C": ["j", "l"],
-    "D": ["k", "m"]
+    "C": ["k", "l"],
+    "D": ["l", "m"]
   },
   "tensor_idx_order_constraints": {
     "B": [
       ["j", "i"], ["k", "j"], ["k", "i"]
+    ],
+    "A": [
+      ["j", "i"], ["m", "j"], ["k", "j"], ["l", "j"]
     ]
   },
   "output_tensor": "A",
-  "test_json_file": "test5_without_z3_pruning.json",
-  "test_json_file_without_depth": "test5_without_depth_pruning.json",
-  "test_json_file_after_z3": "test5_with_z3_pruning.json",
-  "test_best_schedule_file": "test5_best_schedule.json",
-  "test_name": "spttm_ttm_real",
+  "test_json_file": "test6_without_z3_pruning.json",
+  "test_json_file_without_depth": "test6_without_depth_pruning.json",
+  "test_json_file_after_z3": "test6_with_z3_pruning.json",
+  "test_best_schedule_file": "test6_best_schedule.json",
+  "test_name": "spttm_spttm_real",
   "z3_constraints": [
     "i >= 3", "i <= 2900000",
     "j >= 2048", "j <= 2140000",
@@ -27,7 +30,7 @@
     "100000 * i * jpos * kpos < i * j * k",
     "i * j * k < 10000000000 * i * jpos * kpos"
   ],
-  "output_csv_file": "test5.csv",
+  "output_csv_file": "test6.csv",
   "eval_files": ["vast-2015-mc1-3d.tns", "flickr-3d.tns", "nell-2.tns", "darpa1998.tns"],
   "actual_values": {
     "3_2048_1022_007.tns": {"i": 3, "j": 2048, "k": 1022, "l": 16, "m": 16, "jpos": 5, "kpos": 4},

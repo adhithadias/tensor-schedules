@@ -70,6 +70,8 @@ def print_to_json2(accesses:dict, tensor_idx_order_constraints:dict, output_tens
     print_message(f'Pruning {len(baskets)} baskets using Z3')
     pruned_baskets = solver.prune_baskets(baskets)
     pruned_baskets = Baskets(pruned_baskets)
+    for i, (tc, mc, l) in enumerate(pruned_baskets.get_baskets()):
+        print(f'basket {i}: {tc} {mc} {len(l)}')
     print_time_message(f'{len(pruned_baskets)} baskets(s) exists after Z3 pruning', z3_start_time, True)
     
     no_z3_pruned_schedules = functools.reduce(lambda a, b: a+b, [len(schedules) for _, _, schedules in pruned_baskets])
