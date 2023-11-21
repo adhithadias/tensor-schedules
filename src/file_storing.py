@@ -20,9 +20,24 @@ class Modify_Lines:
     #     self.lines = fileptr.readlines(MAX_LINES)
     #     fileptr.close()
     
-    def __init__(self, lines):
-        self.orig_lines = copy(lines)
-        self.lines = lines
+    def __init__(self, infile, outfile=None):
+        try:
+            r_file_ptr = open(infile, "r")
+        except OSError:
+            print("Failed to open file for reading", file=sys.stderr)
+            return
+        except TypeError:
+            print("Invalid type of filename.  Please enter a string", file=sys.stderr)
+            return
+          
+        self.lines = r_file_ptr.readlines(MAX_LINES)
+        r_file_ptr.close()
+        
+        if outfile == None: self.outfile = infile
+        else: self.outfile = outfile
+        
+        self.orig_lines = copy(self.lines)
+        # self.lines = lines
         self.replace_point = 0    # represents location in lines array to begin searching for replacement
 
     @property
@@ -50,7 +65,7 @@ class Modify_Lines:
     def given_line(self):
         return self.lines[self.replace_point]
     
-    def replace_between_headers(self, header, footer, replacement_text, move_replacement_point=False, include_headers=False):
+    def replace_between_headers(self, header, footer, replacement_text, move_replacement_point=True, include_headers=False):
         """Replaces text in between a header and a footer line
 
         Args:
@@ -96,7 +111,7 @@ class Modify_Lines:
         return True
                 
 
-    def match_replacement_point(self, replace_point_pat, from_beginning=True):
+    def match_replacement_point(self, replace_point_pat, from_beginning=False, no_move=False, include_line=True):
         """Sets the line to begin searching for future replacements
 
         Args:
@@ -112,14 +127,15 @@ class Modify_Lines:
             lines = self.lines_subset
             indices = self.index_subset
         
-        for i, line in zip(indices, lines):
-            if replace_point_pat.search(line):
+        for iter, (i, line) in enumerate(zip(indices, lines)):
+            if not include_line and iter == 0: continue
+            if re.search(replace_point_pat, line):
             # re.search(replace_point_pat, line):
-                self.replace_point = i
+                if no_move == False: self.replace_point = i
                 return True
         return False
     
-    def modify_line(self, line_pattern, replacement, move_replacement_point=False):
+    def modify_line(self, line_pattern, replacement, move_replacement_point=True):
         for i, line in zip(self.index_subset, self.lines_subset):
             if re.search(line_pattern, line):
                 self.lines[i] = re.sub(line_pattern, replacement, line)
@@ -178,9 +194,38 @@ class Modify_Lines:
         if match != None and not re.search(match, self.given_line):
             return False
         
-        del self.lines[self.match_replacement_point]
-        if self.match_replacement_point == self.num_lines: self.move_replace_point(-1)
+        del self.lines[self.replace_point]
+        self.move_replace_point(-1)
+        # if self.replace_point == self.num_lines: self.move_replace_point(-1)
         return True
+      
+    def write_to_file(self):
+        try:
+            w_file_ptr = open(self.outfile, "w")
+        except OSError:
+            print("Failed to open file for writing", file=sys.stderr)
+            return
+        except TypeError:
+            print("Invalid type of filename.  Please enter a string", file=sys.stderr)
+            return
+
+        w_file_ptr.writelines(self.lines)
+        w_file_ptr.close()
+        
+    def revert_file(self):
+        try:
+            w_file_ptr = open(self.outfile, "w")
+        except OSError:
+            print("Failed to open file for writing", file=sys.stderr)
+            return
+        except TypeError:
+            print("Invalid type of filename.  Please enter a string", file=sys.stderr)
+            return
+
+        w_file_ptr.writelines(self.orig_lines)
+        w_file_ptr.close()
+    
+      
 
 def store_json(tensor_accesses:dict, config_list:list, filename:str):
     assert len(config_list) > 0

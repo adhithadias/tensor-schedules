@@ -13,17 +13,15 @@ MAX_LINES = 100000
 # path = "~/SparseLNR_Most_Recent"
 
 class Gen_Test_Code:
-    def __init__(self, config:Config, test_name:str, file, tensor_accesses:dict = None):
+    def __init__(self, config:Config, test_name:str, tensor_accesses:dict = None):
         self.test_name = test_name
-        self.file = file
         self.vector_num = 0
-        
         self.sep_scheds = []
         self.temp_rename = []
         
         self.no_fusion = False
         self.unfused = False
-        self.orig_config = config
+        self.orig_config = deepcopy(config)
         self.config = deepcopy(config)
         self.tensor_accesses = tensor_accesses
         self.temp_accesses = {}
@@ -210,6 +208,7 @@ class Gen_Test_Code:
               "concretize": "",
               "compile": "",
               "assemble": "",
+              "compute": "",
               "sched_change": []
           },
           "root_sched": False
@@ -466,7 +465,8 @@ class Gen_Test_Code:
     
     
     def print_data(self, data:str, num_tabs=1) -> None:
-      print(data, file=self.file)
+      # print(data, file=self.file)
+      print(data)
       
     def get_indices(self, input_tuple:tuple) -> None:
         for item in input_tuple:
@@ -530,6 +530,7 @@ class Gen_Test_Code:
             self.statements[stmt_num]["lines"]["concretize"] = f'stmt{stmt_num} = stmt{stmt_num}.concretize();'
             self.statements[stmt_num]["lines"]["compile"] = f't_{config.output}.compile(stmt{stmt_num});'
             self.statements[stmt_num]["lines"]["assemble"] = f't_{config.output}.assemble();'
+            self.statements[stmt_num]["lines"]["compute"] = f't_{config.output}.compute(stmt{stmt_num});'
         else: self.statements[stmt_num]["root_sched"] = True
         self.statements[stmt_num]["lines"]["expr_decl"] = f'{self.get_tensor_expr(config.output)} = {" * ".join([self.get_tensor_expr(tens) for tens in config.expr])};'
         # result = config.output + "(" + ", ".join([idx for idx in config.output_idx_order]) + ") = "
@@ -739,22 +740,28 @@ class Write_Test_Code(Gen_Test_Code):
         self.temp_decls = []
         self.temp_expressions = []
         self.stmts = {}
+        self.num_tests = num_tests
+        self.filename = filename
         
         # open file for reading
-        try:
-            r_file_ptr = open(filename, "r")
-        except OSError:
-            print("Failed to open file for reading", file=sys.stderr)
-            return
-        except TypeError:
-            print("Invalid type of filename.  Please enter a string", file=sys.stderr)
-            return
+        # try:
+        #     r_file_ptr = open(filename, "r")
+        # except OSError:
+        #     print("Failed to open file for reading", file=sys.stderr)
+        #     return
+        # except TypeError:
+        #     print("Invalid type of filename.  Please enter a string", file=sys.stderr)
+        #     return
         
         # initialize parent class
-        super().__init__(config, test_name, r_file_ptr, tensor_accesses)
+        super().__init__(config, test_name, tensor_accesses)
+        
+        # read all lines in given file up to MAX_LINES
+        # all_lines = r_file_ptr.readlines(MAX_LINES)
+        # r_file_ptr.close()
         
         # initialize file writer to interact with actual manipulation of lines
-        self.file_writer = Modify_Lines(r_file_ptr.readlines(MAX_LINES))
+        self.file_writer = Modify_Lines(filename)
         
         # set replacement point at start of test case
         self.match_test_case()
@@ -803,59 +810,36 @@ class Write_Test_Code(Gen_Test_Code):
             # add assemble statements
             self.add_assemble()
             
+            # modify for loop based on number of tests
+            self.modify_for_loop()
             
-
-
+            # match compute statement
+            self.match_compute()
+            
+            # move back by one to put previous computations first
+            self.file_writer.move_replace_point(-1)
+            
+            # add compute statements
+            self.add_compute()
+            
+        else:
+            # replace scheduling directive text in between headers with new schedule
+            self.replace_schedule()
+            
+            # modify for loop based on number of tests
+            self.modify_for_loop()
         
         
-        temps_explicit = self.get_temporaries(config)
         
-        # check if there is at least one unfused loop
-        if len(temps_explicit) != 0:
-            temp_decl_list = []
-            temp_expr_list = []
-            for i, temp_expl in enumerate(temps_explicit):
-                # get and change producer/consumer temporary names to T# where # is an integer
-                temp_prod_name = "T" + str(i * 2 + 1)
-                temp_cons_name = "T" + str(i * 2 + 2)
-                self.change_tensor_name(temp_expl["config"], temp_expl["output_temp_name_prod"], temp_prod_name)
-                self.change_tensor_name(temp_expl["config"], temp_expl["output_temp_name_cons"], temp_cons_name)
-                
-                # add these temporary accesses
-                self.temp_accesses[temp_prod_name] = temp_expl["index_order_prod"]
-                self.temp_accesses[temp_cons_name] = temp_expl["index_order_cons"]
-                
-                # add declaration statement for temporaries
-                temp_decl_list.append(self.get_temp_declaration(temp_prod_name, temp_expl["index_order_prod"]))
-                temp_decl_list.append(self.get_temp_declaration(temp_cons_name, temp_expl["index_order_cons"]))
-                
-                # add assignment statements for temporaries
-                right_hand_assignment_prod = " * ".join([self.get_tensor_expr(tens) for tens in temp_expl["config"].prod.expr])
-                right_hand_assignment_cons = " * ".join([self.get_tensor_expr(tens) for tens in temp_expl["config"].cons.expr])
-                temp_expr_list.append(f'{self.get_tensor_expr(temp_prod_name)} = {right_hand_assignment_prod}')
-                temp_expr_list.append(f'{self.get_tensor_expr(temp_cons_name)} = {right_hand_assignment_cons}')
-                
-            # add temporary declarations
-            self.file_writer.add_lines(['\t' + temp_decl for temp_decl in temp_decl_list])
-            
-            # find where original expression is
-            self.file_writer.match_replacement_point(self.get_tensor_expr(self.config.output))
-            
-            # delete original expression
-            
-            # add temporary expressions
-            self.file_writer.add_lines(['\t' + temp_expr for temp_expr in temp_expr_list])
-            
-            
-        
-        self.file_writer.replace_between_headers(header_to_read, footer_to_read, self.schedule_text, True, True)
-        self.file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(num_tests) + r'\g<4>')
-        
+        print("hi")
         # write new compiled info back to file
         # w_file_ptr = open(filename, "w")
         # w_file_ptr.writelines(new_text)
         # w_file_ptr.close()
         
+    def revert_file(self):
+        self.file_writer.revert_file()
+    
     def match_test_case(self):
         """Sets replacement/addition point to the actual test case
         """
@@ -864,43 +848,58 @@ class Write_Test_Code(Gen_Test_Code):
     def match_decls(self):
         """Sets replacement/addition point to the last tensor in the given computation
         """
-        self.file_writer.match_replacement_point(r'Tensor<double> ' + self.orig_config.expr[-1] + r'.+;')
+        for _ in range(len(self.orig_config.expr) + 1):
+            if self.file_writer.match_replacement_point(r'Tensor<double> ' r'.+;', no_move=True, include_line=False):
+                self.file_writer.match_replacement_point(r'Tensor<double> ' + r'.+;', include_line=False)
+            else:
+                return
     
     def match_expr_stmt(self):
         """Sets replacement/addition point to the base expression statement
         """
         orig_output = self.orig_config.output
-        self.file_writer.match_replacement_point(f'{orig_output}({",".join(self.tensor_accesses[orig_output])}).+;')
+        self.file_writer.match_replacement_point(f'{orig_output}\({",".join(self.tensor_accesses[orig_output])}\).+;')
         
     def match_stmt_decl(self):
         """Sets replacement/addition point to the base IndexStmt stmt
         """
         orig_output = self.orig_config.output
-        self.file_writer.match_replacement_point(f'IndexStmt stmt = {orig_output}\.getAssignment()\.concretize();')
+        self.file_writer.match_replacement_point(f'IndexStmt stmt = {orig_output}\.getAssignment\(\)\.concretize\(\);')
         
     def match_stmt_concr(self):
         """Sets replacement/addition point to the concretization statement
         """
-        self.file_writer.match_replacement_point("stmt = stmt\.concretize();")
+        self.file_writer.match_replacement_point("stmt = stmt\.concretize\(\);")
         
     def match_compile(self):
         """Sets replacement/addition point to the compile statement
         """
         orig_output = self.orig_config.output
-        self.file_writer.match_replacement_point(f'{orig_output}\.compile(stmt);')
+        self.file_writer.match_replacement_point(f'{orig_output}\.compile\(stmt\);')
     
     def match_assemble(self):
         """Sets replacement/addition point to the assemble statement
         """
         orig_output = self.orig_config.output
-        self.file_writer.match_replacement_point(f'{orig_output}\.assemble();')
-    
+        self.file_writer.match_replacement_point(f'{orig_output}\.assemble\(\);')
+        
+    def match_compute(self):
+        """Sets replacement/addition point to the compute statement
+        """
+        orig_output = self.orig_config.output
+        self.file_writer.match_replacement_point(f'{orig_output}\.compute\(stmt\);')
+        
     def replace_schedule(self):
         """Replaces given schedule using stmt's
         """
         lines = [statement["lines"]["sched_change"] for statement in self.statements if len(statement["lines"]["sched_change"]) != 0]
         lines = [decl for line in lines for decl in line]
         self.file_writer.replace_between_headers(header_to_read, footer_to_read, lines)
+        
+    def modify_for_loop(self):
+        """Modifies for loop to account for proper number of tests
+        """
+        self.file_writer.modify_line(test_rep_for_loop, r'\g<1>' + str(self.num_tests) + r'\g<4>')
         
     def add_declarations(self):
         """Adds given tensor declarations at replacement/addition point
@@ -911,7 +910,7 @@ class Write_Test_Code(Gen_Test_Code):
     def add_expr_statements(self):
         """Adds expression statements at replacement/addition point
         """
-        exprs = [statement["lines"]["expr_stmt"] for statement in self.statements if len(statement["lines"]["expr_stmt"]) != 0]
+        exprs = [statement["lines"]["expr_decl"] for statement in self.statements if len(statement["lines"]["expr_decl"]) != 0]
         self.file_writer.add_lines(exprs)
         
     def add_stmt_decls(self):
@@ -923,7 +922,7 @@ class Write_Test_Code(Gen_Test_Code):
     def add_stmt_concr(self):
         """Adds concretization statements at replacement/addition point
         """
-        stmts = [statement["lines"]["concretization"] for statement in self.statements if len(statement["lines"]["concretization"]) != 0]
+        stmts = [statement["lines"]["concretize"] for statement in self.statements if len(statement["lines"]["concretize"]) != 0]
         self.file_writer.add_lines(stmts)
         
     def add_compile_stmts(self):
@@ -938,15 +937,12 @@ class Write_Test_Code(Gen_Test_Code):
         stmts = [statement["lines"]["assemble"] for statement in self.statements if len(statement["lines"]["assemble"]) != 0]
         self.file_writer.add_lines(stmts)
         
-    def change_tensor_name(self, config:Config, old_name, new_name):
-        if config == None: return
-        if config.output == old_name:
-            config.output = new_name
-        config.expr = [expr if expr != old_name else new_name for expr in config.expr]
-        
-        self.change_tensor_name(config.prod, old_name, new_name)
-        self.change_tensor_name(config.cons, old_name, new_name)
-            
+    def add_compute(self):
+        """Adds compute statements at replacement/addition point
+        """
+        stmts = [statement["lines"]["compute"] for statement in self.statements if len(statement["lines"]["compute"]) != 0]
+        self.file_writer.add_lines(stmts)
+    
     def print_data(self, data: str, num_tabs=1) -> None:
         """Override print_data to write all info into list
 
