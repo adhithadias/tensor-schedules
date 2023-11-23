@@ -7,6 +7,7 @@ from enum import Enum
 
 CSV_RESULTS = ""
 PLOTS_DIR = "plots/"
+NAME = 'SparseAuto'
 
 class FontSize(Enum):
     SMALL_SIZE = 8
@@ -58,6 +59,7 @@ df = df.drop(columns=['config'])
 
 print(df)
 
+df[NAME] = df['sparseShed']
 df['Tensor'] = df['Tensor'].str.split('.').str[0]
 df['Tensor'] = df['Tensor'].str.slice(0,10)
 df['Matrix/Tensor'] = df['Tensor']
@@ -85,9 +87,9 @@ ax2 = ax.twinx()
 # df[['sparseShed', 'default']].plot(kind='bar', yerr=yerr, alpha=0.5, error_kw=dict(ecolor='k'), color=['r', 'b'])
 my_colors = list(islice(cycle(['c', 'tab:pink']), None, len(df)))
 if known_plot:
-    df.plot(y = ['sparseShed', 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylim = ax1_ylim, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
+    df.plot(y = [NAME, 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylim = ax1_ylim, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
 else:
-    df.plot(y = ['sparseShed', 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
+    df.plot(y = [NAME, 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
 
 def format_e(n):
     a = '%1.1E' % n

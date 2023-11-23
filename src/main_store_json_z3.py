@@ -95,6 +95,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-f', '--config_files', help='json formatted configuration file(s) with the following key-value pairs required:\n\t\taccesses:\n\t\t\t\t[tensor]: list[indices]\n\t\ttensor_idx_order_constraints:\n\t\t\t\t[tensor]: list[list[indices]]\n\t\toutput_tensor: [tensor]\n\t\ttest_json_file: [json file to store configs into]\n\t\t(optional) z3_constraints: list[constraints]', required=True, nargs="+")
     parser.add_argument('-o', '--function_type', default='get_schedules_unfused', help='optional argument to change function for generating schedules (default: %(default)s)', choices=['get_schedules_unfused', 'get_schedules', 'sched_enum'])
     parser.add_argument('-r', '--messages', action='store_true', help='enable printing of progress')
+    parser.add_argument('-s', '--switch', action='store_true', help='switch to depth unpruned schedules')
     
     TEST_JSON_FILE_LOCATION = "test_schedules/"
     CONFIG_FILE_LOCATION = "test_configs/"
@@ -105,6 +106,7 @@ def main(argv: Optional[Sequence[str]] = None):
     function_type = args["function_type"]
     global messages
     messages = args["messages"]
+    switch = args["switch"]
     for i,config_file in enumerate(config_files):
         try:
             fileptr = open(config_file, "r")
@@ -123,6 +125,8 @@ def main(argv: Optional[Sequence[str]] = None):
             tensor_idx_order_constraints[key] = [tuple(inner_list) for inner_list in value]
         output_tensor = new_dict["output_tensor"]
         read_json_file = new_dict["test_json_file"]
+        if (switch):
+            read_json_file = new_dict["test_json_file_without_depth"]
         read_json_file = TEST_JSON_FILE_LOCATION + read_json_file     # place in tensors_stored folder
         write_json_file = new_dict["test_json_file_after_z3"]
         write_json_file = TEST_JSON_FILE_LOCATION + write_json_file
