@@ -66,7 +66,7 @@ def get_config(schedule: dict) -> Config:
     
     return new_config
 
-def read_json(filename:str) -> list:
+def read_json(filename:str, with_accesses = False) -> list:
     try:
         fileptr = open(filename, "r")
     except OSError:
@@ -87,6 +87,9 @@ def read_json(filename:str) -> list:
     # printer = PrintConfigVisitor(new_dict["accesses"])    
     # for config in config_list:
     #     config.accept(printer)
+    
+    if (with_accesses):
+        return config_list, new_dict["accesses"]
     
     return config_list
 
