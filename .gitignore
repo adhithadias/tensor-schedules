@@ -1,0 +1,15 @@
+**__pycache__**
+build
+temp
+bin
+downloads
+eval_generated
+lib
+lib64
+share
+test_schedules
+csv_results
+logs
+temporary_json
+*.txt
+*.csv

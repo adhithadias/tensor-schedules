@@ -1,0 +1,40 @@
+{
+  "accesses": {
+    "A": ["i", "m"],
+    "B": ["i", "k", "l"],
+    "C": ["l", "j"],
+    "D": ["k", "j"],
+    "E": ["j", "m"]
+  },
+  "tensor_idx_order_constraints": {
+    "B": [["k", "i"], ["l", "k"], ["l", "i"]]
+  },
+  "output_tensor": "A",
+  "test_json_file": "test9_without_z3_pruning.json",
+  "test_json_file_without_depth": "test9_without_depth_pruning.json",
+  "test_json_file_after_z3": "test9_with_z3_pruning.json",
+  "test_best_schedule_file": "test9_best_schedule.json",
+  "test_name": "mttkrp_gemm_real",
+  "z3_constraints": [
+    "i >= 3", "i <= 2900000",
+    "k >= 2048", "k <= 2820000",
+    "l >= 2", "l <= 25500000",
+    "j >= 8", "j <= 256",
+    "m >= 8", "m <= 256",
+    "kpos >= 0", "lpos >= 0",
+    "kpos <= k", "lpos <= l",
+    "100000 * i * kpos * lpos < i * k * l",
+    "i * k * l < 10000000000 * i * kpos * lpos"
+  ],
+  "output_csv_file": "test9.csv",
+  "eval_files": ["vast-2015-mc1-3d.tns", "flickr-3d.tns", "nell-2.tns", "darpa1998.tns"],
+  "num_tests": 3,
+  "actual_values": {
+    "3_2048_1022_007.tns": {"i": 3, "k": 2048, "l": 1022, "j": 16, "m": 64, "kpos": 5, "lpos": 4},
+    "darpa1998.tns": {"i": 22000, "k": 22000, "l": 23700000, "j": 32, "m": 64, "kpos": 36, "lpos": 36},
+    "nell-1.tns": {"i": 2900000, "k": 2140000, "l": 25500000, "j": 32, "m": 64, "kpos": 12, "lpos": 13},
+    "nell-2.tns": {"i": 12000, "k": 9000, "l": 288000, "j": 32, "m": 64, "kpos": 80, "lpos": 80},
+    "flickr-3d.tns": {"i": 320000, "k": 2820000, "l": 1600000, "j": 32, "m": 64, "kpos": 18, "lpos": 19},
+    "vast-2015-mc1-3d.tns": {"i": 165000, "k": 11000, "l": 2, "j": 32, "m": 64, "kpos": 158, "lpos": 1} 
+  }
+}
