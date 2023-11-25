@@ -71,15 +71,55 @@ class GenerateScheduleVisitor(Visitor):
         self.tabs -= 1
         
 class UnfusedConfigToTacoVisitor(Visitor):
-    def __init__(self, test_name: str, tensor_accesses: dict, original_index_order: list):
+    def __init__(self, test_name: str, tensor_accesses: dict, original_index_order: list, test_file: str = None):
         self.test_name = test_name
-        self.tensor_accesses = tensor_accesses
+        self.tensor_accesses = deepcopy(tensor_accesses)
         self.original_index_order = original_index_order
+        self.test_file = test_file
         self.schedules = []
         self.paths = []
         self.expr_definitions = []
         self.outputs = []
         self.assignments = []
+        
+    def write_to_file(self, p: bool = False):
+        assert self.test_file != None
+        
+        try:
+            f = open(self.test_file, "r+")
+        except OSError:
+            print("Could not open/read file:", self.test_file, flush = True)
+            return
+        except TypeError:
+            print("Could not open/read file:", self.test_file, flush = True)
+            return
+        
+        text = self.wrap_in_block(self.get_combined_schedule())
+        exec = self.wrap_in_execute_block(self.get_execute_commands())
+        self.text = text
+        self.exec = exec
+        
+        if (p):
+            print(text)
+            print(exec)
+        
+        file_contents = f.read()
+        regex = r'/\* BEGIN ' + f'{self.test_name}' + r' TEST \*/[\s\S\n]+/\* END ' + f'{self.test_name}' + r' TEST \*/'
+        match_regex = re.compile(regex)
+        
+        execute_regex = r'/\* BEGIN ' + f'{self.test_name}_execute' + r' TEST \*/[\s\S\n]+/\* END ' + f'{self.test_name}_execute' + r' TEST \*/'
+        exec_match_regex = re.compile(execute_regex)
+        
+        # substitute text for match_regex in the file
+        self.original_file_contents = file_contents
+        file_contents = match_regex.sub(text, file_contents)
+        file_contents = exec_match_regex.sub(exec, file_contents)
+        
+        f.seek(0)
+        f.write(file_contents)
+        f.truncate()
+        f.close()
+        
         
     def get_combined_schedule(self):
         result = ""
@@ -96,7 +136,8 @@ class UnfusedConfigToTacoVisitor(Visitor):
         result += '\n' + self.get_vector_declaration(path_map) + '\n'
         
         for i in range(len(self.assignments) - 1):
-            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", {{{", ".join([c.upper() for c in self.tensor_accesses[self.outputs[i]]])}}}, Format);\n'
+            temporary_indices = self.tensor_accesses[self.outputs[i]]
+            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", {{{", ".join([c.upper() for c in temporary_indices])}}}, Format{{{", ".join(["Dense" for _ in range(len(temporary_indices))])}}});\n'
             text += f'\t{self.assignments[i]};\n\tIndexStmt stmt_{self.outputs[i]} = {self.outputs[i]}.getAssignment().concretize();\n'
             
             text += f'\tstmt_{self.outputs[i]} = stmt_{self.outputs[i]}\n'
@@ -113,6 +154,16 @@ class UnfusedConfigToTacoVisitor(Visitor):
         result += text
         
         return result
+    
+    def get_execute_commands(self):
+        result = ""
+        
+        for i in range(len(self.outputs) - 1):
+            result += f'\t\t{self.outputs[i]}.compute(stmt_{self.outputs[i]});\n'
+            
+        result += f'\t\t{self.outputs[-1]}.compute(stmt);\n'
+        
+        return result
         
     def get_vector_declaration(self, paths: dict):
         return ''.join(["\tvector<int> " + paths[key] + " = " + key + ";\n" for key in paths])  
@@ -120,6 +171,12 @@ class UnfusedConfigToTacoVisitor(Visitor):
     def set_tensor_accesses(self, tensor_accesses: dict):
         self.tensor_accesses = deepcopy(tensor_accesses)
         
+    def wrap_in_block(self, text):
+        return f'/* BEGIN {self.test_name} TEST */\n' + text + f'\t/* END {self.test_name} TEST */'
+        
+    def wrap_in_execute_block(self, text):
+        return f'/* BEGIN {self.test_name}_execute TEST */\n' + text + f'\t\t/* END {self.test_name}_execute TEST */'
+            
     def visit(self, config):
         
         for key in config.temporary:
