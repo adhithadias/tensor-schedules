@@ -73,11 +73,11 @@ def test_generate_schedules_3():
     for i, basket in enumerate(baskets.get_baskets()):
         for config in basket[2]:
         
-            # pcv = PrintConfigVisitor(tensor_accesses)
-            # pcv.visit(config)
-            print(config, flush=True)
+            pcv = PrintConfigVisitor(tensor_accesses)
+            pcv.visit(config)
+            # print(config, flush=True)
             
-            if (config.fused != 0): continue
+            # if (config.fused != 0): continue
             
             tf = UnfusedConfigToTacoVisitor(test_name, tensor_accesses, config.original_idx_perm, file_name)
             # tf.set_tensor_accesses(tensor_accesses)
@@ -91,8 +91,12 @@ def test_generate_schedules_3():
             print(tf.assignments)
             print('--', flush=True)
             
-            tf.write_to_file(True)
+            text = tf.wrap_in_block(tf.get_combined_schedule())
+            exec = tf.wrap_in_execute_block(tf.get_execute_commands())
+            # tf.write_to_file(True)
+            print(text)
+            print(exec)
             
             print('-----------------------------', flush=True)
             
-            return
+            # return
