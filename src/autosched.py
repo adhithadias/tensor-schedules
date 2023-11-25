@@ -37,6 +37,7 @@ def unfused(output: str, expr, output_index_order, prod_config, cons_config, unf
     # unfused_schedules = []
     for idx_perm in idx_perms:
         unfus = Config(output, expr, output_idx_order = output_index_order, input_idx_order = idx_perm, fused = False)
+        unfus.original_idx_perm = idx_perm
         unfus.subconfig(prod_config, cons_config, False)
         unfus.time_complexity = time_complexity
         unfus.memory_complexity = memory_complexity
@@ -454,7 +455,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                 prod_loops = tuple(prod_idx_order)
                 cons_loops = tuple(cons_idx_order)
                 new_tensor_accesses = {key: tuple([idx for idx in tensor_accesses[key]]) for key in tensor_accesses.keys()}
-                new_tensor_accesses[temporary] = pre_ind
+                new_tensor_accesses[temporary] = post_ind
                 
                 # print('-->', prod_loops, cons_loops, new_tensor_accesses, flush=True)
                 
@@ -473,7 +474,7 @@ def get_schedules(output: str, output_idx_order: tuple, expr: tuple, tensor_acce
                         # input_idx_order.extend([prod_config.input_idx_order, cons_config.input_idx_order])
                         nconf = Config(output, expr, output_idx_order, input_idx_order, 2, False)
                         nconf.original_idx_perm = idx_perm
-                        nconf.temporary = {temporary: pre_ind}
+                        nconf.temporary = {temporary: post_ind}
                         # nconf.time_complexity = time_complexity
                         nconf.memory_complexity = [shared_loops]
                         nconf.memory_complexity.extend(prod_config.memory_complexity)
@@ -543,12 +544,12 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
         post_loops = get_input_idx_list(post_expr, tensor_accesses)
         
         # print('producer1 schedules: ', pre_output, pre_expr, flush=True)
-        temp0 = '0'*depth+output
+        temp0 = 'o'*depth+output
         producer1_schedules = get_schedules_unfused(temp0, pre_output, pre_expr, tensor_accesses, pre_loops, tensor_idx_order_constraints, depth + 1, cache)
         # print('number of producer1 schedules: ', len(producer1_schedules), flush=True)
         
         # print('producer2 schedules: ', post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, flush=True)
-        temp1 = output+'0'*depth
+        temp1 = output+'o'*depth
         producer2_schedules = get_schedules_unfused(temp1, post_output, post_expr, tensor_accesses, post_loops, tensor_idx_order_constraints, depth + 1, cache)
         # print('number of producer2 schedules: ', len(producer2_schedules), flush=True)
         
@@ -560,6 +561,7 @@ def get_schedules_unfused(output: str, output_idx_order: tuple, expr: tuple, ten
                 idx_perms = [idx_perm for idx_perm in idx_perms if is_valid_idx_perm(idx_perm, tensor_idx_order_constraints, expr, output)]
                 for idx_perm in idx_perms:
                     unfused = Config(output, expr, output_idx_order, idx_perm, 0)
+                    unfused.original_idx_perm = idx_perm
                     unfused.subconfig(s1, s2, 0)
                     unfused.temporary = {temp0: pre_output, temp1: post_output}
                     
@@ -624,6 +626,7 @@ def sched_enum(output: str, expr: list, output_idx_order: list, tensor_accesses:
     for input_idx_order in idx_perms:
         # perfectly linear loop order is considered as fused = True
         nconf = Config(output, expr, output_idx_order = output_idx_order, input_idx_order = list(input_idx_order), fused = True)
+        nconf.original_idx_perm = input_idx_order
         nconf.time_complexity = time_complexity
         nconf.memory_complexity = memory_complexity
         scheds.append(nconf)
