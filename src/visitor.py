@@ -29,8 +29,15 @@ class PrintConfigVisitor(Visitor):
         print('\t'*self.tabs, '|', 
             output, '=',
             tensor_contraction, 
-            ', fsd: ' + str(config.fused) + ", pol: " + str(config.prod_on_left) + ", oip: " + str(config.original_idx_perm) + ", temp: " + str(config.temporary),
-            '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity, flush = True)
+            ', fsd: ' + str(config.fused) + 
+            ", pol: " + str(config.prod_on_left) + 
+            ", oip: " + str(config.original_idx_perm) + 
+            ", expr: " + str(config.expr) +
+            ", pol: " + str(config.prod_on_left) +
+            ", temp: " + str(config.temporary),
+            '| lp_ord:', config.input_idx_order, '|', 
+            config.time_complexity, ',', 
+            config.memory_complexity, flush = True)
         self.tabs += 1
         if (config.prod != None):
             self.visit(config.prod)
