@@ -96,8 +96,7 @@ class UnfusedConfigToTacoVisitor(Visitor):
         result += '\n' + self.get_vector_declaration(path_map) + '\n'
         
         for i in range(len(self.assignments) - 1):
-            # Tensor<double> A("A", {B.getDimension(0), L}, Format{Dense, Dense});
-            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", ' + '{}, ' + f'Format);\n'
+            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", {{{", ".join([c.upper() for c in self.tensor_accesses[self.outputs[i]]])}}}, Format);\n'
             text += f'\t{self.assignments[i]};\n\tIndexStmt stmt_{self.outputs[i]} = {self.outputs[i]}.getAssignment().concretize();\n'
             
             text += f'\tstmt_{self.outputs[i]} = stmt_{self.outputs[i]}\n'
