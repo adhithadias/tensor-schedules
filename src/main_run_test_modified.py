@@ -17,6 +17,7 @@ from src.file_storing import read_json, read_baskets_from_json
 from src.print_help import Main_Run_Test, Print_Help_Visitor, is_valid_file_type
 from src.visitor import PrintConfigVisitor
 from src.testing import tests
+from src.generate_taco_schedule import UnfusedConfigToTacoVisitor
 
 ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 CONFIG_JSON_FILE_FOLDER = 'test_configs/'
@@ -24,7 +25,8 @@ TEST_SCHEDULES = "test_schedules/"
 CSV_RESULTS = "csv_results/"
 TEMP_RESULT_FOLDER = "temp/"
 OUTPUT_OFFSET = 8
-NUMBER_OF_ITERATIONS = 32
+NUMBER_OF_ITERATIONS = 4
+TIME_OUT = 30
 
 # incomplete argument
 run_arg = "workspaces._"
@@ -104,11 +106,11 @@ def compile_taco_test(path_makefile, command, iter, tensor, config_list):
     if (stderr_lines or stdout_lines):
         stdout_lines_str = "".join(stdout_lines)
         stderr_lines_str = "".join(stderr_lines)
-        if stdout_lines: print_extra_message(f'make std out: {stdout_lines_str}')
+        # if stdout_lines: print_extra_message(f'make std out: {stdout_lines_str}')
         if stderr_lines: print_extra_message(f'make std err: {stderr_lines_str}')
     print_message(f'Config {iter + 1}/{len(config_list)} test compiled for tensor {tensor}')
 
-def get_execution_times(test_output, config, test_code, debug, num_tests):
+def get_execution_times(test_output, config, debug, num_tests):
     stdout_lines = test_output.stdout.readlines()
     stderr_lines = test_output.stderr.readlines()
 
@@ -118,7 +120,6 @@ def get_execution_times(test_output, config, test_code, debug, num_tests):
     
     if stderr_lines:
         print("".join(stdout_lines), flush=True)
-        print("".join(test_code.schedule_text), flush=True)
         print("", flush=True)
         print("".join(stderr_lines), flush=True)
         print("", flush=True)
@@ -129,7 +130,6 @@ def get_execution_times(test_output, config, test_code, debug, num_tests):
     if debug and not re.search("PASSED", stdout_lines[-1]):
         print(f'Config {iter + 1} Test Failed', flush=True)
         print("".join(stdout_lines), flush=True)
-        print("".join(test_code.schedule_text), flush=True)
         print("", flush=True)
         print("".join(stderr_lines), flush=True)
         print("", flush=True)
@@ -268,7 +268,7 @@ def main(argv: Optional[Sequence[str]] = None):
                     compile_taco_test(path_makefile, command, 0, "default execution", config_list)
                     print(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
                     test_output = subprocess.Popen(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
-                    expected_times, schedule_stmt = get_execution_times(test_output, None, "", debug, NUMBER_OF_ITERATIONS)
+                    expected_times, schedule_stmt = get_execution_times(test_output, None, debug, NUMBER_OF_ITERATIONS)
                     # expected_times = [0,0,0]
                     # schedule_stmt = ""
                     
@@ -286,9 +286,15 @@ def main(argv: Optional[Sequence[str]] = None):
                     
                     for iter, config in enumerate(config_list):
                         
+                        print_extra_message(f'\n------\n{iter}: tensor: {tensor}')
+                        pc = PrintConfigVisitor(tensor_accesses)
+                        pc.visit(config)
                         # write testing code into testing file
-                        test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1, tensor_accesses)
-                        print_extra_message(f'\n------\n{iter}: tensor: {tensor}, config: {config}')
+                        tf = UnfusedConfigToTacoVisitor(test_name, tensor_accesses, config.original_idx_perm, test_file)
+                        # tf.set_tensor_accesses(tensor_accesses)
+                        tf.visit(config)
+                        tf.write_to_file(True)
+                        # test_code = Write_Test_Code(config, test_name, test_file, num_tests + 1, tensor_accesses)
                         
                         # compiles with changed config
                         compile_taco_test(path_makefile, command, iter, tensor, config_list)
@@ -304,15 +310,17 @@ def main(argv: Optional[Sequence[str]] = None):
                         # wait for output to generate
                         test_output.wait()
                         
-                        output_times, schedule_stmt = get_execution_times(test_output, config, test_code, debug, NUMBER_OF_ITERATIONS)
-                            
+                        output_times, schedule_stmt = get_execution_times(test_output, config, debug, NUMBER_OF_ITERATIONS)
+                        # output_times = [0 for _ in range(NUMBER_OF_ITERATIONS)]
+                        # schedule_stmt = ""
                         # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
                                 
                         print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
                         print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
                         
                         schedule_stmt = re.sub("\n", "", schedule_stmt)
-                        new_row = [schedule_stmt, "\n".join(get_schedule_commands_for_saving(test_code))]
+                        # new_row = [schedule_stmt, "\n".join(get_schedule_commands_for_saving(test_code))]
+                        new_row = [schedule_stmt, tf.text]
                         new_row.extend(output_times)
                         float_times = [float(output_time) for output_time in output_times]
                         current_exec_time = round(statistics.median(float_times),6)
@@ -322,7 +330,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         writer.writerow(new_row)
                         csvfile.flush()
                         
-                        del test_code
+                        # del test_code
                         print_message("")
                         
                         if (min_time > current_exec_time):
