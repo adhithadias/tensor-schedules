@@ -27,7 +27,8 @@ class GenerateScheduleVisitor(Visitor):
             if path not in self.paths: self.paths[path] = path_vector_name
             self.transformed_schedule.append(reorder)
         
-        output = config.output + "(" + ','.join(config.output_idx_order) + ")"
+        self.tensor_accesses[config.output] = config.output_idx_order
+        # output = config.output + "(" + ','.join(config.output_idx_order) + ")"
 
         tensor_contraction = ""
         for i in range(len(config.expr)):
@@ -39,20 +40,20 @@ class GenerateScheduleVisitor(Visitor):
             if (i != len(config.expr)-1):
                 tensor_contraction += "*"
 
-        print('\t'*self.tabs, '|', 
-            output, '=',
-            tensor_contraction, 
-            ', fsd: ' + str(config.fused) + 
-            ", pol: " + str(config.prod_on_left) + 
-            ", oip: " + str(config.original_idx_perm) + 
-            ", expr: " + str(config.expr) +
-            ", pol: " + str(config.prod_on_left) +
-            ", temp: " + str(config.temporary),
-            '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity, flush = True)
+        # print('\t'*self.tabs, '|', 
+        #     output, '=',
+        #     tensor_contraction, 
+        #     ', fsd: ' + str(config.fused) + 
+        #     ", pol: " + str(config.prod_on_left) + 
+        #     ", oip: " + str(config.original_idx_perm) + 
+        #     ", expr: " + str(config.expr) +
+        #     ", pol: " + str(config.prod_on_left) +
+        #     ", temp: " + str(config.temporary),
+        #     '| lp_ord:', config.input_idx_order, '|', config.time_complexity, ',', config.memory_complexity, flush = True)
         self.tabs += 1
         
         if (config.prod != None and config.cons != None):
-            split_location = len(config.prod.expr)
+            split_location = len(config.prod.expr) if config.prod_on_left else (len(config.expr) - len(config.prod.expr))
             t = "true" if config.prod_on_left else "false"
             loopfuse = f'.loopfuse({str(split_location)}, {t}, {path_vector_name})'
             self.transformed_schedule.append(loopfuse)
@@ -147,7 +148,7 @@ class UnfusedConfigToTacoVisitor(Visitor):
             text += f'\t{self.outputs[i]}.assemble();\n\n'
             result += text
             
-        text = f'\t{self.assignments[-1]};\n\tIndexStmt stmt = {self.outputs[-1]}.getAssignment().concretize();\n'
+        text = f'\t{self.assignments[-1]};\n\tIndexStmt stmt = {self.outputs[-1]}.getAssignment().concretize();\n\tstd::cout << stmt << endl;\n'
             
         text += f'\tstmt = stmt\n'
         text += ''.join(['\t\t' + s + '\n' for s in self.schedules[-1]]) + '\t\t;\n'
@@ -264,7 +265,7 @@ class TransformConfigToTaco:
             
     def get_expression(self):
         assert self.config.fused == 1
-        print(self.tensor_accesses)
+        # print(self.tensor_accesses)
         
         result = "\n\t" + self.config.output + "(" + ", ".join([idx for idx in self.config.output_idx_order]) + ") = "
         
