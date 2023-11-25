@@ -84,14 +84,6 @@ class UnfusedConfigToTacoVisitor(Visitor):
     def get_combined_schedule(self):
         result = ""
         
-        for i in range(len(self.assignments) - 1):
-            # Tensor<double> A("A", {B.getDimension(0), L}, Format{Dense, Dense});
-            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", ' + '{}, ' + f'Format);\n'
-            text += f'\t{self.assignments[i]};\n\tIndexStmt stmt_{self.outputs[i]} = {self.outputs[i]}.getAssignment().concretize();\n'
-            result += text
-            
-        result += f'\t{self.assignments[-1]};\n\tIndexStmt stmt = {self.outputs[-1]}.getAssignment().concretize();\n'
-        
         # combine path maps
         path_map = {}
         for pm in self.paths:
@@ -104,14 +96,20 @@ class UnfusedConfigToTacoVisitor(Visitor):
         result += '\n' + self.get_vector_declaration(path_map) + '\n'
         
         for i in range(len(self.assignments) - 1):
-            text = f'\tstmt_{self.outputs[i]} = stmt_{self.outputs[i]}\n'
+            # Tensor<double> A("A", {B.getDimension(0), L}, Format{Dense, Dense});
+            text = f'\tTensor<double> {self.outputs[i]}("{self.outputs[i]}", ' + '{}, ' + f'Format);\n'
+            text += f'\t{self.assignments[i]};\n\tIndexStmt stmt_{self.outputs[i]} = {self.outputs[i]}.getAssignment().concretize();\n'
+            
+            text += f'\tstmt_{self.outputs[i]} = stmt_{self.outputs[i]}\n'
             text += ''.join(['\t\t' + s + '\n' for s in self.schedules[i]]) + '\t\t;\n'
             text += f'\tstmt_{self.outputs[i]} = stmt_{self.outputs[i]}.concretize();\n'
             text += f'\t{self.outputs[i]}.compile(stmt_{self.outputs[i]});\n'
             text += f'\t{self.outputs[i]}.assemble();\n\n'
             result += text
             
-        text = f'\tstmt = stmt\n'
+        text = f'\t{self.assignments[-1]};\n\tIndexStmt stmt = {self.outputs[-1]}.getAssignment().concretize();\n'
+            
+        text += f'\tstmt = stmt\n'
         text += ''.join(['\t\t' + s + '\n' for s in self.schedules[-1]]) + '\t\t;\n'
         result += text
         
