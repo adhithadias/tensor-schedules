@@ -13,9 +13,9 @@ class CacheComplexityVisitor(Visitor):
     def visit(self, config : Config):
         
         for key in config.temporary:
-            config.temporary[key] = [idx for idx in self.original_index_order if idx in config.temporary]
-        
-        self.tensor_accesses.update(config.temporary)
+            if (key not in self.tensor_accesses):
+                config.temporary[key] = [idx for idx in self.original_index_order if idx in config.temporary[key]]
+                self.tensor_accesses.update(config.temporary)
               
         # if the config has a prod or cons, then we need to visit them
         if (config.prod != None and config.cons != None):
