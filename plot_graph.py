@@ -5,14 +5,15 @@ from itertools import cycle, islice
 from argparse import ArgumentParser, RawTextHelpFormatter
 from enum import Enum
 
-CSV_RESULTS = ""
+CSV_RESULTS = "europa_csv/"
 PLOTS_DIR = "plots/"
 NAME = 'SparseAuto'
+NAME2 = 'SA-Parallel'
 
 class FontSize(Enum):
     SMALL_SIZE = 8
     MEDIUM_SIZE = 12
-    BIGGER_SIZE = 16
+    BIGGER_SIZE = 14
     
 plt.rcParams.update({'font.size': FontSize.BIGGER_SIZE.value})
 # plt.rcParams['legend.title_fontsize'] = 'xx-large'
@@ -25,29 +26,37 @@ test = args["test"]
 rot = args["rotation"]
 
 if test == 2:
-    ax1_ylim = (1e3, 1e6)
+    ax1_ylim = (1e2, 1e7)
     ax2_ylim = (0, 100)
+    bar_width = 0.5
 elif test == 3:
-    ax1_ylim = (1, 1e5)
-    ax2_ylim = (4, 9)
+    ax1_ylim = (1, 2e4)
+    ax2_ylim = (4, 10)
+    bar_width = 0.7
 elif test  == 4:
-    ax1_ylim = (1e1, 1e5)
-    ax2_ylim = (30,160)
+    ax1_ylim = (1e0, 5e5)
+    ax2_ylim = (30,180)
+    bar_width = 0.7
 elif test == 5:
-    ax1_ylim = (1e3, 1e5)
+    ax1_ylim = (1e2, 1e5)
     ax2_ylim = (0, 7)
+    bar_width = 0.5
 elif test == 6:
-    ax1_ylim = (1e3, 1e5)
+    ax1_ylim = (1e2, 1e5)
     ax2_ylim = (0, 7)
+    bar_width = 0.5
 elif test == 7:
-    ax1_ylim = (1e1, 1e5)
-    ax2_ylim = (0, 20)
+    ax1_ylim = (1e0, 1e6)
+    ax2_ylim = (0, 25)
+    bar_width = 0.7
 elif test == 8:
-    ax1_ylim = (1e1, 5e5)
-    ax2_ylim = (0, 14)
+    ax1_ylim = (1e0, 5e5)
+    ax2_ylim = (0, 16)
+    bar_width = 0.7
 elif test == 9:
-    ax1_ylim = (1e3, 1e6)
-    ax2_ylim = (8, 20)
+    ax1_ylim = (1e2, 5e6)
+    ax2_ylim = (8, 22)
+    bar_width = 0.5
     
 known_plot = test == 9 or test == 8 or test == 7 or test == 2 or test == 3 or \
     test == 4 or test == 5 or test == 6
@@ -60,17 +69,22 @@ df = df.drop(columns=['config'])
 print(df)
 
 df[NAME] = df['sparseShed']
+df[NAME2] = df['sparseShed'] / 10
 df['Tensor'] = df['Tensor'].str.split('.').str[0]
 df['Tensor'] = df['Tensor'].str.slice(0,10)
 df['Matrix/Tensor'] = df['Tensor']
 df['TACO'] = df['default']
+df['TACO-Parallel'] = df['default'] / 10
 df.set_index('Matrix/Tensor', inplace=True)
 
 df['speedup'] = df['default'] / df['sparseShed']
 print(df)
 
+df['rstd10'] = df['Runtime Standard Dev'] / 10
+df['dstd10'] = df['Default runtime std'] / 10
 # convert the std columns to an array
-yerr = df[['Runtime Standard Dev', 'Default runtime std']].to_numpy().T
+yerr = df[['Runtime Standard Dev', 'Default runtime std', 
+           'rstd10', 'dstd10']].to_numpy().T
 
 # print(yerr)
 # array([[1, 5],
@@ -85,11 +99,11 @@ ax2 = ax.twinx()
 # plt.rc('axes', labelsize=BIGGER_SIZE)
 # https://matplotlib.org/stable/gallery/color/named_colors.html
 # df[['sparseShed', 'default']].plot(kind='bar', yerr=yerr, alpha=0.5, error_kw=dict(ecolor='k'), color=['r', 'b'])
-my_colors = list(islice(cycle(['c', 'tab:pink']), None, len(df)))
+my_colors = list(islice(cycle(['c', 'tab:pink', 'green', 'mediumorchid']), None, len(df)))
 if known_plot:
-    df.plot(y = [NAME, 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylim = ax1_ylim, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
+    df.plot(y = [NAME, 'TACO', NAME2, 'TACO-Parallel'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylim = ax1_ylim, ylabel = "Execution Time (ms)", legend = False, color = my_colors, align='center', width=bar_width)
 else:
-    df.plot(y = [NAME, 'TACO'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
+    df.plot(y = [NAME, 'TACO', NAME2, 'TACO-Parallel'], ax = ax, kind='bar', yerr=yerr, error_kw=dict(ecolor='k'), log=True, rot = rot, ylabel = "Execution Time (ms)", legend = False, color = my_colors)
 
 def format_e(n):
     a = '%1.1E' % n
