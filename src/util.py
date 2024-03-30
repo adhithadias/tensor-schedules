@@ -251,10 +251,17 @@ def remove_duplicates(schedules):
     seen_index_orders = set()
     pruned_schedules = []
     
+    ## strong duplicate removal
     for schedule in schedules:
         if (schedule.input_idx_order not in seen_index_orders):
             seen_index_orders.add(schedule.input_idx_order)
             pruned_schedules.append(schedule)
+            
+    # ## soft duplicate removal
+    # for schedule in schedules:
+    #     if ((schedule.input_idx_order, schedule.expr) not in seen_index_orders):
+    #         seen_index_orders.add((schedule.input_idx_order, schedule.expr))
+    #         pruned_schedules.append(schedule)
             
     return pruned_schedules
 
