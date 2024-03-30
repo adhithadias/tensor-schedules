@@ -72,7 +72,7 @@ class GenerateScheduleVisitor(Visitor):
         self.tabs -= 1
         
 class UnfusedConfigToTacoVisitor(Visitor):
-    def __init__(self, test_name: str, tensor_accesses: dict, original_index_order: list, test_file: str = None):
+    def __init__(self, test_name: str, tensor_accesses: dict, original_index_order: list, test_file: str = None, nthreads: int = 1):
         self.test_name = test_name
         self.tensor_accesses = deepcopy(tensor_accesses)
         self.original_index_order = original_index_order
@@ -82,6 +82,7 @@ class UnfusedConfigToTacoVisitor(Visitor):
         self.expr_definitions = []
         self.outputs = []
         self.assignments = []
+        self.nthreads = nthreads
         
     def write_to_file(self, p: bool = False):
         assert self.test_file != None
@@ -186,7 +187,8 @@ class UnfusedConfigToTacoVisitor(Visitor):
                 self.tensor_accesses.update(config.temporary)
         
         if (config.fused == 1):
-            tctt = TransformConfigToTaco(config, self.test_name, self.tensor_accesses)
+            tctt = TransformConfigToTaco(config, self.test_name,
+                                         self.tensor_accesses, self.nthreads)
             
             schedule, paths = tctt.convert_config()
             self.assignments.append(tctt.get_assignment())
@@ -217,12 +219,14 @@ class UnfusedConfigToTacoVisitor(Visitor):
         config = None
 
 class TransformConfigToTaco:
-    def __init__(self, config: Config, test_name: str, tensor_accesses: dict = None):
+    def __init__(self, config: Config, test_name: str, 
+                 tensor_accesses: dict = None, nthreads: int = 1):
         
         self.config = config
         self.test_name = test_name
         self.tensor_accesses = tensor_accesses
         self.print_string = []
+        self.nthreads = nthreads
         
     def gen_taco_code(self):
         schedule, paths = self.convert_config()
@@ -250,6 +254,16 @@ class TransformConfigToTaco:
         # GenerateScheduleVisitor currently only handles fused configs
         visitor = GenerateScheduleVisitor(self.tensor_accesses)
         visitor.visit(self.config)
+        
+        if (self.nthreads > 1):
+            i = self.config.original_idx_perm[0]
+            race_condition = 'OutputRaceStrategy::NoRaces'
+            # print('checking for races on index', i, 'in', self.config.output, flush = True)
+            # print(self.tensor_accesses, flush = True)
+            if (i not in self.config.output_idx_order):
+                race_condition = 'OutputRaceStrategy::Atomics'
+            parallel_command = f'.parallelize({i}, ParallelUnit::CPUThread, {race_condition})'
+            visitor.transformed_schedule.append(parallel_command)
         
         return visitor.transformed_schedule, visitor.paths
     
