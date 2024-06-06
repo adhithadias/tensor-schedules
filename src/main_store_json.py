@@ -8,9 +8,10 @@ import json
 from math import floor, ceil
 from multiprocessing import Process, Lock, Queue
 
+from src.basket import Baskets
 from src.prune import prune_using_memory_depth
 from src.util import remove_duplicates
-from src.file_storing import store_json, read_json
+from src.file_storing import store_json, read_json,store_baskets_to_json
 from src.testing import tests
 from src.autosched import sched_enum, get_schedules_unfused, get_schedules
 from src.config import Config
@@ -52,6 +53,9 @@ def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, i, t
     output_tensor = deepcopy(output_tensor)
     accesses = deepcopy(accesses)
     expr = deepcopy(expr)
+    # if (expr != )
+    if(expr != ('C', 'D', 'B', 'E')):
+        return
     indices = deepcopy(indices)
     tensor_idx_order_constraints = deepcopy(tensor_idx_order_constraints)
     
@@ -59,6 +63,9 @@ def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, i, t
     cache = {}
     s = get_schedules(output_tensor, accesses[output_tensor], expr, accesses, tuple(
         indices), tensor_idx_order_constraints, 0, len(expr), 1, cache)
+    
+    # s = get_schedules_unfused(output_tensor, accesses[output_tensor], expr, accesses, tuple(
+    #     indices), tensor_idx_order_constraints, 1, cache)
     
     del cache
     
@@ -156,6 +163,10 @@ def generate_and_save_schedules(accesses:dict, tensor_idx_order_constraints:dict
     print_message(f'Removing duplicates')
     pruned_schedules = remove_duplicates(schedules)
     print_time_message(f'{len(pruned_schedules)} schedule(s) left after removing duplicates', remove_duplicates_start_time, True)
+
+    # baskets = Baskets(pruned_schedules)
+    # store_baskets_to_json(accesses, baskets, "test_schedules/json_for_testing.json")
+    # return
         
     t = time()
     test_json_file_without_depth = TEST_JSON_FILE_LOCATION + test_json_file_without_depth

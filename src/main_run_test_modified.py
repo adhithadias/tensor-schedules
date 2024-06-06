@@ -1,3 +1,4 @@
+from functools import reduce
 import subprocess
 import argparse
 from typing import Optional, Sequence
@@ -7,6 +8,7 @@ import os
 import csv
 import statistics
 import json
+import datetime
 from math import floor
 from time import time
 from copy import deepcopy
@@ -25,8 +27,8 @@ TEST_SCHEDULES = "test_schedules/"
 CSV_RESULTS = "csv_results/"
 TEMP_RESULT_FOLDER = "temp/"
 OUTPUT_OFFSET = 8
-NUMBER_OF_ITERATIONS = 4
-TIME_OUT = 30
+NUMBER_OF_ITERATIONS = 32
+TIME_OUT = 3000
 
 # incomplete argument
 run_arg = "workspaces._"
@@ -111,17 +113,17 @@ def compile_taco_test(path_makefile, command, iter, tensor, config_list):
     print_message(f'Config {iter + 1}/{len(config_list)} test compiled for tensor {tensor}')
 
 def get_execution_times(test_output, config, debug, num_tests):
-    stdout_lines = test_output.stdout.readlines()
-    stderr_lines = test_output.stderr.readlines()
+    stdout_lines = test_output.stdout.splitlines()
+    stderr_lines = test_output.stderr.splitlines()
 
     if (stdout_lines or stderr_lines):
         stdout_lines_str = "".join(stdout_lines)
         print_extra_message(f'test std out: {stdout_lines_str}')
     
     if stderr_lines:
-        print("".join(stdout_lines), flush=True)
+        print("\n".join(stdout_lines), flush=True)
         print("", flush=True)
-        print("".join(stderr_lines), flush=True)
+        print("\n".join(stderr_lines), flush=True)
         print("", flush=True)
         visitor = PrintConfigVisitor(tests[0]["accesses"])
         config.accept(visitor)
@@ -147,7 +149,7 @@ def get_execution_times(test_output, config, debug, num_tests):
         execution_times.append(time_to_run)
         # if iter == 0:
         #     expected_times.append(float(stdout_lines[10 + test_iter*2]))
-    print(execution_times)
+    # print(execution_times)
             
     # gets schedule statement of given schedule
     schedule_stmt = re.sub("final stmt: ", "", stdout_lines[6])
@@ -164,8 +166,12 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-d', '--debug', action='store_true', help='enable debugging')
     parser.add_argument('-m', '--messages', action='store_true', help='enable printing of progress')
     parser.add_argument('-x', '--extra_messages', action='store_true', help='enable printing of extra progress messages')
+    parser.add_argument('-n', '--num_threads', default=1, help='enable printing of extra progress messages')
+    parser.add_argument('-r', '--run_time', action='store_true', help='time to run the test')
     
     args = vars(parser.parse_args(argv))
+    filter_time_only = args['run_time']
+    nthreads = int(args["num_threads"])
     config_files = args["config_files"]
     path_root = args['path']
     tensor_file_path = args['tensor_file_path']
@@ -221,7 +227,10 @@ def main(argv: Optional[Sequence[str]] = None):
         if not is_valid_file_type(json_file, "json"): continue
         baskets, tensor_accesses = read_baskets_from_json(json_file)
         
-        print_message(f'{len(baskets)} baskets found for the given evaluation')
+        num_schedules = reduce(lambda x, y: x + len(y[2]), baskets, 0)
+        print_message(f'{len(baskets)} baskets and {num_schedules} schedules found for the given evaluation')
+        
+        runtime_list = []
         
         with open(out_file, 'w', newline='') as csvfile2:
             eval_writer = csv.writer(csvfile2, delimiter=',')
@@ -236,15 +245,24 @@ def main(argv: Optional[Sequence[str]] = None):
         
             for tensor in tensor_list:
                 final_constraints = actual_values[tensor]
+                t1 = datetime.datetime.now()
                 _, _, best_schedules = baskets.filter_with_final_constraints(final_constraints, ALLOWED_ELEMENT_SIZE)
                 config_list = best_schedules[2]
+                t2 = datetime.datetime.now()
+                
                 print(best_schedules)
+                td = t2 - t1
+                print('run-time for filteration: ', td.microseconds)
+                runtime_list.append(td.microseconds)
                 
                 out_file = tensor + "_" + out_temp
                 tensor_file = tensor_file_path + tensor
                 os.environ["TENSOR_FILE"] = tensor_file
                 
                 print_extra_message(f'evaluating tensor {tensor}')
+                
+                if (filter_time_only):
+                    continue
                 
                 default_time = 10000000000000000
                 default_time_std = 0
@@ -265,12 +283,18 @@ def main(argv: Optional[Sequence[str]] = None):
                     writer.writerow(header_row)
                     csvfile.flush()
                     
+                    envvars = ''
+                    if (nthreads > 1):
+                        envvars = f'USE_OPENMP=true _OPENMP=true '
+                    
                     compile_taco_test(path_makefile, command, 0, "default execution", config_list)
-                    print(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
-                    test_output = subprocess.Popen(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                    print(f'{envvars}OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
+                    test_output = subprocess.run(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
                     expected_times, schedule_stmt = get_execution_times(test_output, None, debug, NUMBER_OF_ITERATIONS)
                     # expected_times = [0,0,0]
                     # schedule_stmt = ""
+                    
+                    print(expected_times)
                     
                     # wait for output to generate
                     # test_output.wait()
@@ -289,8 +313,8 @@ def main(argv: Optional[Sequence[str]] = None):
                         print_extra_message(f'\n------\n{iter}: tensor: {tensor}')
                         pc = PrintConfigVisitor(tensor_accesses)
                         pc.visit(config)
-                        # write testing code into testing file
-                        tf = UnfusedConfigToTacoVisitor(test_name, tensor_accesses, config.original_idx_perm, test_file)
+                        # write testing code/schedule into testing file
+                        tf = UnfusedConfigToTacoVisitor(test_name, tensor_accesses, config.original_idx_perm, test_file, nthreads)
                         # tf.set_tensor_accesses(tensor_accesses)
                         tf.visit(config)
                         tf.write_to_file(True)
@@ -304,13 +328,21 @@ def main(argv: Optional[Sequence[str]] = None):
                         start_time = time()
                         
                         # runs test
-                        print(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', flush=True)
-                        test_output = subprocess.Popen(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid)
+                        try:
+                            print(f'{envvars}OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', flush=True)
+                            test_output = subprocess.run(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
                         
-                        # wait for output to generate
-                        test_output.wait()
+                            # wait for output to generate
+                            # test_output.wait()
+                            output_times, schedule_stmt = get_execution_times(test_output, config, debug, NUMBER_OF_ITERATIONS)
                         
-                        output_times, schedule_stmt = get_execution_times(test_output, config, debug, NUMBER_OF_ITERATIONS)
+                        except subprocess.TimeoutExpired:
+                            print('subprocess ran too long', flush=True)
+                            output_times = [0 for _ in range(NUMBER_OF_ITERATIONS - 1)]
+                            schedule_stmt = ""
+                            
+                        print(output_times)
+                        
                         # output_times = [0 for _ in range(NUMBER_OF_ITERATIONS)]
                         # schedule_stmt = ""
                         # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
@@ -346,6 +378,9 @@ def main(argv: Optional[Sequence[str]] = None):
                 print("\n========================\n")
                 
                 del os.environ['TENSOR_FILE']
+                
+    print("runtime list: ", runtime_list)
+    print("max runtime: ", max(runtime_list))
     if messages: 
         print_time_message(f'All tests ran', program_start_time)
         

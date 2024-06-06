@@ -44,8 +44,13 @@ class Baskets:
         best_memory = -1
         best_schedules = None
 
+        l = []
+
+        # pick the best time complexity basket such that the additional
+        # memory complexity is less than the allowed element size
         for i, s1 in enumerate(self.baskets) :
             
+            l.extend(s1[2])
             (t,m) = get_simplified_complexity(s1[0], s1[1], final_constraints)
             # print(t, m)
             if ((best_schedules == None or t < best_time or (t == best_time and m < best_memory)) and m < allowed_element_size):
