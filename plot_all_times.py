@@ -21,10 +21,10 @@ rot = args["rotation"]
 
 if (test == 1):
     data_file = f'test8_results_64x64.csv'
-    output_file = f'test8_all_schedules_64x64.png'
+    output_file = f'plots/test8_all_schedules_64x64.pdf'
 elif (test == 2):
     data_file = f'test8_results_128x128.csv'
-    output_file = f'test8_all_schedules_128x128.png'
+    output_file = f'plots/test8_all_schedules_128x128.pdf'
 else:
     assert False
 
