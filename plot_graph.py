@@ -1,12 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from decimal import Decimal
 from itertools import cycle, islice
 from argparse import ArgumentParser, RawTextHelpFormatter
 from enum import Enum
 import numpy as np
 
-CSV_RESULTS = "europa_csv/"
+CSV_RESULTS = "csv_results/"
 PLOTS_DIR = "plots/"
 NAME = 'SparseAuto'
 NAME2 = 'SpAuto-Parallel'
@@ -17,7 +16,6 @@ class FontSize(Enum):
     BIGGER_SIZE = 14
     
 plt.rcParams.update({'font.size': FontSize.BIGGER_SIZE.value})
-# plt.rcParams['legend.title_fontsize'] = 'xx-large'
 
 parser = ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]", formatter_class=RawTextHelpFormatter)
 parser.add_argument('-t', '--test', help='test number', required=False, default=2, type=int)
@@ -64,29 +62,27 @@ known_plot = test == 9 or test == 8 or test == 7 or test == 2 or test == 3 or \
 
 data_file = CSV_RESULTS + f'test{test}.csv'
 data_file_parallel = CSV_RESULTS + f'test{test}_parallel.csv'
-output_file = PLOTS_DIR + f'plot{test}.png'
+output_file = PLOTS_DIR + f'plot{test}.png' # plots/plotX.png
 if (test != 6):
-    df_parallel = pd.read_csv(data_file_parallel, header=0, names=['dataset', 'default_median', 'default_stddev', 'sparseauto_median', 'sparseauto_stddev'])
+    df_parallel = pd.read_csv(data_file_parallel, header=0, names=['Tensor', 'sparseShed', 'Runtime Standard Dev', 'default', 'Default runtime std', 'config'])
 df = pd.read_csv(data_file, header=0, names=['Tensor', 'sparseShed', 'Runtime Standard Dev', 'default', 'Default runtime std', 'config'])
 df = df.drop(columns=['config'])
 
-# print(df)
-
 df[NAME] = df['sparseShed']
 if (test == 6): df[NAME2] = np.nan
-else: df[NAME2] = df_parallel['sparseauto_median']
+else: df[NAME2] = df_parallel['sparseShed']
 
 df['Tensor'] = df['Tensor'].str.split('.').str[0]
 df['Tensor'] = df['Tensor'].str.slice(0,10)
 df['Matrix/Tensor'] = df['Tensor']
 if (test != 6):
-    df_parallel['dataset'] = df_parallel['dataset'].str.split('.').str[0]
+    df_parallel['dataset'] = df_parallel['Tensor'].str.split('.').str[0]
     df_parallel['dataset'] = df_parallel['dataset'].str.slice(0,10)
     df_parallel['Matrix/Tensor'] = df_parallel['dataset']
 df['TACO'] = df['default']
 
 if (test == 6): df['TACO-Parallel'] = np.nan
-else: df['TACO-Parallel'] = df_parallel['default_median']
+else: df['TACO-Parallel'] = df_parallel['default']
 df.set_index('Matrix/Tensor', inplace=True)
 
 if (test != 6):
@@ -97,7 +93,6 @@ df['spd-Parallel'] = df['TACO-Parallel'] / df[NAME2]
 df['spd-Parallel'].clip(upper=ax2_ylim[1], inplace=True)
 
 # remove from df if the row index is 'default'
-# 'bcsstk17'
 if (test != 7):
     df = df[~(df.index.str.contains('bcsstk17') |
         df.index.str.contains('mac_econ_f'))]
@@ -105,8 +100,8 @@ else:
     df = df[~(df.index.str.contains('mac_econ_f'))]
 
 if (test != 6):
-    df['rstd10'] = df_parallel['sparseauto_stddev']
-    df['dstd10'] = df_parallel['default_stddev']
+    df['rstd10'] = df_parallel['Runtime Standard Dev']
+    df['dstd10'] = df_parallel['Default runtime std']
 else: 
     df['rstd10'] = np.nan
     df['dstd10'] = np.nan
@@ -115,10 +110,6 @@ yerr = df[['Runtime Standard Dev', 'Default runtime std',
            'rstd10', 'dstd10']].to_numpy().T
 
 print(df)
-
-# print(yerr)
-# array([[1, 5],
-#        [3, 2]], dtype=int64)
 
 fig, ax = plt.subplots()
 # plt.rcParams.update({'font.size': 22})
@@ -141,14 +132,6 @@ def format_e(n):
     a = '%1.1E' % n
     return a.split('E')[0].rstrip('0').rstrip('.') + 'E' + a.split('E')[1]
 
-# for p in ax.patches:
-#     ax.annotate(format_e(Decimal(p.get_height())), (p.get_x() * 1.000, p.get_height() * 1.05 if p.get_height() < 5e4 else 5e4))
-
-# plt.ylabel("Execution Time (ms)")
-# plt.yscale("log")
-# plt.legend(bbox_to_anchor=(1.0, 1.0))
-# plt.title("Optimized Shedule vs Default Schedule")
-
 if known_plot and test != 6:
     df.plot(x = 'Tensor', y = ['speedup', 'spd-Parallel'], ax = ax2, linestyle='-', marker='o', color = ['black','blue'], secondary_y=True, rot = rot, ylim = ax2_ylim, ylabel = "Speedup", xlabel = "Matrix/Tensor", legend = False)
 elif test == 6:
@@ -170,42 +153,12 @@ yticks[-1].set_visible(False)
 if (test == 2):
     d = 0.010  # proportion of vertical to horizontal extent of the slanted line
     d_ = 0.005
-    # kwargs = dict(marker=[(-1, -d), (1, d)], markersize=12,
-    #               linestyle="none", color='k', mec='k', mew=1, clip_on=False)
-    # # ax1.plot([0, 1], [0, 0], transform=ax1.transAxes, **kwargs)
-    # ax2.plot([0, 1], [1, 1], transform=ax2.transAxes, **kwargs)
     kwargs = dict(transform=ax2.transAxes, color='k', clip_on=False, zorder=10)
-    # kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
-    # ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
     ax2.plot((1 - d, 1 + d), (0.95 - d, 0.95 + d), **kwargs)  # bottom-left diagonal
     ax2.plot((1 - d, 1 + d), (0.93 - d, 0.93 + d), **kwargs)  # bottom-right diagonal
     kwargs.update(color='w')
     ax2.plot((1, 1), (0.94 - d_, 0.94 + d_), **kwargs)  # bottom-right diagonal
 
-# plt.xticks(rotation=45, ha='right')
+
 plt.xlabel("Matrix/Tensor")
-# plt.legend('lower right') 
-
-# for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-#              ax.get_xticklabels() + ax.get_yticklabels()):
-#     item.set_fontsize(FontSize.BIGGER_SIZE.value) 
-    
-# for item in ([ax2.title, ax2.xaxis.label, ax2.yaxis.label] +
-#              ax2.get_xticklabels() + ax2.get_yticklabels()):
-#     item.set_fontsize(FontSize.BIGGER_SIZE.value)  
-
-
-# ax2.set_ylim(40, 160)
-
-# plt.legend(bbox_to_anchor=(1.0, 1.0))
-
-# plt.legend("upper center")
-# ax.legend('upper center')
-# ax2.legend([ax.get_lines(), ax2.get_lines()],\
-#            ['A','B','C'], bbox_to_anchor=(1.5, 0.5))
-
-
-# plt.show()
-# df['speedup'].plot(kind='line', marker='d', secondary_y=True)
-# plt.yscale("log")
 plt.savefig(output_file, bbox_inches='tight',dpi=100)
