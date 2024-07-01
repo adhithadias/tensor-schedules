@@ -2,23 +2,32 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import argparse
+import os
 
 # add a parser to get the test name from the command line
 parser = argparse.ArgumentParser()
-parser.add_argument('test_name', type=str, help='The test name to plot', required=True, choices=['spmm_gemm_real', 'spttm_spttm_real'])
+parser.add_argument('--test-name', type=str, help='The test name to plot', required=True, choices=['spmm_gemm_real', 'spttm_spttm_real'])
+parser.add_argument('--directory', type=str, help='Path to taco directory')
 args = parser.parse_args()
 tst = args.test_name
+
+# dir = '/home/min/a/kadhitha/workspace/my_taco/tensor-schedules/'
+dir = args.directory
 
 # tst = 'spmm_gemm_real'
 # tst = 'spttm_spttm_real'
 
-file = 'test_1_0.csv'
-image_name = 'spttm-spttm-results.pdf'
+# create a directory in f"{dir}/pigeon if it does not exist
+if not os.path.exists(f"{dir}/pigeon"):
+    os.makedirs(f"{dir}/pigeon")
+
+file = f'{dir}/pigeon/test_1_0.csv'
+image_name = f'{dir}/plots/spttm-spttm-results.pdf'
 figsize = (4, 6)
 
 if tst == 'spmm_gemm_real':
-    file = 'test_0_0.csv'
-    image_name = 'spmm-gemm-results.pdf'
+    file = f'{dir}/pigeon/test_0_0.csv'
+    image_name = f'{dir}/plots/spmm-gemm-results.pdf'
     figsize = (9, 6)
 
 # Read the CSV file into a DataFrame

@@ -93,11 +93,12 @@ df['spd-Parallel'] = df['TACO-Parallel'] / df[NAME2]
 df['spd-Parallel'].clip(upper=ax2_ylim[1], inplace=True)
 
 # remove from df if the row index is 'default'
-if (test != 7):
-    df = df[~(df.index.str.contains('bcsstk17') |
-        df.index.str.contains('mac_econ_f'))]
-else:
-    df = df[~(df.index.str.contains('mac_econ_f'))]
+# if (test != 7):
+#     df = df[~(df.index.str.contains('bcsstk17') |
+#         df.index.str.contains('mac_econ_f'))]
+# else:
+#     df = df[~(df.index.str.contains('mac_econ_f'))]
+print(df)
 
 if (test != 6):
     df['rstd10'] = df_parallel['Runtime Standard Dev']
@@ -112,9 +113,7 @@ yerr = df[['Runtime Standard Dev', 'Default runtime std',
 print(df)
 
 fig, ax = plt.subplots()
-# plt.rcParams.update({'font.size': 22})
 ax2 = ax.twinx()
-
 
 # plt.rcParams.update({'font.size': 22})
 # plt.rc('axes', labelsize=BIGGER_SIZE)

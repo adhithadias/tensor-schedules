@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import argparse
 
 def extract_values(output):
     # Regular expression pattern to match floating-point numbers
@@ -183,7 +184,12 @@ replacement_texts_spmm_ours = ["""
 
 num_iterations = 4
 
-taco_dir = '/home/min/a/kadhitha/workspace/my_taco'
+parser = argparse.ArgumentParser()
+parser.add_argument('--directory', type=str, help='Path to taco directory')
+args = parser.parse_args()
+
+# taco_dir = '/home/min/a/kadhitha/workspace/my_taco'
+taco_dir = args.directory
 # Test file
 file_path = f"{taco_dir}/sparseLNR/test/tests-workspaces.cpp"
 # Directory where the project is located
@@ -227,7 +233,8 @@ test_types = {
 }
 
 mtx_matrices = [
-    'bcsstk17.mtx', 'cant.mtx', 'consph.mtx', 'cop20k_A.mtx', 'pdb1HYS.mtx',  'rma10.mtx', 'scircuit.mtx', 'shipsec1.mtx',  'mac_econ_fwd500.mtx',  'webbase-1M.mtx', 'circuit5M.mtx'
+    'bcsstk17.mtx', 
+    # 'cant.mtx', 'consph.mtx', 'cop20k_A.mtx', 'pdb1HYS.mtx',  'rma10.mtx', 'scircuit.mtx', 'shipsec1.mtx',  'mac_econ_fwd500.mtx',  'webbase-1M.mtx', 'circuit5M.mtx'
 ]
 # mtx_matrices = ['bcsstk17.mtx', 'scircuit.mtx']
 
@@ -243,7 +250,7 @@ if not os.path.exists('pigeon'):
 for test_type in test_types:
     if test_type == 1:
         dataset = tns_tensors
-        continue
+        # continue
     else:
         dataset = mtx_matrices
         
@@ -289,7 +296,8 @@ for test_type in test_types:
                         
                     write_str = write_str + f'{test_name},{data},{j},{",".join(str(value) for value in values)}\n'
         
-        f = open(f'pigeon/test_{test_type}_{i}.csv', "w")
+        file = f"{taco_dir}/tensor-schedules/pigeon/test_{test_type}_{i}.csv"
+        f = open(file, "w")
         # write write str to the csv file
         print(write_str, flush=True)
         f.write(write_str)
