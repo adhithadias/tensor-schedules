@@ -1,9 +1,15 @@
 import os
 from PIL import Image
 import matplotlib.pyplot as plt
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--directory', type=str, help='Path to taco directory')
+args = parser.parse_args()
+dir = args.directory
 
 # Directory containing the PNG files
-input_dir = "plots"
+input_dir = f"{dir}/tensor-schedules/plots/fig8"
 
 # List of PNG files in the directory
 png_files = [f for f in os.listdir(input_dir) if f.endswith('.png') and f in ['plot3.png', 'plot4.png', 'plot7.png', 'plot8.png', 'plot2.png', 'plot5.png', 'plot6.png', 'plot9.png']]

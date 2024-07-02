@@ -26,10 +26,10 @@ dimension = args["dimension"]
 
 if (test == 1):
     data_file = f'{directory}/tensor-schedules/csv_results/test8_all_schedules_{dimension}x{dimension}.csv'
-    output_file = f'{directory}/tensor-schedules/plots/test8_all_schedules_64x64.pdf'
+    output_file = f'{directory}/tensor-schedules/plots/fig11/test8_all_schedules_64x64.pdf'
 elif (test == 2):
     data_file = f'{directory}/tensor-schedules/csv_results/test8_all_schedules_{dimension}x{dimension}.csv'
-    output_file = f'{directory}/tensor-schedules/plots/test8_all_schedules_128x128.pdf'
+    output_file = f'{directory}/tensor-schedules/plots/fig11/test8_all_schedules_128x128.pdf'
 else:
     assert False
 

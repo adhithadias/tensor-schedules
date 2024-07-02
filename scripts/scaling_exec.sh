@@ -18,10 +18,10 @@ do
         export OMP_NUM_THREADS=$threads
         echo ""
         echo "kernel:default_$test, dataset: $dataset, threads: $threads"
-        OMP_NUM_THREADS=$threads TENSOR_FILE=/home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/$dataset /home/min/a/kadhitha/workspace/my_taco/sparseLNR/build/bin/taco-test --gtest_filter=workspaces.default_$test
+        OMP_NUM_THREADS=$threads TENSOR_FILE=$1/tensor-schedules/downloads/$dataset $1/sparseLNR/build/bin/taco-test --gtest_filter=workspaces.default_$test
         echo ""
         echo "kernel:$test, dataset: $dataset, threads: $threads"
-        OMP_NUM_THREADS=$threads TENSOR_FILE=/home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/$dataset /home/min/a/kadhitha/workspace/my_taco/sparseLNR/build/bin/taco-test --gtest_filter=workspaces.$test
+        OMP_NUM_THREADS=$threads TENSOR_FILE=$1/tensor-schedules/downloads/$dataset $1/sparseLNR/build/bin/taco-test --gtest_filter=workspaces.$test
         echo ""
     done
 done

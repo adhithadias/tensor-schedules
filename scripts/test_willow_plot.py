@@ -22,12 +22,12 @@ if not os.path.exists(f"{dir}/pigeon"):
     os.makedirs(f"{dir}/pigeon")
 
 file = f'{dir}/pigeon/test_1_0.csv'
-image_name = f'{dir}/plots/spttm-spttm-results.pdf'
+image_name = f'{dir}/plots/fig9/spttm-spttm-results.pdf'
 figsize = (4, 6)
 
 if tst == 'spmm_gemm_real':
     file = f'{dir}/pigeon/test_0_0.csv'
-    image_name = f'{dir}/plots/spmm-gemm-results.pdf'
+    image_name = f'{dir}/plots/fig9/spmm-gemm-results.pdf'
     figsize = (9, 6)
 
 # Read the CSV file into a DataFrame

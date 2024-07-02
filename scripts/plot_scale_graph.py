@@ -29,7 +29,7 @@ directory = args["directory"]
 if (test == 1):
     f1 = f'{directory}/csv_results/scaletest_sddmm_spmm_webbase-1M.mtx_scaling.csv'
     f2 = f'{directory}/csv_results/scaletest_sddmm_spmm_gemm_webbase-1M.mtx_scaling.csv'
-    output_file = f'{directory}/plots/webase-scaling.pdf'
+    output_file = f'{directory}/plots/fig12/webase-scaling.pdf'
     sa1 = 'SparseAuto: Kernel ①'
     taco1 = 'TACO: Kernel ①'
     sa2 = 'SparseAuto: Kernel ②'
@@ -38,7 +38,7 @@ if (test == 1):
 else:
     f1 = f'{directory}/csv_results/scaletest_spttm_ttm_darpa1998.tns_scaling.csv'
     f2 = f'{directory}/csv_results/scaletest_mttkrp_gemm_darpa1998.tns_scaling.csv'
-    output_file = f'{directory}/plots/darpa-scaling.pdf'
+    output_file = f'{directory}/plots/fig12/darpa-scaling.pdf'
     sa1 = 'SparseAuto: Kernel ⑥'
     taco1 = 'TACO: Kernel ⑥'
     sa2 = 'SparseAuto: Kernel ⑧'

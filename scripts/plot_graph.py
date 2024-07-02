@@ -20,9 +20,11 @@ plt.rcParams.update({'font.size': FontSize.BIGGER_SIZE.value})
 parser = ArgumentParser(description='Stores multiple configurations into a json file specified by a configuration json file', usage="python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]", formatter_class=RawTextHelpFormatter)
 parser.add_argument('-t', '--test', help='test number', required=False, default=2, type=int)
 parser.add_argument('-r', '--rotation', help='rotation of the tensors in x axis', required=False, default=45, type=int)
+parser.add_argument('--directory', type=str, help='Path to taco directory')
 args = vars(parser.parse_args())
 test = args["test"]
 rot = args["rotation"]
+dir = args.directory
 
 if test == 2:
     ax1_ylim = (1e2, 1e7)
@@ -60,9 +62,12 @@ elif test == 9:
 known_plot = test == 9 or test == 8 or test == 7 or test == 2 or test == 3 or \
     test == 4 or test == 5 or test == 6
 
-data_file = CSV_RESULTS + f'test{test}.csv'
-data_file_parallel = CSV_RESULTS + f'test{test}_parallel.csv'
-output_file = PLOTS_DIR + f'plot{test}.png' # plots/plotX.png
+# data_file = CSV_RESULTS + f'test{test}.csv'
+data_file = f"{dir}/tensor-schedules/csv_results/test{test}.csv"
+# data_file_parallel = CSV_RESULTS + f'test{test}_parallel.csv'
+data_file_parallel = f"{dir}/tensor-schedules/csv_results/test{test}_parallel.csv"
+# output_file = PLOTS_DIR + f'plot{test}.png' # plots/plotX.png
+output_file = f"{dir}/tensor-schedules/plots/fig8/test{test}.png"
 if (test != 6):
     df_parallel = pd.read_csv(data_file_parallel, header=0, names=['Tensor', 'sparseShed', 'Runtime Standard Dev', 'default', 'Default runtime std', 'config'])
 df = pd.read_csv(data_file, header=0, names=['Tensor', 'sparseShed', 'Runtime Standard Dev', 'default', 'Default runtime std', 'config'])

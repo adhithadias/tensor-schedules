@@ -32,13 +32,13 @@ columns = ['Dense Dimensions', 'SparseAuto;L=16', 'Cyclops;L=16', 'SparseAuto;L=
 
 if test == 1:
     csv = f"{csv_directory}/ttmc_compare_nell2.csv"
-    output = "plots/ttmc_compare_nell2.pdf"
+    output = f"{directory}/tensor-schedules/plots/fig10/ttmc_compare_nell2.pdf"
     title = "SparseAuto vs. SpTTN-Cyclops on nell-2"
     plt.rcParams["figure.figsize"] = [6, 5]
     labels = ["M=16;N=16", "M=32;N=32", "M=64;N=64", "M=128;N=128"]
 else:
     csv = f"{csv_directory}/ttmc_compare_flickr.csv"
-    output = "plots/ttmc_compare_flickr.pdf"
+    output = f"{directory}/tensor-schedules/plots/fig10/ttmc_compare_flickr.pdf"
     title = "SparseAuto vs. SpTTN-Cyclops on flickr"
     plt.rcParams["figure.figsize"] = [6, 4.7]
     labels = ["M=16;N=16", "M=32;N=32", "M=64;N=64"]
