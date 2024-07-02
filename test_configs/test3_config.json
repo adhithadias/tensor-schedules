@@ -27,7 +27,7 @@
     "i * j < 1000000 * i * jpos"
   ],
   "output_csv_file": "test3.csv",
-  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx", "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"],
+  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx"],
   "actual_values": {
     "bcsstk17.mtx": {"i": 11000, "j": 11000, "k": 16, "l": 16, "jpos": 39},
     "cant.mtx": {"i": 62000, "j": 62000, "k": 16, "l": 16, "jpos": 65},

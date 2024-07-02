@@ -13,7 +13,7 @@
   "output_tensor": "A",
   "test_json_file": "test8_without_z3_pruning.json",
   "test_json_file_without_depth": "test8_without_depth_pruning.json",
-  "test_json_file_after_z3": "test8_with_z3_pruning.json",
+  "test_json_file_after_z3": "json_for_testing.json",
   "test_best_schedule_file": "test8_best_schedule.json",
   "test_name": "spmm_gemm_real",
   "z3_constraints": [
@@ -26,7 +26,7 @@
     "i * j < 10000000 * i * jpos"
   ],
   "output_csv_file": "test8.csv",
-  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx", "mac_econ_fwd500.mtx", "pdb1HYS.mtx", "rma10.mtx", "scircuit.mtx", "shipsec1.mtx", "webbase-1M.mtx", "circuit5M.mtx"],
+  "eval_files": ["bcsstk17.mtx"],
   "actual_values": {
     "bcsstk17.mtx": {"i": 11000, "j": 11000, "k": 128, "l": 64, "jpos": 39},
     "cant.mtx": {"i": 62000, "j": 62000, "k": 128, "l": 64, "jpos": 65},
