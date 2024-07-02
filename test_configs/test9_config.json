@@ -27,7 +27,7 @@
     "i * k * l < 10000000000 * i * kpos * lpos"
   ],
   "output_csv_file": "test9.csv",
-  "eval_files": ["nell-2.tns"],
+  "eval_files": ["vast-2015-mc1-3d.tns", "flickr-3d.tns", "nell-2.tns", "darpa1998.tns"],
   "num_tests": 3,
   "actual_values": {
     "3_2048_1022_007.tns": {"i": 3, "k": 2048, "l": 1022, "j": 16, "m": 64, "kpos": 5, "lpos": 4},
