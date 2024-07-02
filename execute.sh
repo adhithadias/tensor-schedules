@@ -4,7 +4,7 @@
 
 ./download_tensors.sh
 
-cwd=$(pwd)
+./build_taco.sh
 
 ./figure8.sh
 
