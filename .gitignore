@@ -7,9 +7,13 @@ eval_generated
 lib
 lib64
 share
-test_schedules
 csv_results
 logs
 temporary_json
 *.txt
 *.csv
+files
+include
+.venv
+.vscode
+.pytest_cache
