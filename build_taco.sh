@@ -4,7 +4,7 @@
 
 cwd=$(pwd)
 
-cd $cwd/../SparseLNR
+cd $cwd/../sparseLNR
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
