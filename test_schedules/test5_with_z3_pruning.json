@@ -1,0 +1,418 @@
+{
+  "baskets": [
+    {
+      "tc": [
+        {
+          "k": 1,
+          "m": 0,
+          "i": 0,
+          "j": 1
+        },
+        {
+          "l": 0,
+          "m": 0,
+          "i": 0,
+          "j": 1
+        }
+      ],
+      "mc": [
+        []
+      ],
+      "schedules": [
+        {
+          "output_tensor": "A",
+          "input_tensors": [
+            "B",
+            "D",
+            "C"
+          ],
+          "prod_on_left": true,
+          "fused": 1,
+          "input_idx_order": [
+            "m",
+            "i",
+            "j",
+            [
+              "k"
+            ],
+            [
+              "l"
+            ]
+          ],
+          "output_idx_order": [
+            "i",
+            "l",
+            "m"
+          ],
+          "time_complexity": {
+            "r": [
+              {
+                "k": 1,
+                "m": 0,
+                "i": 0,
+                "j": 1
+              },
+              {
+                "l": 0,
+                "m": 0,
+                "i": 0,
+                "j": 1
+              }
+            ],
+            "a": []
+          },
+          "memory_complexity": [
+            []
+          ],
+          "original_idx_perm": [
+            "m",
+            "i",
+            "j",
+            "k",
+            "l"
+          ],
+          "temporary": {
+            "_A": []
+          },
+          "cache_complexity": [
+            [
+              "m"
+            ],
+            [
+              "m"
+            ]
+          ],
+          "producer": {
+            "output_tensor": "_A",
+            "input_tensors": [
+              "B",
+              "D"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "k"
+            ],
+            "output_idx_order": [],
+            "time_complexity": {
+              "r": [
+                {
+                  "k": 1
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "k"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          },
+          "consumer": {
+            "output_tensor": "A",
+            "input_tensors": [
+              "_A",
+              "C"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "l"
+            ],
+            "output_idx_order": [
+              "l"
+            ],
+            "time_complexity": {
+              "r": [
+                {
+                  "l": 0
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "l"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          }
+        },
+        {
+          "output_tensor": "A",
+          "input_tensors": [
+            "B",
+            "D",
+            "C"
+          ],
+          "prod_on_left": true,
+          "fused": 1,
+          "input_idx_order": [
+            "i",
+            "j",
+            "m",
+            [
+              "k"
+            ],
+            [
+              "l"
+            ]
+          ],
+          "output_idx_order": [
+            "i",
+            "l",
+            "m"
+          ],
+          "time_complexity": {
+            "r": [
+              {
+                "k": 1,
+                "i": 0,
+                "j": 1,
+                "m": 0
+              },
+              {
+                "l": 0,
+                "i": 0,
+                "j": 1,
+                "m": 0
+              }
+            ],
+            "a": []
+          },
+          "memory_complexity": [
+            []
+          ],
+          "original_idx_perm": [
+            "i",
+            "j",
+            "m",
+            "k",
+            "l"
+          ],
+          "temporary": {
+            "_A": []
+          },
+          "cache_complexity": [
+            [
+              "m"
+            ],
+            [
+              "m"
+            ]
+          ],
+          "producer": {
+            "output_tensor": "_A",
+            "input_tensors": [
+              "B",
+              "D"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "k"
+            ],
+            "output_idx_order": [],
+            "time_complexity": {
+              "r": [
+                {
+                  "k": 1
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "k"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          },
+          "consumer": {
+            "output_tensor": "A",
+            "input_tensors": [
+              "_A",
+              "C"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "l"
+            ],
+            "output_idx_order": [
+              "l"
+            ],
+            "time_complexity": {
+              "r": [
+                {
+                  "l": 0
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "l"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          }
+        },
+        {
+          "output_tensor": "A",
+          "input_tensors": [
+            "B",
+            "D",
+            "C"
+          ],
+          "prod_on_left": true,
+          "fused": 1,
+          "input_idx_order": [
+            "i",
+            "m",
+            "j",
+            [
+              "k"
+            ],
+            [
+              "l"
+            ]
+          ],
+          "output_idx_order": [
+            "i",
+            "l",
+            "m"
+          ],
+          "time_complexity": {
+            "r": [
+              {
+                "k": 1,
+                "i": 0,
+                "m": 0,
+                "j": 1
+              },
+              {
+                "l": 0,
+                "i": 0,
+                "m": 0,
+                "j": 1
+              }
+            ],
+            "a": []
+          },
+          "memory_complexity": [
+            []
+          ],
+          "original_idx_perm": [
+            "i",
+            "m",
+            "j",
+            "k",
+            "l"
+          ],
+          "temporary": {
+            "_A": []
+          },
+          "cache_complexity": [
+            [
+              "m"
+            ],
+            [
+              "m"
+            ]
+          ],
+          "producer": {
+            "output_tensor": "_A",
+            "input_tensors": [
+              "B",
+              "D"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "k"
+            ],
+            "output_idx_order": [],
+            "time_complexity": {
+              "r": [
+                {
+                  "k": 1
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "k"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          },
+          "consumer": {
+            "output_tensor": "A",
+            "input_tensors": [
+              "_A",
+              "C"
+            ],
+            "prod_on_left": null,
+            "fused": 1,
+            "input_idx_order": [
+              "l"
+            ],
+            "output_idx_order": [
+              "l"
+            ],
+            "time_complexity": {
+              "r": [
+                {
+                  "l": 0
+                }
+              ],
+              "a": []
+            },
+            "memory_complexity": [],
+            "original_idx_perm": [
+              "l"
+            ],
+            "temporary": {},
+            "cache_complexity": [],
+            "producer": null,
+            "consumer": null
+          }
+        }
+      ]
+    }
+  ],
+  "accesses": {
+    "A": [
+      "i",
+      "l",
+      "m"
+    ],
+    "B": [
+      "i",
+      "j",
+      "k"
+    ],
+    "C": [
+      "j",
+      "l"
+    ],
+    "D": [
+      "k",
+      "m"
+    ],
+    "_A": []
+  }
+}

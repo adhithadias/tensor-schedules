@@ -1,0 +1,137 @@
+{
+  "schedules": [
+    {
+      "output_tensor": "A",
+      "input_tensors": [
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "prod_on_left": true,
+      "fused": 1,
+      "input_idx_order": [
+        "i",
+        "j",
+        [
+          "k"
+        ],
+        [
+          "l"
+        ]
+      ],
+      "output_idx_order": [
+        "i",
+        "l"
+      ],
+      "time_complexity": {
+        "r": [
+          {
+            "k": 0,
+            "i": 0,
+            "j": 1
+          },
+          {
+            "l": 0,
+            "i": 0,
+            "j": 1
+          }
+        ],
+        "a": []
+      },
+      "memory_complexity": [
+        []
+      ],
+      "original_idx_perm": [
+        "i",
+        "j",
+        "k",
+        "l"
+      ],
+      "temporary": {
+        "_A": []
+      },
+      "producer": {
+        "output_tensor": "_A",
+        "input_tensors": [
+          "B",
+          "C",
+          "D"
+        ],
+        "prod_on_left": null,
+        "fused": 1,
+        "input_idx_order": [
+          "k"
+        ],
+        "output_idx_order": [],
+        "time_complexity": {
+          "r": [
+            {
+              "k": 0
+            }
+          ],
+          "a": []
+        },
+        "memory_complexity": [],
+        "original_idx_perm": [
+          "k"
+        ],
+        "temporary": {},
+        "producer": null,
+        "consumer": null
+      },
+      "consumer": {
+        "output_tensor": "A",
+        "input_tensors": [
+          "_A",
+          "E"
+        ],
+        "prod_on_left": null,
+        "fused": 1,
+        "input_idx_order": [
+          "l"
+        ],
+        "output_idx_order": [
+          "l"
+        ],
+        "time_complexity": {
+          "r": [
+            {
+              "l": 0
+            }
+          ],
+          "a": []
+        },
+        "memory_complexity": [],
+        "original_idx_perm": [
+          "l"
+        ],
+        "temporary": {},
+        "producer": null,
+        "consumer": null
+      }
+    }
+  ],
+  "accesses": {
+    "A": [
+      "i",
+      "l"
+    ],
+    "B": [
+      "i",
+      "j"
+    ],
+    "C": [
+      "i",
+      "k"
+    ],
+    "D": [
+      "j",
+      "k"
+    ],
+    "E": [
+      "j",
+      "l"
+    ]
+  }
+}
