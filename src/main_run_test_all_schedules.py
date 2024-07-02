@@ -229,7 +229,6 @@ def main(argv: Optional[Sequence[str]] = None):
     
     print_message(f'{len(config_list)} schedules found for the given evaluation')
     
-    runtime_list = []
     output_csv_file = out_file.split(".")[0] + f"_all_schedules_{dimension}x{dimension}.csv"
     print(output_csv_file)
     print(len(config_list))
@@ -314,8 +313,6 @@ def main(argv: Optional[Sequence[str]] = None):
         
         del os.environ['TENSOR_FILE']
                 
-    print("runtime list: ", runtime_list)
-    print("max runtime: ", max(runtime_list))
     if messages: 
         print_time_message(f'All tests ran', program_start_time)
         

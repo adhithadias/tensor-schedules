@@ -27,7 +27,7 @@ TEST_SCHEDULES = "test_schedules/"
 CSV_RESULTS = "csv_results/"
 TEMP_RESULT_FOLDER = "temp/"
 OUTPUT_OFFSET = 8
-NUMBER_OF_ITERATIONS = 32
+NUMBER_OF_ITERATIONS = 4
 TIME_OUT = 3000
 
 # incomplete argument
@@ -168,6 +168,7 @@ def main(argv: Optional[Sequence[str]] = None):
     parser.add_argument('-x', '--extra_messages', action='store_true', help='enable printing of extra progress messages')
     parser.add_argument('-n', '--num_threads', default=1, help='enable printing of extra progress messages')
     parser.add_argument('-r', '--run_time', action='store_true', help='time to run the test')
+    parser.add_argument('-i', '--iterations', help="number of iterations to run the test", default=4)
     
     args = vars(parser.parse_args(argv))
     filter_time_only = args['run_time']
@@ -181,6 +182,7 @@ def main(argv: Optional[Sequence[str]] = None):
     messages = args['messages']
     global extra_messages
     extra_messages = args['extra_messages']
+    NUMBER_OF_ITERATIONS = int(args['iterations'])
     
     config_files = [CONFIG_JSON_FILE_FOLDER + config_file for config_file in config_files]
     
@@ -193,7 +195,7 @@ def main(argv: Optional[Sequence[str]] = None):
     path_test = path_makefile + "/bin/taco-test"
 
     # Makefile command to run
-    command = "make -j 8"
+    command = "USE_OPENMP=true _OPENMP=true  make -j 8"
     
     # print(output_files, json_files, test_names)  
     
@@ -232,7 +234,14 @@ def main(argv: Optional[Sequence[str]] = None):
         
         runtime_list = []
         
-        with open(out_file, 'w', newline='') as csvfile2:
+        print(nthreads)
+        # exit(0)
+        if nthreads > 1:
+            output_csv_file = out_file.split(".")[0] + "_parallel.csv"
+        else:
+            output_csv_file = out_file
+        print(output_csv_file)
+        with open(CSV_RESULTS + output_csv_file, 'w', newline='') as csvfile2:
             eval_writer = csv.writer(csvfile2, delimiter=',')
             list_times = ["Time " + str(num + 1) for num in range(num_tests)]
             header_row = ['Tensor', 'Median Runtime', 'Runtime Standard Dev', 'Default runtime', 'Default runtime std', 'Config']
@@ -288,8 +297,8 @@ def main(argv: Optional[Sequence[str]] = None):
                         envvars = f'USE_OPENMP=true _OPENMP=true '
                     
                     compile_taco_test(path_makefile, command, 0, "default execution", config_list)
-                    print(f'{envvars}OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
-                    test_output = subprocess.run(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
+                    print(f'{envvars} OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', flush=True)
+                    test_output = subprocess.run(f'{envvars} OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name("default_" + test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
                     expected_times, schedule_stmt = get_execution_times(test_output, None, debug, NUMBER_OF_ITERATIONS)
                     # expected_times = [0,0,0]
                     # schedule_stmt = ""
@@ -330,7 +339,7 @@ def main(argv: Optional[Sequence[str]] = None):
                         # runs test
                         try:
                             print(f'{envvars}OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', flush=True)
-                            test_output = subprocess.run(f'ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
+                            test_output = subprocess.run(f'{envvars} OMP_NUM_THREADS={nthreads} ITERATIONS={NUMBER_OF_ITERATIONS} TENSOR_FILE={tensor_file} {path_test} --gtest_filter={get_test_name(test_name)}', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, shell=True, preexec_fn=os.setsid, timeout=TIME_OUT)
                         
                             # wait for output to generate
                             # test_output.wait()
