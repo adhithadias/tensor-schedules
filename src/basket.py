@@ -63,7 +63,7 @@ class Baskets:
         # cache pruning
         for i, s1 in enumerate(best_schedules[2]):
             
-            print('cache complexity', s1.cache_complexity)
+            # print('cache complexity', s1.cache_complexity)
             t = get_simplified_cache(s1.cache_complexity, final_constraints)
             print('t: ', t)
             if (best_cache == -1 or t == best_cache) : 
@@ -73,6 +73,6 @@ class Baskets:
                 best_cache = t 
                 schedules = [s1]
                 
-        print('selected schedules #: ', len(schedules))
+        # print('selected schedules #: ', len(schedules))
         
         return best_time, best_memory, (best_schedules[0], best_schedules[1], schedules)

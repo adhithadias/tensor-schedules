@@ -17,11 +17,46 @@ pip freeze > requirements.txt
 pip install -r requirements.txt
 ```
 
+## To Download Tensors
+```bash
+./load_tensors.sh
+This will create a downloads folder and put tns and mtx files in it.  It will also add a temp folder.
+```
+
 ## To Run the Program
+```bash
+# store tests into specified json files
+python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]
+
+# example
+# first generate the schedules and run the depth based first 2 pruning stages, the pruned schedules are saved to the file under "test_json_file" in the config.json
+python3 -m src.main_store_json -f test3_config.json -r
+
+# main_store_json_z3 reads the schedules in "test_json_file" in config.json file and prunes it using the z3 configs. Divides them into 
+python3 -m src.main_store_json_z3 -f test3_config.json -r
+
+python3 -m src.run_from_z3_prune -t 2
+
+# run tests and stores runtimes in csv test file(s)
+python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]
+
+# example
+python3 -m src.main_run_test_modified -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -n 32 -m -x
+
+python3 plot_graph.py -t 3 -r 30
+
+# Running tests
+pytest test/test_baskets.py
+pytest test/test_cache.py -s
+pytest test/test_cache.py::test_remove_duplicates -s
+
+* add -m to display messages about runtime of the python script and -x to display tensor information and taco output
+* add -t [path] to change path to testing tensors to be something other than downloads in the current directory
+```
+
+## To Run the Tests
 
 ```bash
-python3 -m src.main > output.txt
-
 # to run all the tests inside tests dir
 # -s prints print statements inside the execution
 pytest -s <test dir> > test_output.txt
@@ -43,87 +78,6 @@ pytest -s test/test_autosched.py::test_autoschedule1
 # to run a single test 
 python3 -m <test dir>.<test name>
 python3 -m test.test_union_list
-```
-
-## To Download Tensors
-```bash
-./load_tensors.sh
-This will create a downloads folder and put tns and mtx files in it.  It will also add a temp folder.
-```
-
-## To Run Tests
-```bash
-# store tests into specified json files
-python3 -m src.main_store_json -f [configuration file(s)] [optional arguments]
-
-# example
-# first generate the schedules and run the depth based first 2 pruning stages, the pruned schedules are saved to the file under "test_json_file" in the config.json
-python3 -m src.main_store_json -f test2_config.json -r
-python3 -m src.main_store_json -f test3_config.json -r
-python3 -m src.main_store_json -f test4_config.json -r
-python3 -m src.main_store_json -f test5_config.json -r
-python3 -m src.main_store_json -f test6_config.json -r
-python3 -m src.main_store_json -f test7_config.json -r
-python3 -m src.main_store_json -f test8_config.json -r
-nohup python3 -m src.main_store_json -f test9_config.json -r &> test9_schedule_generation.txt &
-
-
-# main_store_json_z3 reads the schedules in "test_json_file" in config.json file and prunes it using the z3 configs. Divides them into 
-python3 -m src.main_store_json_z3 -f test2_config.json -r
-python3 -m src.main_store_json_z3 -f test3_config.json -r
-python3 -m src.main_store_json_z3 -f test4_config.json -r
-python3 -m src.main_store_json_z3 -f test5_config.json -r
-python3 -m src.main_store_json_z3 -f test6_config.json -r
-python3 -m src.main_store_json_z3 -f test7_config.json -r
-python3 -m src.main_store_json_z3 -f test8_config.json -r
-nohup python3 -m src.main_store_json_z3 -f test9_config.json -r &> test9_z3_pruning.txt &
-
-python3 -m src.run_from_z3_prune -t 2
-
-# run tests and stores runtimes in csv test file(s)
-python3 -m src.main_run_test -f [json config file(s)] -p [taco file path] [optional args]
-
-# example
-python3 -m src.main_run_test_prev -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-python3 -m src.main_run_test_prev -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-python3 -m src.main_run_test_prev -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-python3 -m src.main_run_test_prev -f test5_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-python3 -m src.main_run_test_prev -f test6_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-python3 -m src.main_run_test_modified -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -n 32 -m -x
-
-python3 -m src.main_run_test_modified -f test3_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -n 32 -m -x
-
-python3 -m src.main_run_test_modified -f test4_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x
-
-nohup python3 -m src.main_run_test_modified -f test2_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> logs/test2_execution.txt &
-
-nohup python3 -m src.main_run_test_modified -f test7_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test7_execution.txt &
-
-nohup python3 -m src.main_run_test_modified -f test8_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test8_execution.txt &
-
-nohup python3 -m src.main_run_test_modified -f test9_config.json -t /home/min/a/kadhitha/workspace/my_taco/tensor-schedules/downloads/ -p /home/min/a/kadhitha/workspace/my_taco/sparseLNR -m -x &> test9_execution.txt &
-
-python3 plot_graph.py -t 2 -r 0
-python3 plot_graph.py -t 3 -r 30
-python3 plot_graph.py -t 4 -r 30
-python3 plot_graph.py -t 5 -r 0
-python3 plot_graph.py -t 6 -r 0
-python3 plot_graph.py -t 7 -r 30
-python3 plot_graph.py -t 8 -r 30
-python3 plot_graph.py -t 9 -r 0
-
-# Running tests
-pytest test/test_baskets.py
-pytest test/test_cache.py -s
-pytest test/test_cache.py::test_remove_duplicates -s
-
-* add -m to display messages about runtime of the python script and -x to display tensor information and taco output
-* add -t [path] to change path to testing tensors to be something other than downloads in the current directory
 ```
 
 
