@@ -13,7 +13,6 @@ RUN apt-get -y update && apt-get -y install \
 
 RUN useradd -ms /bin/bash oopsla
 
-# USER oopsla
 WORKDIR /home/oopsla
 
 COPY tensor-schedules/requirements.txt .
@@ -23,4 +22,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
-# RUN chown -R oopsla:oopsla /home/oopsla
+ENTRYPOINT ["bash"]
