@@ -20,6 +20,11 @@ then
     mkdir $DIR/tensors_stored
 fi
 
+if [ ! -e $DIR/csv_results/ ]
+then
+    mkdir $DIR/csv_results
+fi
+
 if [ ! -e $DIR/pigeon/ ]
 then
     mkdir $DIR/pigeon

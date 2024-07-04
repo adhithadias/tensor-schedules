@@ -197,6 +197,10 @@ def main(argv: Optional[Sequence[str]] = None):
     # Makefile command to run
     command = "USE_OPENMP=true _OPENMP=true  make -j 8"
     
+    csv_folder = f"{path_root}/../tensor-schedules/{CSV_RESULTS}"
+    if not os.path.exists(csv_folder):
+        os.makedirs(csv_folder)
+    
     # print(output_files, json_files, test_names)  
     
     program_start_time = time()
@@ -241,7 +245,7 @@ def main(argv: Optional[Sequence[str]] = None):
         else:
             output_csv_file = out_file
         print(output_csv_file)
-        with open(CSV_RESULTS + output_csv_file, 'w', newline='') as csvfile2:
+        with open(f"{csv_folder}/{output_csv_file}", 'w', newline='') as csvfile2:
             eval_writer = csv.writer(csvfile2, delimiter=',')
             list_times = ["Time " + str(num + 1) for num in range(num_tests)]
             header_row = ['Tensor', 'Median Runtime', 'Runtime Standard Dev', 'Default runtime', 'Default runtime std', 'Config']

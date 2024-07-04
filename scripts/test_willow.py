@@ -233,8 +233,7 @@ test_types = {
 }
 
 mtx_matrices = [
-    'bcsstk17.mtx', 
-    # 'cant.mtx', 'consph.mtx', 'cop20k_A.mtx', 'pdb1HYS.mtx',  'rma10.mtx', 'scircuit.mtx', 'shipsec1.mtx',  'mac_econ_fwd500.mtx',  'webbase-1M.mtx', 'circuit5M.mtx'
+    'bcsstk17.mtx', 'cant.mtx', 'consph.mtx', 'cop20k_A.mtx', 'pdb1HYS.mtx',  'rma10.mtx', 'scircuit.mtx', 'shipsec1.mtx',  'mac_econ_fwd500.mtx',  'webbase-1M.mtx', 'circuit5M.mtx'
 ]
 # mtx_matrices = ['bcsstk17.mtx', 'scircuit.mtx']
 

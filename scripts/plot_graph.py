@@ -24,7 +24,7 @@ parser.add_argument('--directory', type=str, help='Path to taco directory')
 args = vars(parser.parse_args())
 test = args["test"]
 rot = args["rotation"]
-dir = args.directory
+dir = args["directory"]
 
 if test == 2:
     ax1_ylim = (1e2, 1e7)

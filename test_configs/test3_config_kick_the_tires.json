@@ -1,0 +1,45 @@
+{
+  "accesses": {
+    "A": ["i", "l"],
+    "B": ["i", "j"],
+    "C": ["i", "k"],
+    "D": ["j", "k"],
+    "E": ["j", "l"]
+  },
+  "tensor_idx_order_constraints": {
+    "B": [
+      ["j", "i"]
+    ]
+  },
+  "output_tensor": "A",
+  "test_json_file": "test3_without_z3_pruning.json",
+  "test_json_file_without_depth": "test3_without_depth_pruning.json",
+  "test_json_file_after_z3": "test3_with_z3_pruning.json",
+  "test_best_schedule_file": "test3_best_schedule.json",
+  "test_name": "sddmm_spmm_real",
+  "z3_constraints": [
+    "i >= 11000", "i <= 1000000",
+    "j >= 11000", "j <= 1000000",
+    "k >= 8", "k <= 256",
+    "l >= 8", "l <= 256",
+    "jpos >= 0", "jpos <= j",
+    "1000 * i * jpos < i * j",
+    "i * j < 1000000 * i * jpos"
+  ],
+  "output_csv_file": "test3.csv",
+  "eval_files": ["bcsstk17.mtx", "cant.mtx", "consph.mtx", "cop20k_A.mtx"],
+  "actual_values": {
+    "bcsstk17.mtx": {"i": 11000, "j": 11000, "k": 16, "l": 16, "jpos": 39},
+    "cant.mtx": {"i": 62000, "j": 62000, "k": 16, "l": 16, "jpos": 65},
+    "circuit5M.mtx": {"i": 5560000, "j": 556000, "k": 16, "l": 16, "jpos": 11},
+    "consph.mtx": {"i": 83000, "j": 83000, "k": 16, "l": 16, "jpos": 72},
+    "cop20k_A.mtx": {"i": 12000, "j": 12000, "k": 16, "l": 16, "jpos": 218},
+    "mac_econ_fwd500.mtx": {"i": 207000, "j": 207000, "k": 16, "l": 16, "jpos": 6},
+    "pdb1HYS.mtx": {"i": 36000, "j": 36000, "k": 16, "l": 16, "jpos": 121},
+    "rma10.mtx": {"i": 47000, "j": 47000, "k": 16, "l": 16, "jpos": 50},
+    "scircuit.mtx": {"i": 171000, "j": 171000, "k": 16, "l": 16, "jpos": 6},
+    "shipsec1.mtx": {"i": 140000, "j": 140000, "k": 16, "l": 16, "jpos": 56},
+    "webbase-1M.mtx": {"i": 1000000, "j": 1000000, "k": 16, "l": 16, "jpos": 3}
+  },
+  "num_tests": 10
+}

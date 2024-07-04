@@ -35,8 +35,8 @@ do
           then
             tar xvzf $DIR/downloads/$LAST_PORTION -C $DIR/downloads
             mv $DIR/downloads/${BEFORE_GZ%.*}/${BEFORE_GZ%.*}.mtx $DIR/downloads
-            rm $DIR/downloads/${BEFORE_GZ%.*}/ -r
-            rm $DIR/downloads/$LAST_PORTION
+            rm -r $DIR/downloads/${BEFORE_GZ%.*}/
+            rm -r $DIR/downloads/$LAST_PORTION
           else
             gzip -d $DIR/downloads/$LAST_PORTION
           fi
