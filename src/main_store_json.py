@@ -53,9 +53,6 @@ def f(output_tensor, accesses, expr, indices, tensor_idx_order_constraints, i, t
     output_tensor = deepcopy(output_tensor)
     accesses = deepcopy(accesses)
     expr = deepcopy(expr)
-    # if (expr != )
-    if(expr != ('C', 'D', 'B', 'E')):
-        return
     indices = deepcopy(indices)
     tensor_idx_order_constraints = deepcopy(tensor_idx_order_constraints)
     
