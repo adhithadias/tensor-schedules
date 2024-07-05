@@ -15,6 +15,11 @@ then
     mkdir $DIR/test_configs
 fi
 
+if [ ! -e $DIR/temporary_json/ ]
+then
+    mkdir $DIR/temporary_json
+fi
+
 if [ ! -e $DIR/tensors_stored/ ]
 then
     mkdir $DIR/tensors_stored
