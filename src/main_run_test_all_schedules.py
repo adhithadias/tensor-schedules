@@ -13,13 +13,13 @@ from math import floor
 from time import time
 from copy import deepcopy
 from statistics import mean, stdev
-from src.gen_taco_rep import Write_Test_Code
 from src.config import Config
-from src.file_storing import read_json, read_baskets_from_json
-from src.print_help import Main_Run_Test, Print_Help_Visitor, is_valid_file_type
+from src.file_storing import read_json
+from src.print_help import is_valid_file_type
 from src.visitor import PrintConfigVisitor
 from src.testing import tests
 from src.generate_taco_schedule import UnfusedConfigToTacoVisitor
+from src.util import get_simplified_complexity
 
 ALLOWED_ELEMENT_SIZE = 2621440 # 50% of the LLC
 CONFIG_JSON_FILE_FOLDER = 'test_configs/'
@@ -219,6 +219,7 @@ def main(argv: Optional[Sequence[str]] = None):
     json_file = TEST_SCHEDULES + json_file
     test_name = new_dict["test_name"]
     out_file = new_dict["output_csv_file"]
+    constraints = new_dict["actual_values"][tensor]
     
     time_test_start = time()
     
@@ -245,14 +246,19 @@ def main(argv: Optional[Sequence[str]] = None):
         writer = csv.writer(csvfile, delimiter=',')
         
         list_times = ["Time " + str(num + 1) for num in range(NUMBER_OF_ITERATIONS-1)]
-        header_row = list_times + ['Median', 'Std', 'Config', 'Stmt', 'Schedule']
+        header_row = list_times + ['Median', 'Std', 'tc_absolute', 'mc_absolute', 'tc_symbolic', 'mc_symbolic', 'Config', 'Stmt', 'Schedule']
         writer.writerow(header_row)
         csvfile.flush()
 
         
         for iter, config in enumerate(config_list):
             
-            print_extra_message(f'\n------\n{iter}: tensor: {tensor}')
+            tc = config.time_complexity["r"] + config.time_complexity["a"]
+            mc = config.memory_complexity
+            
+            tc1, mc1 = get_simplified_complexity(tc, mc, constraints)
+            
+            print_extra_message(f'\n------\n{iter}: tensor: {tensor}, tc: {tc}, mc: {mc}, tc1: {tc1}, mc1: {mc1}')
             pc = PrintConfigVisitor(tensor_accesses)
             pc.visit(config)
             # write testing code/schedule into testing file
@@ -288,22 +294,23 @@ def main(argv: Optional[Sequence[str]] = None):
             # output_times = [0 for _ in range(NUMBER_OF_ITERATIONS)]
             # schedule_stmt = ""
             # time_to_run = re.search("(\d+) ms total", stdout_lines[-2]).groups()[0]
-                    
-            print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
-            print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
             
             schedule_stmt = re.sub("\n", "", schedule_stmt)
             # new_row = [schedule_stmt, "\n".join(get_schedule_commands_for_saving(test_code))]
             new_row = [] 
             new_row.extend(output_times)
             float_times = [float(output_time) for output_time in output_times]
-            current_exec_time = round(statistics.median(float_times),6)
-            current_exec_time_std = round(stdev(float_times),6)
+            median = round(statistics.median(float_times),6)
+            standard_deviation = round(stdev(float_times),6)
             
-            new_row.extend([current_exec_time, current_exec_time_std, config])
+            new_row.extend([median, standard_deviation, tc1, mc1, tc, mc, config])
             new_row.extend([schedule_stmt, tf.text])
+            print(new_row)
             writer.writerow(new_row)
             csvfile.flush()
+            
+            print_time_message(f'Config {iter + 1} Test Passed With 0 Errors', start_time)
+            print_time_message(f'Elapsed time: ', program_start_time, only_time=True)
             
             # del test_code
             print_message("")
